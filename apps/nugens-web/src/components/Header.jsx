@@ -38,26 +38,33 @@ export default function Header() {
   // Own auth state — never depends on context timing
   const [user,    setUser]    = useState(null);
   const [profile, setProfile] = useState(null);
+  const [authReady, setAuthReady] = useState(false); // hide Sign In until resolved
 
   useEffect(() => {
-    // Check session immediately on mount
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // onAuthStateChange fires FIRST for hash tokens (Google OAuth callback)
+    // then getSession fires — so listen to both, mark ready after either resolves
+    let resolved = false;
+    const resolve = (session) => {
       setUser(session?.user ?? null);
-      if (session?.user) {
-        supabase.from("profiles").select("*").eq("id", session.user.id).single()
-          .then(({ data }) => setProfile(data ?? null));
-      }
-    });
-    // Stay in sync with any auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null);
+      if (!resolved) { resolved = true; setAuthReady(true); }
       if (session?.user) {
         supabase.from("profiles").select("*").eq("id", session.user.id).single()
           .then(({ data }) => setProfile(data ?? null));
       } else {
         setProfile(null);
       }
+    };
+
+    // This catches hash token from Google OAuth redirect
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      resolve(session);
     });
+
+    // Fallback for normal page loads with existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      resolve(session);
+    });
+
     return () => subscription.unsubscribe();
   }, []);
 
@@ -246,8 +253,10 @@ export default function Header() {
               </span>
             </NavLink>
 
-            {/* Auth area */}
-            {user ? (
+            {/* Auth area — hidden until auth resolves to avoid flash of Sign in */}
+            {!authReady ? (
+              <div style={{ width: 120 }} />
+            ) : user ? (
               <AccountMenu
                 initials={initials} firstName={firstName} email={user.email}
                 plan={plan} planColor={planColor} planBg={planBg}
