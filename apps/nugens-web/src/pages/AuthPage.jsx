@@ -59,16 +59,31 @@ export default function AuthPage() {
             id: data.user.id, email: form.email, full_name: form.name, plan: "free", questions_used: 0
           }, { onConflict: "id", ignoreDuplicates: true });
         }
+
+        // If session exists immediately (email confirm OFF) — log them in directly
+        if (data.session) {
+          navigate(returnTo, { replace: true });
+          return;
+        }
+
         setSuccess("Account created! Check your email to confirm, then sign in.");
         setTab("login");
 
       } else {
-        // Sign in — navigate immediately after success, don't wait for onAuthStateChange
-        const { error: e2 } = await supabase.auth.signInWithPassword({
+        const { data, error: e2 } = await supabase.auth.signInWithPassword({
           email: form.email,
           password: form.password
         });
+
         if (e2) throw e2;
+
+        // CRITICAL: session can be null if email is unconfirmed even with no error
+        if (!data.session) {
+          setError("Please confirm your email before signing in. Check your inbox for a confirmation link.");
+          setLoading(false);
+          return;
+        }
+
         navigate(returnTo, { replace: true });
       }
     } catch (err) {
@@ -117,7 +132,7 @@ export default function AuthPage() {
         .goog-btn:hover { border-color:#9ca3af; box-shadow:0 2px 8px rgba(0,0,0,0.05); }
         .prod-row {
           display:flex; align-items:center; gap:12px;
-          padding:14px 20px; border-bottom:1px solid rgba(255,255,255,0.06);
+          padding:13px 20px; border-bottom:1px solid rgba(255,255,255,0.06);
         }
         .prod-row:last-child { border-bottom:none; }
         @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
@@ -128,29 +143,35 @@ export default function AuthPage() {
 
       <div style={{ minHeight:"100vh", display:"flex" }}>
 
-        {/* LEFT — dark ecosystem panel */}
+        {/* ── LEFT dark panel ── */}
         <div className="auth-left" style={{
           width:"42%", flexShrink:0, background:"#0a0a0a",
           flexDirection:"column", position:"relative", overflow:"hidden"
         }}>
+          {/* grid bg */}
           <div style={{ position:"absolute", inset:0, pointerEvents:"none",
             backgroundImage:`linear-gradient(rgba(255,255,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.03) 1px,transparent 1px)`,
             backgroundSize:"44px 44px" }} />
+          {/* glows */}
           <div style={{ position:"absolute", top:-80, left:-80, width:320, height:320,
-            borderRadius:"50%", background:PINK, filter:"blur(120px)", opacity:0.07 }} />
+            borderRadius:"50%", background:PINK, filter:"blur(120px)", opacity:0.08, pointerEvents:"none" }} />
           <div style={{ position:"absolute", bottom:-60, right:-60, width:260, height:260,
-            borderRadius:"50%", background:"#7c3aed", filter:"blur(100px)", opacity:0.06 }} />
+            borderRadius:"50%", background:"#7c3aed", filter:"blur(100px)", opacity:0.07, pointerEvents:"none" }} />
 
           <div style={{ position:"relative", zIndex:2, display:"flex", flexDirection:"column",
             height:"100%", padding:"48px 36px" }}>
+
+            {/* Logo */}
             <Link to="/" style={{ display:"flex", alignItems:"center", gap:10, textDecoration:"none", marginBottom:"auto" }}>
-              <img src="/logo.jpg" alt="Nugens" style={{ width:36, height:36, borderRadius:8, objectFit:"cover" }} />
-              <span style={{ fontWeight:800, fontSize:18, color:"#fff", letterSpacing:"-0.025em" }}>Nugens</span>
+              <img src="/ng-logo.jpg" alt="NuGens" style={{ width:38, height:38, borderRadius:9, objectFit:"cover" }} />
+              <span style={{ fontWeight:800, fontSize:18, color:"#fff", letterSpacing:"-0.025em" }}>NuGens</span>
             </Link>
 
-            <div style={{ marginBottom:40 }} className="fade-up">
+            {/* Headline */}
+            <div style={{ marginBottom:36 }} className="fade-up">
               <div style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"4px 10px",
-                border:"1px solid rgba(232,24,93,0.3)", borderRadius:6, background:"rgba(232,24,93,0.08)", marginBottom:18 }}>
+                border:"1px solid rgba(232,24,93,0.3)", borderRadius:6,
+                background:"rgba(232,24,93,0.08)", marginBottom:18 }}>
                 <span style={{ width:6, height:6, borderRadius:"50%", background:PINK }} />
                 <span style={{ fontSize:11, fontWeight:600, color:PINK, letterSpacing:"0.06em", textTransform:"uppercase" }}>One account</span>
               </div>
@@ -163,15 +184,16 @@ export default function AuthPage() {
               </p>
             </div>
 
-            <div style={{ border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, overflow:"hidden",
-              background:"rgba(255,255,255,0.02)", marginBottom:28 }} className="fade-up">
+            {/* Product list */}
+            <div style={{ border:"1px solid rgba(255,255,255,0.07)", borderRadius:12,
+              overflow:"hidden", background:"rgba(255,255,255,0.02)", marginBottom:28 }} className="fade-up">
               {PRODUCTS.map((p) => (
                 <div key={p.label} className="prod-row">
-                  <div style={{ width:34, height:34, borderRadius:8, background:`${p.color}18`,
-                    border:`1px solid ${p.color}25`, display:"flex", alignItems:"center",
-                    justifyContent:"center", fontSize:15, color:p.color, flexShrink:0 }}>{p.icon}</div>
+                  <div style={{ width:32, height:32, borderRadius:7, background:`${p.color}18`,
+                    border:`1px solid ${p.color}30`, display:"flex", alignItems:"center",
+                    justifyContent:"center", fontSize:14, color:p.color, flexShrink:0 }}>{p.icon}</div>
                   <div>
-                    <div style={{ fontSize:13.5, fontWeight:700, color:"#e8e8e8" }}>{p.label}</div>
+                    <div style={{ fontSize:13, fontWeight:700, color:"#e8e8e8" }}>{p.label}</div>
                     <div style={{ fontSize:11.5, color:"rgba(255,255,255,0.3)" }}>{p.sub}</div>
                   </div>
                 </div>
@@ -184,22 +206,27 @@ export default function AuthPage() {
           </div>
         </div>
 
-        {/* RIGHT — form */}
+        {/* ── RIGHT form ── */}
         <div style={{ flex:1, display:"flex", flexDirection:"column",
           alignItems:"center", justifyContent:"center",
           padding:"32px 24px", background:"#fff", minWidth:0 }}>
 
           <div style={{ width:"100%", maxWidth:400 }} className="fade-up">
+
+            {/* Header */}
             <div style={{ marginBottom:28, textAlign:"center" }}>
-              <Link to="/" style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:9, textDecoration:"none" }}>
-                <img src="/logo.jpg" alt="Nugens" style={{ width:32, height:32, borderRadius:7, objectFit:"cover" }} />
-                <span style={{ fontWeight:800, fontSize:17, color:"#0a0a0a", letterSpacing:"-0.025em" }}>Nugens</span>
+              <Link to="/" style={{ display:"inline-flex", alignItems:"center",
+                justifyContent:"center", gap:9, textDecoration:"none" }}>
+                <img src="/ng-logo.jpg" alt="NuGens"
+                  style={{ width:34, height:34, borderRadius:8, objectFit:"cover" }} />
+                <span style={{ fontWeight:800, fontSize:17, color:"#0a0a0a", letterSpacing:"-0.025em" }}>NuGens</span>
               </Link>
-              <div style={{ fontSize:13, color:"#9ca3af", marginTop:6 }}>
+              <div style={{ fontSize:13, color:"#9ca3af", marginTop:8 }}>
                 {tab === "login" ? "Welcome back" : "Create your free account"}
               </div>
             </div>
 
+            {/* Card */}
             <div style={{ background:"#fff", border:`1.5px solid ${B}`, borderRadius:16,
               padding:"28px 28px 24px", boxShadow:"0 4px 32px rgba(0,0,0,0.05)" }}>
 
@@ -233,6 +260,7 @@ export default function AuthPage() {
                 <div style={{ flex:1, height:1, background:B }} />
               </div>
 
+              {/* Form */}
               <form onSubmit={handleSubmit} style={{ display:"flex", flexDirection:"column", gap:14 }}>
                 {tab === "signup" && (
                   <div>
@@ -261,20 +289,25 @@ export default function AuthPage() {
 
                 {error && (
                   <div style={{ background:"#fff5f8", border:"1px solid #ffd0de", borderRadius:8,
-                    padding:"9px 12px", fontSize:12.5, color:PINK }}>⚠️ {error}</div>
+                    padding:"10px 13px", fontSize:12.5, color:PINK, lineHeight:1.5 }}>
+                    ⚠️ {error}
+                  </div>
                 )}
                 {success && (
                   <div style={{ background:"#f0fff4", border:"1px solid #b2f5c8", borderRadius:8,
-                    padding:"9px 12px", fontSize:12.5, color:"#1a7a3c" }}>✅ {success}</div>
+                    padding:"10px 13px", fontSize:12.5, color:"#1a7a3c", lineHeight:1.5 }}>
+                    ✅ {success}
+                  </div>
                 )}
 
                 <button type="submit" disabled={loading} style={{
                   width:"100%", padding:"11px 0",
-                  background: loading ? "#f0f0f0" : "#0a0a0a",
+                  background: loading ? "#f3f4f6" : "#0a0a0a",
                   border:"none", borderRadius:10,
                   fontFamily:"'Plus Jakarta Sans',sans-serif", fontWeight:700,
                   fontSize:13.5, color: loading ? "#9ca3af" : "#fff",
-                  cursor: loading ? "not-allowed" : "pointer", letterSpacing:"-0.01em"
+                  cursor: loading ? "not-allowed" : "pointer",
+                  transition:"background 0.14s"
                 }}>
                   {loading ? "Please wait…" : tab === "login" ? "Sign In →" : "Create Account →"}
                 </button>
