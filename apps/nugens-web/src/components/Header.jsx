@@ -13,7 +13,7 @@ const PRODUCTS = [
     launch:"https://hyperx.nugens.in.net",  desc:"Workplace skills, salary negotiation & interview mastery.",         bg:"#fef2f5" },
   { to:"/digihub", label:"DigiHub",            sub:"Marketing agency & community",   dot:"#0284c7", icon:"◈",
     launch:"https://digihub.nugens.in.net", desc:"Brand growth, content, SEO & career placement network.",            bg:"#eff6ff" },
-  { to:"/units",   label:"The Wedding Unit",   sub:"Wedding & event production",     dot:"#d97706", icon:"◇",
+  { to:"/units",   label:" Units",   sub:"Media production",     dot:"#d97706", icon:"◇",
     launch:"https://units.nugens.in.net",   desc:"Cinematography, photography, editing & brand content studio.",      bg:"#fff7ed" },
 ];
 
