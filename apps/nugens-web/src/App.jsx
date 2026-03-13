@@ -42,28 +42,31 @@ export default function App() {
   const [profile, setProfile] = useState(null);
   const [ready,   setReady]   = useState(false);
 
+  // Fetch profile silently — never blocks rendering
   const fetchProfile = async (uid) => {
     const { data } = await supabase.from("profiles").select("*").eq("id", uid).single();
     setProfile(data ?? null);
-    setReady(true);
   };
 
   useEffect(() => {
+    // Initial session check — set user + ready IMMEDIATELY, don't wait for profile
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      setReady(true); // <-- unblock render right away
       if (session?.user) fetchProfile(session.user.id);
-      else setReady(true);
     });
 
+    // Auth state changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null);
+      setUser(session?.user ?? null); // update header instantly
       if (session?.user) fetchProfile(session.user.id);
-      else { setProfile(null); setReady(true); }
+      else setProfile(null);
     });
+
     return () => subscription.unsubscribe();
   }, []);
 
-  /* Block render until session resolves */
+  // Only block on very first load (ready = false means getSession hasn't returned yet)
   if (!ready) return (
     <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"#fff" }}>
       <div style={{ fontWeight:800, fontSize:26, color:"#e8185d", letterSpacing:"-0.04em",
@@ -72,7 +75,6 @@ export default function App() {
   );
 
   return (
-    /* BrowserRouter MUST be the outermost wrapper so navigate() works everywhere */
     <BrowserRouter>
       <AuthContext.Provider value={{ user, profile, ready }}>
         <Suspense fallback={<Spinner />}>
