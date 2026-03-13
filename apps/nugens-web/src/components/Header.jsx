@@ -8,7 +8,7 @@ const PRODUCTS = [
   { to: "/hyperx",  label: "HyperX",           sub: "Professional learning platform",   dot: PINK },
   { to: "/gene",    label: "Gen-E AI",          sub: "AI career intelligence",           dot: "#7c3aed" },
   { to: "/digihub", label: "DigiHub",           sub: "Marketing agency & community",     dot: "#0284c7" },
-  { href: "https://theweddingunit.in.net", label: "The Wedding Unit", sub: "Photography & production studio", dot: "#d97706" },
+  { to: "/units",   label: "The Units",         sub: "Photography & production studio",    dot: "#d97706" },
 ];
 
 const COMPANY = [
