@@ -1,0 +1,3 @@
+VITE_SUPABASE_URL=https://qllvyqdzpxgubiuujhbm.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsbHZ5cWR6cHhndWJpdXVqaGJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzNTY4MjgsImV4cCI6MjA4NzkzMjgyOH0.OOP-s4eOl-oYdCrGFONIROv3_mx05d212ZyEfPmCHRg--
+VITE_GEN_E_API_URL=https://gene-backend-al5h.onrender.com
