@@ -1,17 +1,15 @@
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
 export default function ProtectedRoute({ children }) {
-  const [state, setState] = useState("loading"); // "loading" | "auth" | "unauth"
+  const [state, setState] = useState("loading");
+  const location = useLocation();
 
   useEffect(() => {
-    // Always check live session from Supabase — never trust React state timing
     supabase.auth.getSession().then(({ data: { session } }) => {
       setState(session ? "auth" : "unauth");
     });
-
-    // Also listen for changes (handles logout mid-session)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setState(session ? "auth" : "unauth");
     });
@@ -24,6 +22,9 @@ export default function ProtectedRoute({ children }) {
     </div>
   );
 
-  if (state === "unauth") return <Navigate to="/auth" replace />;
+  if (state === "unauth") return (
+    <Navigate to="/auth" state={{ from: location.pathname }} replace />
+  );
+
   return children;
 }

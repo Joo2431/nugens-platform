@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
 const PINK = "#e8185d";
@@ -13,7 +13,9 @@ const PRODUCTS = [
 ];
 
 export default function AuthPage() {
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const returnTo  = location.state?.from || "/";
   const [tab,           setTab]           = useState("login");
   const [form,          setForm]          = useState({ name: "", email: "", password: "", confirm: "" });
   const [loading,       setLoading]       = useState(false);
@@ -23,7 +25,7 @@ export default function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) navigate("/dashboard", { replace: true });
+      if (session) navigate(returnTo, { replace: true });
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session) {
@@ -37,7 +39,7 @@ export default function AuthPage() {
           questions_used: 0,
         }, { onConflict: "id", ignoreDuplicates: true });
         // Small delay lets App.jsx AuthContext update user state before ProtectedRoute checks
-        navigate("/dashboard", { replace: true });
+        navigate(returnTo, { replace: true });
       }
     });
     return () => subscription.unsubscribe();
