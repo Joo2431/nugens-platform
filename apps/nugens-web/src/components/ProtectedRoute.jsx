@@ -3,26 +3,27 @@ import { Navigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
 export default function ProtectedRoute({ children }) {
-  const [session, setSession] = useState(undefined); // undefined = loading
+  const [state, setState] = useState("loading"); // "loading" | "auth" | "unauth"
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    // Always check live session from Supabase — never trust React state timing
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setState(session ? "auth" : "unauth");
+    });
+
+    // Also listen for changes (handles logout mid-session)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setState(session ? "auth" : "unauth");
+    });
     return () => subscription.unsubscribe();
   }, []);
 
-  if (session === undefined) {
-    // Loading spinner
-    return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#fff" }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 28, fontStyle: "italic", color: "#e8185d", letterSpacing: "-0.04em", marginBottom: 12 }}>GEN-E</div>
-          <div style={{ color: "#ccc", fontSize: 13 }}>Loading…</div>
-        </div>
-      </div>
-    );
-  }
+  if (state === "loading") return (
+    <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ fontWeight: 800, fontSize: 22, color: "#e8185d", letterSpacing: "-0.04em" }}>NuGens</div>
+    </div>
+  );
 
-  if (!session) return <Navigate to="/auth" replace />;
+  if (state === "unauth") return <Navigate to="/auth" replace />;
   return children;
 }

@@ -37,7 +37,7 @@ export default function AuthPage() {
           questions_used: 0,
         }, { onConflict: "id", ignoreDuplicates: true });
         // Small delay lets App.jsx AuthContext update user state before ProtectedRoute checks
-        setTimeout(() => navigate("/dashboard", { replace: true }), 100);
+        navigate("/dashboard", { replace: true });
       }
     });
     return () => subscription.unsubscribe();
