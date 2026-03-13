@@ -13,6 +13,7 @@ const Support     = lazy(() => import("./pages/Support"));
 const GenE        = lazy(() => import("./pages/GenE"));
 const HyperX      = lazy(() => import("./pages/HyperX"));
 const DigiHub     = lazy(() => import("./pages/DigiHub"));
+const Units       = lazy(() => import("./pages/Units"));
 const AuthPage    = lazy(() => import("./pages/AuthPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
 const Dashboard   = lazy(() => import("./pages/Dashboard"));
@@ -51,6 +52,7 @@ export default function App() {
           <Route path="/gene"     element={<Layout><GenE /></Layout>} />
           <Route path="/hyperx"   element={<Layout><HyperX /></Layout>} />
           <Route path="/digihub"  element={<Layout><DigiHub /></Layout>} />
+          <Route path="/units"    element={<Layout><Units /></Layout>} />
           <Route path="/pricing"  element={<Layout><PricingPage /></Layout>} />
 
           {/* ── Auth (no Header/Footer) ── */}
