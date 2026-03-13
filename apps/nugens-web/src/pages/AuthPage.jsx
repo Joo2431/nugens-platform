@@ -3,27 +3,30 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
 const PINK = "#e8185d";
+const B    = "#f0f0f0";
+
+const PRODUCTS = [
+  { icon: "◎", label: "Gen-E AI",          sub: "Career intelligence & resume AI",    color: "#7c3aed", bg: "#ede9fe" },
+  { icon: "⬡", label: "HyperX",            sub: "Professional skills training",       color: PINK,      bg: "#fef2f5" },
+  { icon: "◈", label: "DigiHub",           sub: "Marketing agency & community",       color: "#0284c7", bg: "#eff6ff" },
+  { icon: "◇", label: "The Wedding Unit",  sub: "Wedding & event production",         color: "#d97706", bg: "#fff7ed" },
+];
 
 export default function AuthPage() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState("login"); // "login" | "signup"
-  const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" });
-  const [loading, setLoading] = useState(false);
+  const [tab,           setTab]           = useState("login");
+  const [form,          setForm]          = useState({ name: "", email: "", password: "", confirm: "" });
+  const [loading,       setLoading]       = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [error,         setError]         = useState("");
+  const [success,       setSuccess]       = useState("");
 
-  // Redirect if already logged in OR when Google OAuth session arrives
   useEffect(() => {
-    // Check existing session on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) navigate("/dashboard", { replace: true });
     });
-
-    // Listen for auth state changes — this catches Google OAuth callback
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session) {
-        // Ensure profile row exists for Google OAuth users
         await supabase.from("profiles").upsert({
           id: session.user.id,
           email: session.user.email,
@@ -32,150 +35,220 @@ export default function AuthPage() {
           plan: "free",
           questions_used: 0,
         }, { onConflict: "id", ignoreDuplicates: true });
-
         navigate("/dashboard", { replace: true });
       }
     });
-
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const handleChange = (e) => {
-    setForm(f => ({ ...f, [e.target.name]: e.target.value }));
-    setError("");
-  };
+  const handleChange = (e) => { setForm(f => ({ ...f, [e.target.name]: e.target.value })); setError(""); };
 
-  /* ── EMAIL / PASSWORD ── */
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
+    e.preventDefault(); setError(""); setLoading(true);
     try {
       if (tab === "signup") {
-        if (!form.name.trim()) { setError("Please enter your full name."); setLoading(false); return; }
-        if (form.password !== form.confirm) { setError("Passwords do not match."); setLoading(false); return; }
-        if (form.password.length < 6) { setError("Password must be at least 6 characters."); setLoading(false); return; }
-
-        const { data, error: signUpError } = await supabase.auth.signUp({
-          email: form.email,
-          password: form.password,
+        if (!form.name.trim())                  { setError("Please enter your full name.");        setLoading(false); return; }
+        if (form.password !== form.confirm)     { setError("Passwords do not match.");             setLoading(false); return; }
+        if (form.password.length < 6)           { setError("Password must be at least 6 chars."); setLoading(false); return; }
+        const { data, error: e2 } = await supabase.auth.signUp({
+          email: form.email, password: form.password,
           options: { data: { full_name: form.name } }
         });
-        if (signUpError) throw signUpError;
-
-        // Create profile row
+        if (e2) throw e2;
         if (data.user) {
           await supabase.from("profiles").upsert({
-            id: data.user.id,
-            email: form.email,
-            full_name: form.name,
-            plan: "free",
-            questions_used: 0
+            id: data.user.id, email: form.email, full_name: form.name, plan: "free", questions_used: 0
           });
         }
-        setSuccess("Account created! Check your email to confirm, then login.");
+        setSuccess("Account created! Check your email to confirm, then sign in.");
         setTab("login");
       } else {
-        const { error: loginError } = await supabase.auth.signInWithPassword({
-          email: form.email,
-          password: form.password
-        });
-        if (loginError) throw loginError;
+        const { error: e2 } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
+        if (e2) throw e2;
         navigate("/dashboard", { replace: true });
       }
-    } catch (err) {
-      setError(err.message || "Something went wrong.");
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { setError(err.message || "Something went wrong."); }
+    finally      { setLoading(false); }
   };
 
-  /* ── GOOGLE OAUTH ── */
   const handleGoogle = async () => {
-    setGoogleLoading(true);
-    setError("");
-    const { error } = await supabase.auth.signInWithOAuth({
+    setGoogleLoading(true); setError("");
+    const { error: e2 } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/dashboard` }
     });
-    if (error) { setError(error.message); setGoogleLoading(false); }
+    if (e2) { setError(e2.message); setGoogleLoading(false); }
   };
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap');
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body, #root { height: 100%; font-family: 'DM Sans', sans-serif; background: #fff; }
-        input:focus { outline: none; }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+        html, body, #root { height:100%; font-family:'Plus Jakarta Sans',sans-serif; background:#fff; }
+        input:focus { outline:none; }
+
+        .auth-input {
+          width:100%; padding:10px 13px; font-size:13.5px; color:#0a0a0a;
+          font-family:'Plus Jakarta Sans',sans-serif; background:#fafafa;
+          border:1.5px solid #ececec; border-radius:9px; transition:border-color 0.15s;
+        }
+        .auth-input:focus { border-color:#0a0a0a; background:#fff; }
+
+        .auth-label {
+          font-size:11.5px; font-weight:600; color:#374151;
+          display:block; margin-bottom:5px;
+        }
+
+        .auth-tab {
+          flex:1; padding:8px 0; border:none; border-radius:8px;
+          font-family:'Plus Jakarta Sans',sans-serif; font-weight:600;
+          font-size:12.5px; cursor:pointer; transition:all 0.13s;
+        }
+
+        .goog-btn {
+          width:100%; padding:10px 0; background:#fff;
+          border:1.5px solid #e8e8e8; border-radius:10px; cursor:pointer;
+          display:flex; align-items:center; justify-content:center; gap:10px;
+          font-size:13.5px; font-family:'Plus Jakarta Sans',sans-serif;
+          font-weight:500; color:#374151; transition:border-color 0.15s, box-shadow 0.15s;
+        }
+        .goog-btn:hover { border-color:#9ca3af; box-shadow:0 2px 8px rgba(0,0,0,0.05); }
+
+        .prod-row {
+          display:flex; align-items:center; gap:12px;
+          padding:14px 20px; border-bottom:1px solid rgba(255,255,255,0.06);
+        }
+        .prod-row:last-child { border-bottom:none; }
+
+        @keyframes fadeUp {
+          from { opacity:0; transform:translateY(8px); }
+          to   { opacity:1; transform:translateY(0); }
+        }
+        .fade-up { animation:fadeUp 0.4s ease both; }
+
+        .auth-left { display:none; }
+        @media (min-width:860px) { .auth-left { display:flex !important; } }
       `}</style>
 
-      <div style={{ minHeight: "100vh", display: "flex", background: "#fff" }}>
-        {/* Left panel - branding */}
-        <div style={{
-          flex: 1, display: "none", flexDirection: "column", alignItems: "center", justifyContent: "center",
-          background: "linear-gradient(135deg, #fff 0%, #fff5f8 60%, #ffd0de 100%)",
-          padding: 48, position: "relative", overflow: "hidden"
-        }} className="auth-left">
-          <div style={{ position: "absolute", width: 400, height: 400, borderRadius: "50%", background: "rgba(232,24,93,0.06)", top: -100, right: -100 }} />
-          <div style={{ position: "absolute", width: 250, height: 250, borderRadius: "50%", background: "rgba(232,24,93,0.04)", bottom: 50, left: -80 }} />
-          <div style={{ textAlign: "center", position: "relative", zIndex: 1 }}>
-            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 52, fontStyle: "italic", color: PINK, letterSpacing: "-0.04em", marginBottom: 8 }}>GEN-E</div>
-            <div style={{ fontSize: 13, color: "#999", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 32 }}>Career AI by Nugens</div>
-            <div style={{ fontSize: 18, fontWeight: 600, color: "#222", lineHeight: 1.6, maxWidth: 320, marginBottom: 24 }}>
-              Your AI-powered career intelligence assistant
+      <div style={{ minHeight:"100vh", display:"flex" }}>
+
+        {/* ══════════ LEFT — dark ecosystem panel ══════════ */}
+        <div className="auth-left" style={{
+          width:"42%", flexShrink:0,
+          background:"#0a0a0a",
+          flexDirection:"column",
+          position:"relative", overflow:"hidden"
+        }}>
+          {/* subtle grid bg */}
+          <div style={{
+            position:"absolute", inset:0, pointerEvents:"none",
+            backgroundImage:`linear-gradient(rgba(255,255,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.03) 1px,transparent 1px)`,
+            backgroundSize:"44px 44px"
+          }} />
+          {/* pink glow */}
+          <div style={{ position:"absolute", top:-80, left:-80, width:320, height:320,
+            borderRadius:"50%", background:PINK, filter:"blur(120px)", opacity:0.07, pointerEvents:"none" }} />
+          <div style={{ position:"absolute", bottom:-60, right:-60, width:260, height:260,
+            borderRadius:"50%", background:"#7c3aed", filter:"blur(100px)", opacity:0.06, pointerEvents:"none" }} />
+
+          <div style={{ position:"relative", zIndex:2, display:"flex", flexDirection:"column",
+            height:"100%", padding:"48px 36px" }}>
+
+            {/* Logo */}
+            <Link to="/" style={{ display:"flex", alignItems:"center", gap:10, textDecoration:"none", marginBottom:"auto" }}>
+              <img src="/logo.jpg" alt="Nugens" style={{ width:36, height:36, borderRadius:8, objectFit:"cover" }} />
+              <span style={{ fontWeight:800, fontSize:18, color:"#fff", letterSpacing:"-0.025em" }}>Nugens</span>
+            </Link>
+
+            {/* Main copy */}
+            <div style={{ marginBottom:40 }} className="fade-up">
+              <div style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"4px 10px",
+                border:"1px solid rgba(232,24,93,0.3)", borderRadius:6, background:"rgba(232,24,93,0.08)",
+                marginBottom:18 }}>
+                <span style={{ width:6, height:6, borderRadius:"50%", background:PINK }} />
+                <span style={{ fontSize:11, fontWeight:600, color:PINK, letterSpacing:"0.06em", textTransform:"uppercase" }}>One account</span>
+              </div>
+              <h1 style={{ fontSize:"clamp(22px,2.8vw,30px)", fontWeight:800, color:"#fff",
+                lineHeight:1.2, letterSpacing:"-0.03em", marginBottom:12 }}>
+                One login.<br />Every NuGens product.
+              </h1>
+              <p style={{ fontSize:13.5, color:"rgba(255,255,255,0.4)", lineHeight:1.72, maxWidth:280 }}>
+                Sign in once and access all four products — from career AI to production studio — under one account.
+              </p>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12, textAlign: "left" }}>
-              {["🎯 Personalized career roadmaps", "📄 ATS-optimized resume builder", "🎤 Interview prep & mock practice", "📊 Career readiness scoring"].map(f => (
-                <div key={f} style={{ fontSize: 13.5, color: "#555", display: "flex", alignItems: "center", gap: 8 }}>
-                  <span>{f}</span>
+
+            {/* Product list */}
+            <div style={{ border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, overflow:"hidden",
+              background:"rgba(255,255,255,0.02)", marginBottom:28 }} className="fade-up">
+              {PRODUCTS.map((p, i) => (
+                <div key={p.label} className="prod-row"
+                  style={{ animationDelay:`${i * 60}ms` }}>
+                  <div style={{ width:34, height:34, borderRadius:8, background:`${p.color}18`,
+                    border:`1px solid ${p.color}25`, display:"flex", alignItems:"center",
+                    justifyContent:"center", fontSize:15, color:p.color, flexShrink:0 }}>
+                    {p.icon}
+                  </div>
+                  <div>
+                    <div style={{ fontSize:13.5, fontWeight:700, color:"#e8e8e8",
+                      fontFamily:"'Plus Jakarta Sans',sans-serif" }}>{p.label}</div>
+                    <div style={{ fontSize:11.5, color:"rgba(255,255,255,0.3)",
+                      fontFamily:"'Plus Jakarta Sans',sans-serif" }}>{p.sub}</div>
+                  </div>
                 </div>
               ))}
             </div>
+
+            {/* Bottom note */}
+            <p style={{ fontSize:11.5, color:"rgba(255,255,255,0.2)", lineHeight:1.6 }}>
+              Free plan · No credit card needed · Upgrade anytime
+            </p>
           </div>
         </div>
 
-        {/* Right panel - form */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 20px", minWidth: 0 }}>
-          <div style={{ width: "100%", maxWidth: 400 }}>
-            {/* Logo */}
-            <div style={{ textAlign: "center", marginBottom: 28 }}>
-              <Link to="/" style={{ textDecoration: "none" }}>
-                <span style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 32, fontStyle: "italic", color: PINK, letterSpacing: "-0.04em" }}>GEN-E</span>
-              </Link>
-              <div style={{ fontSize: 13, color: "#aaa", marginTop: 4 }}>Career AI Assistant</div>
+        {/* ══════════ RIGHT — form ══════════ */}
+        <div style={{ flex:1, display:"flex", flexDirection:"column",
+          alignItems:"center", justifyContent:"center",
+          padding:"32px 24px", background:"#fff", minWidth:0 }}>
+
+          <div style={{ width:"100%", maxWidth:400 }} className="fade-up">
+
+            {/* Header */}
+            <div style={{ marginBottom:28, textAlign:"center" }}>
+              {/* Mobile logo */}
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:9, marginBottom:4 }}
+                className="auth-mobile-logo">
+                <Link to="/" style={{ display:"flex", alignItems:"center", gap:9, textDecoration:"none" }}>
+                  <img src="/logo.jpg" alt="Nugens" style={{ width:32, height:32, borderRadius:7, objectFit:"cover" }} />
+                  <span style={{ fontWeight:800, fontSize:17, color:"#0a0a0a", letterSpacing:"-0.025em" }}>Nugens</span>
+                </Link>
+              </div>
+              <div style={{ fontSize:13, color:"#9ca3af", marginTop:6 }}>
+                {tab === "login" ? "Welcome back" : "Create your free account"}
+              </div>
             </div>
 
             {/* Card */}
-            <div style={{ background: "#fff", border: "1.5px solid #f0f0f0", borderRadius: 18, padding: "28px 28px 24px", boxShadow: "0 4px 32px rgba(0,0,0,0.06)" }}>
+            <div style={{ background:"#fff", border:`1.5px solid ${B}`, borderRadius:16,
+              padding:"28px 28px 24px", boxShadow:"0 4px 32px rgba(0,0,0,0.05)" }}>
+
               {/* Tabs */}
-              <div style={{ display: "flex", background: "#fafafa", borderRadius: 10, padding: 3, marginBottom: 24 }}>
-                {["login", "signup"].map(t => (
-                  <button key={t} onClick={() => { setTab(t); setError(""); setSuccess(""); }}
+              <div style={{ display:"flex", background:"#f3f4f6", borderRadius:10, padding:3, marginBottom:22 }}>
+                {[["login","Sign In"],["signup","Create Account"]].map(([t, l]) => (
+                  <button key={t} className="auth-tab"
+                    onClick={() => { setTab(t); setError(""); setSuccess(""); }}
                     style={{
-                      flex: 1, padding: "8px 0", border: "none", borderRadius: 8,
-                      background: tab === t ? "#fff" : "transparent",
-                      boxShadow: tab === t ? "0 1px 6px rgba(0,0,0,0.08)" : "none",
-                      fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 12.5,
-                      color: tab === t ? PINK : "#aaa", cursor: "pointer",
-                      textTransform: "capitalize", letterSpacing: "0.03em"
-                    }}>{t === "login" ? "Sign In" : "Create Account"}</button>
+                      background: tab===t ? "#fff" : "transparent",
+                      boxShadow: tab===t ? "0 1px 6px rgba(0,0,0,0.08)" : "none",
+                      color: tab===t ? "#0a0a0a" : "#9ca3af",
+                    }}>
+                    {l}
+                  </button>
                 ))}
               </div>
 
-              {/* Google button */}
-              <button onClick={handleGoogle} disabled={googleLoading}
-                style={{
-                  width: "100%", padding: "10px 0", background: "#fff",
-                  border: "1.5px solid #e8e8e8", borderRadius: 10, cursor: "pointer",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-                  fontSize: 13.5, fontFamily: "'DM Sans',sans-serif", fontWeight: 500, color: "#333",
-                  marginBottom: 18, transition: "border-color 0.15s"
-                }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = "#ffd0de"}
-                onMouseLeave={e => e.currentTarget.style.borderColor = "#e8e8e8"}
-              >
+              {/* Google */}
+              <button className="goog-btn" onClick={handleGoogle} disabled={googleLoading}>
                 <svg width="16" height="16" viewBox="0 0 24 24">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                   <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -185,102 +258,85 @@ export default function AuthPage() {
                 {googleLoading ? "Connecting…" : "Continue with Google"}
               </button>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-                <div style={{ flex: 1, height: 1, background: "#f0f0f0" }} />
-                <span style={{ fontSize: 11, color: "#ccc" }}>or</span>
-                <div style={{ flex: 1, height: 1, background: "#f0f0f0" }} />
+              <div style={{ display:"flex", alignItems:"center", gap:10, margin:"16px 0" }}>
+                <div style={{ flex:1, height:1, background:B }} />
+                <span style={{ fontSize:11, color:"#d1d5db" }}>or</span>
+                <div style={{ flex:1, height:1, background:B }} />
               </div>
 
               {/* Form */}
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit} style={{ display:"flex", flexDirection:"column", gap:14 }}>
                 {tab === "signup" && (
-                  <div style={{ marginBottom: 14 }}>
-                    <label style={{ fontSize: 11.5, fontWeight: 600, color: "#666", display: "block", marginBottom: 5, fontFamily: "'Syne',sans-serif" }}>Full Name</label>
-                    <input name="name" value={form.name} onChange={handleChange} placeholder="Aarav Kumar" required
-                      style={{ width: "100%", padding: "10px 13px", border: "1.5px solid #ececec", borderRadius: 9, fontSize: 13.5, color: "#222", fontFamily: "'DM Sans',sans-serif", background: "#fafafa" }}
-                      onFocus={e => e.target.style.borderColor = PINK}
-                      onBlur={e => e.target.style.borderColor = "#ececec"}
-                    />
+                  <div>
+                    <label className="auth-label">Full Name</label>
+                    <input className="auth-input" name="name" value={form.name}
+                      onChange={handleChange} placeholder="Aarav Kumar" required />
                   </div>
                 )}
-
-                <div style={{ marginBottom: 14 }}>
-                  <label style={{ fontSize: 11.5, fontWeight: 600, color: "#666", display: "block", marginBottom: 5, fontFamily: "'Syne',sans-serif" }}>Email Address</label>
-                  <input name="email" type="email" value={form.email} onChange={handleChange} placeholder="you@email.com" required
-                    style={{ width: "100%", padding: "10px 13px", border: "1.5px solid #ececec", borderRadius: 9, fontSize: 13.5, color: "#222", fontFamily: "'DM Sans',sans-serif", background: "#fafafa" }}
-                    onFocus={e => e.target.style.borderColor = PINK}
-                    onBlur={e => e.target.style.borderColor = "#ececec"}
-                  />
+                <div>
+                  <label className="auth-label">Email Address</label>
+                  <input className="auth-input" name="email" type="email" value={form.email}
+                    onChange={handleChange} placeholder="you@email.com" required />
                 </div>
-
-                <div style={{ marginBottom: tab === "signup" ? 14 : 20 }}>
-                  <label style={{ fontSize: 11.5, fontWeight: 600, color: "#666", display: "block", marginBottom: 5, fontFamily: "'Syne',sans-serif" }}>Password</label>
-                  <input name="password" type="password" value={form.password} onChange={handleChange} placeholder="••••••••" required
-                    style={{ width: "100%", padding: "10px 13px", border: "1.5px solid #ececec", borderRadius: 9, fontSize: 13.5, color: "#222", fontFamily: "'DM Sans',sans-serif", background: "#fafafa" }}
-                    onFocus={e => e.target.style.borderColor = PINK}
-                    onBlur={e => e.target.style.borderColor = "#ececec"}
-                  />
+                <div>
+                  <label className="auth-label">Password</label>
+                  <input className="auth-input" name="password" type="password" value={form.password}
+                    onChange={handleChange} placeholder="••••••••" required />
                 </div>
-
                 {tab === "signup" && (
-                  <div style={{ marginBottom: 20 }}>
-                    <label style={{ fontSize: 11.5, fontWeight: 600, color: "#666", display: "block", marginBottom: 5, fontFamily: "'Syne',sans-serif" }}>Confirm Password</label>
-                    <input name="confirm" type="password" value={form.confirm} onChange={handleChange} placeholder="••••••••" required
-                      style={{ width: "100%", padding: "10px 13px", border: "1.5px solid #ececec", borderRadius: 9, fontSize: 13.5, color: "#222", fontFamily: "'DM Sans',sans-serif", background: "#fafafa" }}
-                      onFocus={e => e.target.style.borderColor = PINK}
-                      onBlur={e => e.target.style.borderColor = "#ececec"}
-                    />
+                  <div>
+                    <label className="auth-label">Confirm Password</label>
+                    <input className="auth-input" name="confirm" type="password" value={form.confirm}
+                      onChange={handleChange} placeholder="••••••••" required />
                   </div>
                 )}
 
                 {error && (
-                  <div style={{ background: "#fff5f8", border: "1px solid #ffd0de", borderRadius: 8, padding: "9px 12px", marginBottom: 14, fontSize: 12.5, color: PINK }}>
+                  <div style={{ background:"#fff5f8", border:"1px solid #ffd0de", borderRadius:8,
+                    padding:"9px 12px", fontSize:12.5, color:PINK }}>
                     ⚠️ {error}
                   </div>
                 )}
                 {success && (
-                  <div style={{ background: "#f0fff4", border: "1px solid #b2f5c8", borderRadius: 8, padding: "9px 12px", marginBottom: 14, fontSize: 12.5, color: "#1a7a3c" }}>
+                  <div style={{ background:"#f0fff4", border:"1px solid #b2f5c8", borderRadius:8,
+                    padding:"9px 12px", fontSize:12.5, color:"#1a7a3c" }}>
                     ✅ {success}
                   </div>
                 )}
 
-                <button type="submit" disabled={loading}
-                  style={{
-                    width: "100%", padding: "11px 0",
-                    background: loading ? "#f0f0f0" : PINK,
-                    border: "none", borderRadius: 10,
-                    fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 13,
-                    color: loading ? "#ccc" : "#fff", cursor: loading ? "not-allowed" : "pointer",
-                    letterSpacing: "0.04em"
-                  }}
-                >
+                <button type="submit" disabled={loading} style={{
+                  width:"100%", padding:"11px 0",
+                  background: loading ? "#f0f0f0" : "#0a0a0a",
+                  border:"none", borderRadius:10,
+                  fontFamily:"'Plus Jakarta Sans',sans-serif", fontWeight:700,
+                  fontSize:13.5, color: loading ? "#9ca3af" : "#fff",
+                  cursor: loading ? "not-allowed" : "pointer",
+                  letterSpacing:"-0.01em", transition:"background 0.14s"
+                }}>
                   {loading ? "Please wait…" : tab === "login" ? "Sign In →" : "Create Account →"}
                 </button>
               </form>
 
               {tab === "login" && (
-                <div style={{ textAlign: "center", marginTop: 14, fontSize: 12, color: "#aaa" }}>
-                  Don't have an account?{" "}
-                  <button onClick={() => setTab("signup")} style={{ background: "none", border: "none", color: PINK, fontWeight: 600, cursor: "pointer", fontSize: 12 }}>
-                    Sign up free
+                <div style={{ textAlign:"center", marginTop:14, fontSize:12.5, color:"#9ca3af" }}>
+                  New to NuGens?{" "}
+                  <button onClick={() => setTab("signup")}
+                    style={{ background:"none", border:"none", color:PINK, fontWeight:700,
+                      cursor:"pointer", fontSize:12.5, fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
+                    Create a free account
                   </button>
                 </div>
               )}
             </div>
 
-            {/* Plan teaser */}
-            <div style={{ textAlign: "center", marginTop: 16, fontSize: 11.5, color: "#bbb" }}>
-              🎯 Start free with 20 questions · Upgrade anytime from ₹99/mo
+            {/* Plan note */}
+            <div style={{ textAlign:"center", marginTop:16, fontSize:11.5, color:"#c0c0c0",
+              fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
+              Free plan · 20 queries · Upgrade from ₹99/mo
             </div>
           </div>
         </div>
       </div>
-
-      <style>{`
-        @media (min-width: 768px) {
-          .auth-left { display: flex !important; }
-        }
-      `}</style>
     </>
   );
 }
