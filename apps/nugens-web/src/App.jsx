@@ -6,9 +6,7 @@ import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Home from "./pages/Home";
 
-/* ─────────────────────────────────────────────
-   Auth context — available to every component
-───────────────────────────────────────────── */
+/* ── Auth context ── */
 export const AuthContext = createContext({ user: null, profile: null, ready: false });
 export const useAuth = () => useContext(AuthContext);
 
@@ -44,14 +42,19 @@ export default function App() {
   const [profile, setProfile] = useState(null);
   const [ready,   setReady]   = useState(false);
 
+  const fetchProfile = async (uid) => {
+    const { data } = await supabase.from("profiles").select("*").eq("id", uid).single();
+    setProfile(data ?? null);
+    setReady(true);
+  };
+
   useEffect(() => {
-    /* initial session check */
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) fetchProfile(session.user.id);
       else setReady(true);
     });
-    /* listen for auth changes (login, logout, token refresh) */
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null);
       if (session?.user) fetchProfile(session.user.id);
@@ -60,24 +63,18 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchProfile = async (uid) => {
-    const { data } = await supabase.from("profiles").select("*").eq("id", uid).single();
-    setProfile(data ?? null);
-    setReady(true);
-  };
-
-  /* hold render until session resolves — prevents flash */
+  /* Block render until session resolves */
   if (!ready) return (
-    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center",
-      background:"#fff" }}>
+    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"#fff" }}>
       <div style={{ fontWeight:800, fontSize:26, color:"#e8185d", letterSpacing:"-0.04em",
         fontFamily:"'Plus Jakarta Sans',sans-serif" }}>NuGens</div>
     </div>
   );
 
   return (
-    <AuthContext.Provider value={{ user, profile, ready }}>
-      <BrowserRouter>
+    /* BrowserRouter MUST be the outermost wrapper so navigate() works everywhere */
+    <BrowserRouter>
+      <AuthContext.Provider value={{ user, profile, ready }}>
         <Suspense fallback={<Spinner />}>
           <Routes>
             {/* public */}
@@ -93,7 +90,7 @@ export default function App() {
             <Route path="/digihub"  element={<Layout><DigiHub /></Layout>} />
             <Route path="/units"    element={<Layout><Units /></Layout>} />
             <Route path="/pricing"  element={<Layout><PricingPage /></Layout>} />
-            {/* auth — no header/footer */}
+            {/* auth */}
             <Route path="/auth"     element={<AuthPage />} />
             <Route path="/login"    element={<Navigate to="/auth" replace />} />
             <Route path="/signup"   element={<Navigate to="/auth?mode=signup" replace />} />
@@ -103,7 +100,7 @@ export default function App() {
             <Route path="*"         element={<Layout><Home /></Layout>} />
           </Routes>
         </Suspense>
-      </BrowserRouter>
-    </AuthContext.Provider>
+      </AuthContext.Provider>
+    </BrowserRouter>
   );
 }

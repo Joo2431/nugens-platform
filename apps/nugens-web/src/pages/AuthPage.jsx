@@ -6,16 +6,17 @@ const PINK = "#e8185d";
 const B    = "#f0f0f0";
 
 const PRODUCTS = [
-  { icon: "◎", label: "Gen-E AI",          sub: "Career intelligence & resume AI",    color: "#7c3aed", bg: "#ede9fe" },
-  { icon: "⬡", label: "HyperX",            sub: "Professional skills training",       color: PINK,      bg: "#fef2f5" },
-  { icon: "◈", label: "DigiHub",           sub: "Marketing agency & community",       color: "#0284c7", bg: "#eff6ff" },
-  { icon: "◇", label: "The Wedding Unit",  sub: "Wedding & event production",         color: "#d97706", bg: "#fff7ed" },
+  { icon: "◎", label: "Gen-E AI",         sub: "Career intelligence & resume AI",  color: "#7c3aed" },
+  { icon: "⬡", label: "HyperX",           sub: "Professional skills training",     color: PINK      },
+  { icon: "◈", label: "DigiHub",          sub: "Marketing agency & community",     color: "#0284c7" },
+  { icon: "◇", label: "The Wedding Unit", sub: "Wedding & event production",       color: "#d97706" },
 ];
 
 export default function AuthPage() {
-  const navigate  = useNavigate();
-  const location  = useLocation();
-  const returnTo  = location.state?.from || "/";
+  const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = location.state?.from || "/";
+
   const [tab,           setTab]           = useState("login");
   const [form,          setForm]          = useState({ name: "", email: "", password: "", confirm: "" });
   const [loading,       setLoading]       = useState(false);
@@ -23,64 +24,66 @@ export default function AuthPage() {
   const [error,         setError]         = useState("");
   const [success,       setSuccess]       = useState("");
 
+  // If already logged in, skip the auth page
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) navigate(returnTo, { replace: true });
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session) {
-        // Upsert profile for new/OAuth users
-        await supabase.from("profiles").upsert({
-          id: session.user.id,
-          email: session.user.email,
-          full_name: session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "",
-          avatar_url: session.user.user_metadata?.avatar_url || "",
-          plan: "free",
-          questions_used: 0,
-        }, { onConflict: "id", ignoreDuplicates: true });
-        // Small delay lets App.jsx AuthContext update user state before ProtectedRoute checks
-        navigate(returnTo, { replace: true });
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, []); // eslint-disable-line
 
-  const handleChange = (e) => { setForm(f => ({ ...f, [e.target.name]: e.target.value })); setError(""); };
+  const handleChange = (e) => {
+    setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+    setError("");
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); setError(""); setLoading(true);
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
     try {
       if (tab === "signup") {
-        if (!form.name.trim())                  { setError("Please enter your full name.");        setLoading(false); return; }
-        if (form.password !== form.confirm)     { setError("Passwords do not match.");             setLoading(false); return; }
-        if (form.password.length < 6)           { setError("Password must be at least 6 chars."); setLoading(false); return; }
+        if (!form.name.trim())              { setError("Please enter your full name.");        setLoading(false); return; }
+        if (form.password !== form.confirm) { setError("Passwords do not match.");             setLoading(false); return; }
+        if (form.password.length < 6)       { setError("Password must be at least 6 chars."); setLoading(false); return; }
+
         const { data, error: e2 } = await supabase.auth.signUp({
-          email: form.email, password: form.password,
+          email: form.email,
+          password: form.password,
           options: { data: { full_name: form.name } }
         });
         if (e2) throw e2;
+
         if (data.user) {
           await supabase.from("profiles").upsert({
             id: data.user.id, email: form.email, full_name: form.name, plan: "free", questions_used: 0
-          });
+          }, { onConflict: "id", ignoreDuplicates: true });
         }
         setSuccess("Account created! Check your email to confirm, then sign in.");
         setTab("login");
+
       } else {
-        const { error: e2 } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
+        // Sign in — navigate immediately after success, don't wait for onAuthStateChange
+        const { error: e2 } = await supabase.auth.signInWithPassword({
+          email: form.email,
+          password: form.password
+        });
         if (e2) throw e2;
-        // Navigation is handled by onAuthStateChange above — avoids race condition
-        // where ProtectedRoute renders before AuthContext.user is set
+        navigate(returnTo, { replace: true });
       }
-    } catch (err) { setError(err.message || "Something went wrong."); }
-    finally      { setLoading(false); }
+    } catch (err) {
+      setError(err.message || "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGoogle = async () => {
-    setGoogleLoading(true); setError("");
+    setGoogleLoading(true);
+    setError("");
     const { error: e2 } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/dashboard` }
+      options: { redirectTo: `${window.location.origin}/` }
     });
     if (e2) { setError(e2.message); setGoogleLoading(false); }
   };
@@ -92,25 +95,18 @@ export default function AuthPage() {
         *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
         html, body, #root { height:100%; font-family:'Plus Jakarta Sans',sans-serif; background:#fff; }
         input:focus { outline:none; }
-
         .auth-input {
           width:100%; padding:10px 13px; font-size:13.5px; color:#0a0a0a;
           font-family:'Plus Jakarta Sans',sans-serif; background:#fafafa;
           border:1.5px solid #ececec; border-radius:9px; transition:border-color 0.15s;
         }
         .auth-input:focus { border-color:#0a0a0a; background:#fff; }
-
-        .auth-label {
-          font-size:11.5px; font-weight:600; color:#374151;
-          display:block; margin-bottom:5px;
-        }
-
+        .auth-label { font-size:11.5px; font-weight:600; color:#374151; display:block; margin-bottom:5px; }
         .auth-tab {
           flex:1; padding:8px 0; border:none; border-radius:8px;
           font-family:'Plus Jakarta Sans',sans-serif; font-weight:600;
           font-size:12.5px; cursor:pointer; transition:all 0.13s;
         }
-
         .goog-btn {
           width:100%; padding:10px 0; background:#fff;
           border:1.5px solid #e8e8e8; border-radius:10px; cursor:pointer;
@@ -119,58 +115,42 @@ export default function AuthPage() {
           font-weight:500; color:#374151; transition:border-color 0.15s, box-shadow 0.15s;
         }
         .goog-btn:hover { border-color:#9ca3af; box-shadow:0 2px 8px rgba(0,0,0,0.05); }
-
         .prod-row {
           display:flex; align-items:center; gap:12px;
           padding:14px 20px; border-bottom:1px solid rgba(255,255,255,0.06);
         }
         .prod-row:last-child { border-bottom:none; }
-
-        @keyframes fadeUp {
-          from { opacity:0; transform:translateY(8px); }
-          to   { opacity:1; transform:translateY(0); }
-        }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
         .fade-up { animation:fadeUp 0.4s ease both; }
-
         .auth-left { display:none; }
         @media (min-width:860px) { .auth-left { display:flex !important; } }
       `}</style>
 
       <div style={{ minHeight:"100vh", display:"flex" }}>
 
-        {/* ══════════ LEFT — dark ecosystem panel ══════════ */}
+        {/* LEFT — dark ecosystem panel */}
         <div className="auth-left" style={{
-          width:"42%", flexShrink:0,
-          background:"#0a0a0a",
-          flexDirection:"column",
-          position:"relative", overflow:"hidden"
+          width:"42%", flexShrink:0, background:"#0a0a0a",
+          flexDirection:"column", position:"relative", overflow:"hidden"
         }}>
-          {/* subtle grid bg */}
-          <div style={{
-            position:"absolute", inset:0, pointerEvents:"none",
+          <div style={{ position:"absolute", inset:0, pointerEvents:"none",
             backgroundImage:`linear-gradient(rgba(255,255,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.03) 1px,transparent 1px)`,
-            backgroundSize:"44px 44px"
-          }} />
-          {/* pink glow */}
+            backgroundSize:"44px 44px" }} />
           <div style={{ position:"absolute", top:-80, left:-80, width:320, height:320,
-            borderRadius:"50%", background:PINK, filter:"blur(120px)", opacity:0.07, pointerEvents:"none" }} />
+            borderRadius:"50%", background:PINK, filter:"blur(120px)", opacity:0.07 }} />
           <div style={{ position:"absolute", bottom:-60, right:-60, width:260, height:260,
-            borderRadius:"50%", background:"#7c3aed", filter:"blur(100px)", opacity:0.06, pointerEvents:"none" }} />
+            borderRadius:"50%", background:"#7c3aed", filter:"blur(100px)", opacity:0.06 }} />
 
           <div style={{ position:"relative", zIndex:2, display:"flex", flexDirection:"column",
             height:"100%", padding:"48px 36px" }}>
-
-            {/* Logo */}
             <Link to="/" style={{ display:"flex", alignItems:"center", gap:10, textDecoration:"none", marginBottom:"auto" }}>
               <img src="/logo.jpg" alt="Nugens" style={{ width:36, height:36, borderRadius:8, objectFit:"cover" }} />
               <span style={{ fontWeight:800, fontSize:18, color:"#fff", letterSpacing:"-0.025em" }}>Nugens</span>
             </Link>
 
-            {/* Main copy */}
             <div style={{ marginBottom:40 }} className="fade-up">
               <div style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"4px 10px",
-                border:"1px solid rgba(232,24,93,0.3)", borderRadius:6, background:"rgba(232,24,93,0.08)",
-                marginBottom:18 }}>
+                border:"1px solid rgba(232,24,93,0.3)", borderRadius:6, background:"rgba(232,24,93,0.08)", marginBottom:18 }}>
                 <span style={{ width:6, height:6, borderRadius:"50%", background:PINK }} />
                 <span style={{ fontSize:11, fontWeight:600, color:PINK, letterSpacing:"0.06em", textTransform:"uppercase" }}>One account</span>
               </div>
@@ -179,61 +159,47 @@ export default function AuthPage() {
                 One login.<br />Every NuGens product.
               </h1>
               <p style={{ fontSize:13.5, color:"rgba(255,255,255,0.4)", lineHeight:1.72, maxWidth:280 }}>
-                Sign in once and access all four products — from career AI to production studio — under one account.
+                Sign in once and access all four products — career AI to production studio — under one account.
               </p>
             </div>
 
-            {/* Product list */}
             <div style={{ border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, overflow:"hidden",
               background:"rgba(255,255,255,0.02)", marginBottom:28 }} className="fade-up">
-              {PRODUCTS.map((p, i) => (
-                <div key={p.label} className="prod-row"
-                  style={{ animationDelay:`${i * 60}ms` }}>
+              {PRODUCTS.map((p) => (
+                <div key={p.label} className="prod-row">
                   <div style={{ width:34, height:34, borderRadius:8, background:`${p.color}18`,
                     border:`1px solid ${p.color}25`, display:"flex", alignItems:"center",
-                    justifyContent:"center", fontSize:15, color:p.color, flexShrink:0 }}>
-                    {p.icon}
-                  </div>
+                    justifyContent:"center", fontSize:15, color:p.color, flexShrink:0 }}>{p.icon}</div>
                   <div>
-                    <div style={{ fontSize:13.5, fontWeight:700, color:"#e8e8e8",
-                      fontFamily:"'Plus Jakarta Sans',sans-serif" }}>{p.label}</div>
-                    <div style={{ fontSize:11.5, color:"rgba(255,255,255,0.3)",
-                      fontFamily:"'Plus Jakarta Sans',sans-serif" }}>{p.sub}</div>
+                    <div style={{ fontSize:13.5, fontWeight:700, color:"#e8e8e8" }}>{p.label}</div>
+                    <div style={{ fontSize:11.5, color:"rgba(255,255,255,0.3)" }}>{p.sub}</div>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Bottom note */}
             <p style={{ fontSize:11.5, color:"rgba(255,255,255,0.2)", lineHeight:1.6 }}>
               Free plan · No credit card needed · Upgrade anytime
             </p>
           </div>
         </div>
 
-        {/* ══════════ RIGHT — form ══════════ */}
+        {/* RIGHT — form */}
         <div style={{ flex:1, display:"flex", flexDirection:"column",
           alignItems:"center", justifyContent:"center",
           padding:"32px 24px", background:"#fff", minWidth:0 }}>
 
           <div style={{ width:"100%", maxWidth:400 }} className="fade-up">
-
-            {/* Header */}
             <div style={{ marginBottom:28, textAlign:"center" }}>
-              {/* Mobile logo */}
-              <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:9, marginBottom:4 }}
-                className="auth-mobile-logo">
-                <Link to="/" style={{ display:"flex", alignItems:"center", gap:9, textDecoration:"none" }}>
-                  <img src="/logo.jpg" alt="Nugens" style={{ width:32, height:32, borderRadius:7, objectFit:"cover" }} />
-                  <span style={{ fontWeight:800, fontSize:17, color:"#0a0a0a", letterSpacing:"-0.025em" }}>Nugens</span>
-                </Link>
-              </div>
+              <Link to="/" style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:9, textDecoration:"none" }}>
+                <img src="/logo.jpg" alt="Nugens" style={{ width:32, height:32, borderRadius:7, objectFit:"cover" }} />
+                <span style={{ fontWeight:800, fontSize:17, color:"#0a0a0a", letterSpacing:"-0.025em" }}>Nugens</span>
+              </Link>
               <div style={{ fontSize:13, color:"#9ca3af", marginTop:6 }}>
                 {tab === "login" ? "Welcome back" : "Create your free account"}
               </div>
             </div>
 
-            {/* Card */}
             <div style={{ background:"#fff", border:`1.5px solid ${B}`, borderRadius:16,
               padding:"28px 28px 24px", boxShadow:"0 4px 32px rgba(0,0,0,0.05)" }}>
 
@@ -246,9 +212,7 @@ export default function AuthPage() {
                       background: tab===t ? "#fff" : "transparent",
                       boxShadow: tab===t ? "0 1px 6px rgba(0,0,0,0.08)" : "none",
                       color: tab===t ? "#0a0a0a" : "#9ca3af",
-                    }}>
-                    {l}
-                  </button>
+                    }}>{l}</button>
                 ))}
               </div>
 
@@ -269,7 +233,6 @@ export default function AuthPage() {
                 <div style={{ flex:1, height:1, background:B }} />
               </div>
 
-              {/* Form */}
               <form onSubmit={handleSubmit} style={{ display:"flex", flexDirection:"column", gap:14 }}>
                 {tab === "signup" && (
                   <div>
@@ -298,15 +261,11 @@ export default function AuthPage() {
 
                 {error && (
                   <div style={{ background:"#fff5f8", border:"1px solid #ffd0de", borderRadius:8,
-                    padding:"9px 12px", fontSize:12.5, color:PINK }}>
-                    ⚠️ {error}
-                  </div>
+                    padding:"9px 12px", fontSize:12.5, color:PINK }}>⚠️ {error}</div>
                 )}
                 {success && (
                   <div style={{ background:"#f0fff4", border:"1px solid #b2f5c8", borderRadius:8,
-                    padding:"9px 12px", fontSize:12.5, color:"#1a7a3c" }}>
-                    ✅ {success}
-                  </div>
+                    padding:"9px 12px", fontSize:12.5, color:"#1a7a3c" }}>✅ {success}</div>
                 )}
 
                 <button type="submit" disabled={loading} style={{
@@ -315,8 +274,7 @@ export default function AuthPage() {
                   border:"none", borderRadius:10,
                   fontFamily:"'Plus Jakarta Sans',sans-serif", fontWeight:700,
                   fontSize:13.5, color: loading ? "#9ca3af" : "#fff",
-                  cursor: loading ? "not-allowed" : "pointer",
-                  letterSpacing:"-0.01em", transition:"background 0.14s"
+                  cursor: loading ? "not-allowed" : "pointer", letterSpacing:"-0.01em"
                 }}>
                   {loading ? "Please wait…" : tab === "login" ? "Sign In →" : "Create Account →"}
                 </button>
@@ -334,9 +292,7 @@ export default function AuthPage() {
               )}
             </div>
 
-            {/* Plan note */}
-            <div style={{ textAlign:"center", marginTop:16, fontSize:11.5, color:"#c0c0c0",
-              fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
+            <div style={{ textAlign:"center", marginTop:16, fontSize:11.5, color:"#c0c0c0" }}>
               Free plan · 20 queries · Upgrade from ₹99/mo
             </div>
           </div>
