@@ -27,6 +27,7 @@ export default function AuthPage() {
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session) {
+        // Upsert profile for new/OAuth users
         await supabase.from("profiles").upsert({
           id: session.user.id,
           email: session.user.email,
@@ -35,7 +36,8 @@ export default function AuthPage() {
           plan: "free",
           questions_used: 0,
         }, { onConflict: "id", ignoreDuplicates: true });
-        navigate("/dashboard", { replace: true });
+        // Small delay lets App.jsx AuthContext update user state before ProtectedRoute checks
+        setTimeout(() => navigate("/dashboard", { replace: true }), 100);
       }
     });
     return () => subscription.unsubscribe();
@@ -65,7 +67,8 @@ export default function AuthPage() {
       } else {
         const { error: e2 } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
         if (e2) throw e2;
-        navigate("/dashboard", { replace: true });
+        // Navigation is handled by onAuthStateChange above — avoids race condition
+        // where ProtectedRoute renders before AuthContext.user is set
       }
     } catch (err) { setError(err.message || "Something went wrong."); }
     finally      { setLoading(false); }
