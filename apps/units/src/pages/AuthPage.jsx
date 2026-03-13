@@ -1,93 +1,103 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
 const GOLD = "#d4a843";
-const B    = "#1c1a14";
 
 export default function AuthPage() {
-  const [mode, setMode]   = useState("login");
-  const [email, setEmail] = useState("");
-  const [pass, setPass]   = useState("");
-  const [name, setName]   = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = location.state?.from || "/";
 
-  const handle = async () => {
-    setError(""); setLoading(true);
+  const [tab,           setTab]           = useState("login");
+  const [form,          setForm]          = useState({ name:"", email:"", password:"", confirm:"" });
+  const [loading,       setLoading]       = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [error,         setError]         = useState("");
+  const [success,       setSuccess]       = useState("");
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) navigate(returnTo, { replace: true });
+    });
+  }, []); // eslint-disable-line
+
+  const handleChange = (e) => { setForm(f => ({ ...f, [e.target.name]: e.target.value })); setError(""); };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault(); setError(""); setLoading(true);
     try {
-      if (mode==="login") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password:pass });
-        if (error) throw error;
+      if (tab === "signup") {
+        if (!form.name.trim())              { setError("Please enter your full name.");        setLoading(false); return; }
+        if (form.password !== form.confirm) { setError("Passwords do not match.");             setLoading(false); return; }
+        if (form.password.length < 6)       { setError("Password must be at least 6 chars."); setLoading(false); return; }
+        const { data, error: e2 } = await supabase.auth.signUp({ email: form.email, password: form.password, options: { data: { full_name: form.name } } });
+        if (e2) throw e2;
+        if (data.user) await supabase.from("profiles").upsert({ id: data.user.id, email: form.email, full_name: form.name, plan: "free", questions_used: 0 }, { onConflict: "id", ignoreDuplicates: true });
+        if (data.session) { navigate(returnTo, { replace: true }); return; }
+        setSuccess("Account created! Check your email to confirm, then sign in.");
+        setTab("login");
       } else {
-        const { error } = await supabase.auth.signUp({ email, password:pass, options:{ data:{ full_name:name } } });
-        if (error) throw error;
+        const { data, error: e2 } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
+        if (e2) throw e2;
+        if (!data.session) { setError("Please confirm your email before signing in. Check your inbox."); setLoading(false); return; }
+        navigate(returnTo, { replace: true });
       }
-      navigate("/");
-    } catch(e) { setError(e.message); }
-    setLoading(false);
+    } catch (err) { setError(err.message || "Something went wrong."); }
+    finally { setLoading(false); }
   };
+
+  const handleGoogle = async () => {
+    setGoogleLoading(true); setError("");
+    const { error: e2 } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/` } });
+    if (e2) { setError(e2.message); setGoogleLoading(false); }
+  };
+
+  const inp = { width:"100%", padding:"11px 14px", background:"#0f0c08", border:"1px solid #1c1a14", borderRadius:9, color:"#c8b87a", fontSize:14, fontFamily:"'Plus Jakarta Sans',sans-serif", outline:"none" };
 
   return (
     <div style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", minHeight:"100vh", background:"#0a0805", display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        .au-in{width:100%;padding:11px 14px;background:#0f0c08;border:1px solid ${B};border-radius:9px;color:#c8b87a;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;}
-        .au-in:focus{border-color:${GOLD}50;}
-        .au-in::placeholder{color:#2a2010;}
-        .au-btn{width:100%;padding:12px;background:${GOLD};color:#0a0805;border:none;border-radius:9px;font-size:15px;font-weight:800;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:opacity 0.15s;}
-        .au-btn:hover{opacity:0.88;}
-        .au-btn:disabled{opacity:0.4;cursor:not-allowed;}
-      `}</style>
-
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap'); *,*::before,*::after{box-sizing:border-box;margin:0;padding:0} input:focus{border-color:${GOLD}50!important;outline:none}`}</style>
       <div style={{ position:"fixed", top:"25%", left:"50%", transform:"translateX(-50%)", width:500, height:300, background:GOLD, filter:"blur(150px)", opacity:0.04, pointerEvents:"none" }} />
-
       <div style={{ width:"100%", maxWidth:420, position:"relative", zIndex:2 }}>
         <div style={{ textAlign:"center", marginBottom:36 }}>
-          <div style={{ fontWeight:800, fontSize:13, letterSpacing:"0.14em", textTransform:"uppercase", color:"#4a4030", marginBottom:8 }}>The Wedding</div>
+          <a href="https://nugens.in.net" style={{ textDecoration:"none", display:"inline-flex", alignItems:"center", gap:8, marginBottom:8 }}>
+            <img src="/ng-logo.jpg" alt="NuGens" style={{ width:32, height:32, borderRadius:7, objectFit:"cover" }} />
+          </a>
+          <div style={{ fontWeight:800, fontSize:13, letterSpacing:"0.14em", textTransform:"uppercase", color:"#4a4030", marginBottom:6 }}>The Wedding</div>
           <div style={{ fontWeight:800, fontSize:30, color:GOLD, letterSpacing:"-0.04em", lineHeight:1 }}>Unit</div>
           <div style={{ fontSize:13, color:"#4a4030", marginTop:8 }}>Production platform by NuGens</div>
         </div>
-
-        <div style={{ background:"#0f0c08", border:`1px solid ${B}`, borderRadius:16, padding:32 }}>
-          <div style={{ display:"flex", background:"#0a0805", borderRadius:10, padding:3, gap:2, marginBottom:26 }}>
-            {["login","signup"].map(m=>(
-              <button key={m} onClick={()=>{setMode(m);setError("");}} style={{ flex:1, padding:"8px 0", borderRadius:8, border:"none", fontSize:13.5, fontWeight:600, cursor:"pointer", fontFamily:"'Plus Jakarta Sans',sans-serif", background:mode===m?"#0f0c08":"transparent", color:mode===m?"#e8d5a0":"#4a4030", boxShadow:mode===m?"0 1px 6px rgba(0,0,0,0.4)":"none", transition:"all 0.14s" }}>
-                {m==="login"?"Sign in":"Create account"}
-              </button>
+        <div style={{ background:"#0f0c08", border:"1px solid #1c1a14", borderRadius:16, padding:32 }}>
+          <div style={{ display:"flex", background:"#0a0805", borderRadius:10, padding:3, gap:2, marginBottom:22 }}>
+            {[["login","Sign in"],["signup","Create account"]].map(([t,l]) => (
+              <button key={t} onClick={() => { setTab(t); setError(""); setSuccess(""); }} style={{ flex:1, padding:"8px 0", borderRadius:8, border:"none", fontSize:13.5, fontWeight:600, cursor:"pointer", fontFamily:"inherit", background:tab===t?"#0f0c08":"transparent", color:tab===t?"#e8d5a0":"#4a4030", boxShadow:tab===t?"0 1px 6px rgba(0,0,0,0.4)":"none" }}>{l}</button>
             ))}
           </div>
 
-          <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-            {mode==="signup"&&(
-              <div>
-                <label style={{ fontSize:12, fontWeight:600, color:"#4a4030", display:"block", marginBottom:5 }}>Full name</label>
-                <input className="au-in" value={name} onChange={e=>setName(e.target.value)} placeholder="Your name" />
-              </div>
-            )}
-            <div>
-              <label style={{ fontSize:12, fontWeight:600, color:"#4a4030", display:"block", marginBottom:5 }}>Email</label>
-              <input className="au-in" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@email.com" />
-            </div>
-            <div>
-              <label style={{ fontSize:12, fontWeight:600, color:"#4a4030", display:"block", marginBottom:5 }}>Password</label>
-              <input className="au-in" type="password" value={pass} onChange={e=>setPass(e.target.value)} placeholder="••••••••" onKeyDown={e=>e.key==="Enter"&&handle()} />
-            </div>
-            {error&&<div style={{ fontSize:12.5, color:"#f87171", background:"#2d0a0a", border:"1px solid #4d1515", borderRadius:8, padding:"10px 12px" }}>{error}</div>}
-            <button className="au-btn" onClick={handle} disabled={loading||!email||!pass}>
-              {loading?"Please wait...":mode==="login"?"Sign in →":"Create account →"}
-            </button>
+          <button onClick={handleGoogle} disabled={googleLoading} style={{ width:"100%", padding:"10px 0", background:"#0f0c08", border:"1px solid #1c1a14", borderRadius:10, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, fontSize:13.5, fontFamily:"inherit", fontWeight:500, color:"#8a7a50", marginBottom:18 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            {googleLoading ? "Connecting…" : "Continue with Google"}
+          </button>
+
+          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:18 }}>
+            <div style={{ flex:1, height:1, background:"#1c1a14" }}/><span style={{ fontSize:11, color:"#3a3020" }}>or</span><div style={{ flex:1, height:1, background:"#1c1a14" }}/>
           </div>
 
-          <p style={{ fontSize:12, color:"#3a3020", textAlign:"center", marginTop:20 }}>
-            By continuing you agree to NuGens <a href="/terms" style={{ color:GOLD, textDecoration:"none" }}>Terms</a> & <a href="/privacy" style={{ color:GOLD, textDecoration:"none" }}>Privacy</a>
-          </p>
+          <form onSubmit={handleSubmit} style={{ display:"flex", flexDirection:"column", gap:14 }}>
+            {tab === "signup" && <div><label style={{ fontSize:12, fontWeight:600, color:"#4a4030", display:"block", marginBottom:5 }}>Full name</label><input name="name" value={form.name} onChange={handleChange} placeholder="Your name" required style={inp} /></div>}
+            <div><label style={{ fontSize:12, fontWeight:600, color:"#4a4030", display:"block", marginBottom:5 }}>Email</label><input name="email" type="email" value={form.email} onChange={handleChange} placeholder="you@email.com" required style={inp} /></div>
+            <div><label style={{ fontSize:12, fontWeight:600, color:"#4a4030", display:"block", marginBottom:5 }}>Password</label><input name="password" type="password" value={form.password} onChange={handleChange} placeholder="••••••••" required style={inp} /></div>
+            {tab === "signup" && <div><label style={{ fontSize:12, fontWeight:600, color:"#4a4030", display:"block", marginBottom:5 }}>Confirm Password</label><input name="confirm" type="password" value={form.confirm} onChange={handleChange} placeholder="••••••••" required style={inp} /></div>}
+            {error   && <div style={{ fontSize:12.5, color:"#f87171", background:"#2d0a0a", border:"1px solid #4d1515", borderRadius:8, padding:"10px 12px" }}>⚠️ {error}</div>}
+            {success && <div style={{ fontSize:12.5, color:"#4ade80", background:"#0a2d0a", border:"1px solid #154d15", borderRadius:8, padding:"10px 12px" }}>✅ {success}</div>}
+            <button type="submit" disabled={loading} style={{ width:"100%", padding:12, background:loading?"#1c1a14":GOLD, color:"#0a0805", border:"none", borderRadius:9, fontSize:15, fontWeight:800, cursor:loading?"not-allowed":"pointer", fontFamily:"inherit" }}>
+              {loading ? "Please wait..." : tab === "login" ? "Sign in →" : "Create account →"}
+            </button>
+          </form>
+          {tab === "login" && <div style={{ textAlign:"center", marginTop:16, fontSize:12.5, color:"#4a4030" }}>No account? <button onClick={() => setTab("signup")} style={{ background:"none", border:"none", color:GOLD, fontWeight:700, cursor:"pointer", fontSize:12.5, fontFamily:"inherit" }}>Sign up free</button></div>}
         </div>
-
-        <p style={{ textAlign:"center", marginTop:20, fontSize:13, color:"#3a3020" }}>
-          Part of the <a href="https://nugens.in.net" style={{ color:GOLD, textDecoration:"none", fontWeight:700 }}>NuGens</a> ecosystem
-        </p>
+        <p style={{ textAlign:"center", marginTop:20, fontSize:13, color:"#3a3020" }}>Part of the <a href="https://nugens.in.net" style={{ color:GOLD, textDecoration:"none", fontWeight:700 }}>NuGens</a> ecosystem</p>
       </div>
     </div>
   );

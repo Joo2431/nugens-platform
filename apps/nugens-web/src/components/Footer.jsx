@@ -151,7 +151,7 @@ export default function Footer() {
               { label: "HyperX – Learning Platform",    to: "/hyperx",  internal: true },
               { label: "Gen-E AI – Career Assistant",   to: "/gene",    internal: true },
               { label: "DigiHub – Digital Marketing",   to: "/digihub", internal: true },
-              { label: "Units – Photography",to: "/Units", internal: false },
+              { label: "The Wedding Unit – Photography",to: "https://theweddingunit.in.net", internal: false },
             ].map(item =>
               item.internal
                 ? <Link key={item.label} to={item.to} className="footer-link">{item.label}</Link>
