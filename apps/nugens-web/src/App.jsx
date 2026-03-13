@@ -1,10 +1,18 @@
-import React, { Suspense, lazy } from "react";
+import React, { createContext, useContext, useEffect, useState, Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { supabase } from "./lib/supabase";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Home from "./pages/Home";
 
+/* ─────────────────────────────────────────────
+   Auth context — available to every component
+───────────────────────────────────────────── */
+export const AuthContext = createContext({ user: null, profile: null, ready: false });
+export const useAuth = () => useContext(AuthContext);
+
+/* ── lazy pages ── */
 const About       = lazy(() => import("./pages/About"));
 const Blog        = lazy(() => import("./pages/Blog"));
 const Careers     = lazy(() => import("./pages/Careers"));
@@ -21,52 +29,81 @@ const Dashboard   = lazy(() => import("./pages/Dashboard"));
 function Spinner() {
   return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"60vh" }}>
-      <div style={{ fontWeight:800, fontSize:24, color:"#e8185d", fontStyle:"italic", letterSpacing:"-0.04em" }}>NuGens</div>
+      <div style={{ fontWeight:800, fontSize:24, color:"#e8185d", letterSpacing:"-0.04em",
+        fontFamily:"'Plus Jakarta Sans',sans-serif" }}>NuGens</div>
     </div>
   );
 }
 
 function Layout({ children }) {
-  return (
-    <>
-      <Header />
-      <main>{children}</main>
-      <Footer />
-    </>
-  );
+  return (<><Header /><main>{children}</main><Footer /></>);
 }
 
 export default function App() {
+  const [user,    setUser]    = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [ready,   setReady]   = useState(false);
+
+  useEffect(() => {
+    /* initial session check */
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) fetchProfile(session.user.id);
+      else setReady(true);
+    });
+    /* listen for auth changes (login, logout, token refresh) */
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) fetchProfile(session.user.id);
+      else { setProfile(null); setReady(true); }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const fetchProfile = async (uid) => {
+    const { data } = await supabase.from("profiles").select("*").eq("id", uid).single();
+    setProfile(data ?? null);
+    setReady(true);
+  };
+
+  /* hold render until session resolves — prevents flash */
+  if (!ready) return (
+    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center",
+      background:"#fff" }}>
+      <div style={{ fontWeight:800, fontSize:26, color:"#e8185d", letterSpacing:"-0.04em",
+        fontFamily:"'Plus Jakarta Sans',sans-serif" }}>NuGens</div>
+    </div>
+  );
+
   return (
-    <BrowserRouter>
-      <Suspense fallback={<Spinner />}>
-        <Routes>
-          {/* ── Public pages with Header + Footer ── */}
-          <Route path="/"         element={<Layout><Home /></Layout>} />
-          <Route path="/about"    element={<Layout><About /></Layout>} />
-          <Route path="/blog"     element={<Layout><Blog /></Layout>} />
-          <Route path="/blog/:id" element={<Layout><Blog /></Layout>} />
-          <Route path="/careers"  element={<Layout><Careers /></Layout>} />
-          <Route path="/contact"  element={<Layout><Contact /></Layout>} />
-          <Route path="/support"  element={<Layout><Support /></Layout>} />
-          <Route path="/gene"     element={<Layout><GenE /></Layout>} />
-          <Route path="/hyperx"   element={<Layout><HyperX /></Layout>} />
-          <Route path="/digihub"  element={<Layout><DigiHub /></Layout>} />
-          <Route path="/units"    element={<Layout><Units /></Layout>} />
-          <Route path="/pricing"  element={<Layout><PricingPage /></Layout>} />
-
-          {/* ── Auth (no Header/Footer) ── */}
-          <Route path="/auth"   element={<AuthPage />} />
-          <Route path="/login"  element={<Navigate to="/auth" replace />} />
-          <Route path="/signup" element={<Navigate to="/auth?mode=signup" replace />} />
-
-          {/* ── Protected ── */}
-          <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
-
-          {/* Fallback */}
-          <Route path="*" element={<Layout><Home /></Layout>} />
-        </Routes>
-      </Suspense>
-    </BrowserRouter>
+    <AuthContext.Provider value={{ user, profile, ready }}>
+      <BrowserRouter>
+        <Suspense fallback={<Spinner />}>
+          <Routes>
+            {/* public */}
+            <Route path="/"         element={<Layout><Home /></Layout>} />
+            <Route path="/about"    element={<Layout><About /></Layout>} />
+            <Route path="/blog"     element={<Layout><Blog /></Layout>} />
+            <Route path="/blog/:id" element={<Layout><Blog /></Layout>} />
+            <Route path="/careers"  element={<Layout><Careers /></Layout>} />
+            <Route path="/contact"  element={<Layout><Contact /></Layout>} />
+            <Route path="/support"  element={<Layout><Support /></Layout>} />
+            <Route path="/gene"     element={<Layout><GenE /></Layout>} />
+            <Route path="/hyperx"   element={<Layout><HyperX /></Layout>} />
+            <Route path="/digihub"  element={<Layout><DigiHub /></Layout>} />
+            <Route path="/units"    element={<Layout><Units /></Layout>} />
+            <Route path="/pricing"  element={<Layout><PricingPage /></Layout>} />
+            {/* auth — no header/footer */}
+            <Route path="/auth"     element={<AuthPage />} />
+            <Route path="/login"    element={<Navigate to="/auth" replace />} />
+            <Route path="/signup"   element={<Navigate to="/auth?mode=signup" replace />} />
+            {/* protected */}
+            <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+            {/* fallback */}
+            <Route path="*"         element={<Layout><Home /></Layout>} />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </AuthContext.Provider>
   );
 }
