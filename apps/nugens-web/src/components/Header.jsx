@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { useAuth } from "../App";
+
 
 const PINK = "#e8185d";
 const B    = "#f0f0f0";
@@ -35,7 +35,32 @@ function useOutsideClick(ref, cb) {
 }
 
 export default function Header() {
-  const { user, profile } = useAuth();
+  // Own auth state — never depends on context timing
+  const [user,    setUser]    = useState(null);
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    // Check session immediately on mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        supabase.from("profiles").select("*").eq("id", session.user.id).single()
+          .then(({ data }) => setProfile(data ?? null));
+      }
+    });
+    // Stay in sync with any auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        supabase.from("profiles").select("*").eq("id", session.user.id).single()
+          .then(({ data }) => setProfile(data ?? null));
+      } else {
+        setProfile(null);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
   const [openMenu,       setOpenMenu]       = useState(null);
   const [mobileOpen,     setMobileOpen]     = useState(false);
   const [mobileExpanded, setMobileExpanded] = useState(null);
