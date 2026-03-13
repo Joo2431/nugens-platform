@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { NG_LOGO } from "../lib/logo";
 import { supabase } from "../lib/supabase";
 
 const PINK = "#e8185d";
@@ -83,7 +84,7 @@ export default function AuthPage() {
           <div style={{ position:"absolute", width:400, height:400, borderRadius:"50%", background:"rgba(232,24,93,0.06)", top:-100, right:-100 }} />
           <div style={{ position:"absolute", width:250, height:250, borderRadius:"50%", background:"rgba(232,24,93,0.04)", bottom:50, left:-80 }} />
           <div style={{ textAlign:"center", position:"relative", zIndex:1 }}>
-            <img src="/ng-logo.jpg" alt="NuGens" style={{ width:52, height:52, borderRadius:12, objectFit:"cover", marginBottom:12 }} />
+            <img src={NG_LOGO} alt="NuGens" style={{ width:52, height:52, borderRadius:12, objectFit:"cover", marginBottom:12 }} />
             <div style={{ fontWeight:800, fontSize:42, color:PINK, letterSpacing:"-0.04em", marginBottom:4, fontFamily:"'Plus Jakarta Sans',sans-serif" }}>GEN-E</div>
             <div style={{ fontSize:12, color:"#999", letterSpacing:"0.15em", textTransform:"uppercase", marginBottom:28 }}>Career AI by NuGens</div>
             <div style={{ fontSize:16, fontWeight:600, color:"#222", lineHeight:1.6, maxWidth:300, marginBottom:24 }}>Your AI-powered career intelligence assistant</div>
@@ -98,7 +99,7 @@ export default function AuthPage() {
           <div style={{ width:"100%", maxWidth:400 }}>
             <div style={{ textAlign:"center", marginBottom:28 }}>
               <a href="https://nugens.in.net" style={{ textDecoration:"none", display:"inline-flex", alignItems:"center", gap:8 }}>
-                <img src="/ng-logo.jpg" alt="NuGens" style={{ width:32, height:32, borderRadius:7, objectFit:"cover" }} />
+                <img src={NG_LOGO} alt="NuGens" style={{ width:32, height:32, borderRadius:7, objectFit:"cover" }} />
                 <span style={{ fontWeight:800, fontSize:22, color:PINK, letterSpacing:"-0.04em" }}>GEN-E</span>
               </a>
               <div style={{ fontSize:12.5, color:"#aaa", marginTop:4 }}>Career AI Assistant · NuGens</div>

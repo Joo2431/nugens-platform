@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { NG_LOGO } from "../lib/logo";
 import { supabase } from "../lib/supabase";
 
 const GOLD = "#d4a843";
@@ -62,7 +63,7 @@ export default function AuthPage() {
       <div style={{ width:"100%", maxWidth:420, position:"relative", zIndex:2 }}>
         <div style={{ textAlign:"center", marginBottom:36 }}>
           <a href="https://nugens.in.net" style={{ textDecoration:"none", display:"inline-flex", alignItems:"center", gap:8, marginBottom:8 }}>
-            <img src="/ng-logo.jpg" alt="NuGens" style={{ width:32, height:32, borderRadius:7, objectFit:"cover" }} />
+            <img src={NG_LOGO} alt="NuGens" style={{ width:32, height:32, borderRadius:7, objectFit:"cover" }} />
           </a>
           <div style={{ fontWeight:800, fontSize:13, letterSpacing:"0.14em", textTransform:"uppercase", color:"#4a4030", marginBottom:6 }}>The Wedding</div>
           <div style={{ fontWeight:800, fontSize:30, color:GOLD, letterSpacing:"-0.04em", lineHeight:1 }}>Unit</div>

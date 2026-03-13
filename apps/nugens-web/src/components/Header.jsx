@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { NG_LOGO } from "../lib/logo";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
@@ -227,7 +228,7 @@ export default function Header() {
 
           {/* Logo */}
           <Link to="/" style={{ display:"flex",alignItems:"center",gap:10,textDecoration:"none",flexShrink:0 }}>
-            <img src="/ng-logo.jpg" alt="NuGens" style={{ width:36,height:36,borderRadius:8,objectFit:"cover" }} />
+            <img src={NG_LOGO} alt="NuGens" style={{ width:36,height:36,borderRadius:8,objectFit:"cover" }} />
             <span style={{ fontWeight:800,fontSize:17,color:"#0a0a0a",letterSpacing:"-0.025em" }}>Nugens</span>
           </Link>
 
@@ -348,7 +349,7 @@ export default function Header() {
               padding:"18px 20px",borderBottom:`1px solid ${B}`,flexShrink:0 }}>
               <Link to="/" onClick={() => setMobileOpen(false)}
                 style={{ display:"flex",alignItems:"center",gap:9,textDecoration:"none" }}>
-                <img src="/ng-logo.jpg" alt="NuGens" style={{ width:32,height:32,borderRadius:7,objectFit:"cover" }}/>
+                <img src={NG_LOGO} alt="NuGens" style={{ width:32,height:32,borderRadius:7,objectFit:"cover" }}/>
                 <span style={{ fontWeight:800,fontSize:16,color:"#0a0a0a",fontFamily:"'Plus Jakarta Sans',sans-serif" }}>Nugens</span>
               </Link>
               <button onClick={() => setMobileOpen(false)} aria-label="Close"

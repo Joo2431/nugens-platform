@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { NG_LOGO } from "../lib/logo";
 import { supabase } from "../lib/supabase";
 
 const PURPLE = "#7c3aed";
@@ -69,7 +70,7 @@ export default function AuthPage() {
         <div style={{ width:"100%", maxWidth:400 }}>
           <div style={{ textAlign:"center", marginBottom:32 }}>
             <a href="https://nugens.in.net" style={{ textDecoration:"none", display:"inline-flex", alignItems:"center", gap:8 }}>
-              <img src="/ng-logo.jpg" alt="NuGens" style={{ width:32, height:32, borderRadius:7, objectFit:"cover" }} />
+              <img src={NG_LOGO} alt="NuGens" style={{ width:32, height:32, borderRadius:7, objectFit:"cover" }} />
             </a>
             <div style={{ fontWeight:800, fontSize:28, color:"#fff", letterSpacing:"-0.04em", marginTop:8 }}>Hyper<span style={{ color:PURPLE }}>X</span></div>
             <div style={{ fontSize:12.5, color:"#444", marginTop:4 }}>Professional Learning Platform by NuGens</div>

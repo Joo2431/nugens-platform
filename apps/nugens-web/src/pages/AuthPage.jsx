@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
+import { NG_LOGO } from "../lib/logo";
 import { supabase } from "../lib/supabase";
 
 const PINK = "#e8185d";
@@ -163,7 +164,7 @@ export default function AuthPage() {
 
             {/* Logo */}
             <Link to="/" style={{ display:"flex", alignItems:"center", gap:10, textDecoration:"none", marginBottom:"auto" }}>
-              <img src="/ng-logo.jpg" alt="NuGens" style={{ width:38, height:38, borderRadius:9, objectFit:"cover" }} />
+              <img src={NG_LOGO} alt="NuGens" style={{ width:38, height:38, borderRadius:9, objectFit:"cover" }} />
               <span style={{ fontWeight:800, fontSize:18, color:"#fff", letterSpacing:"-0.025em" }}>NuGens</span>
             </Link>
 
@@ -217,7 +218,7 @@ export default function AuthPage() {
             <div style={{ marginBottom:28, textAlign:"center" }}>
               <Link to="/" style={{ display:"inline-flex", alignItems:"center",
                 justifyContent:"center", gap:9, textDecoration:"none" }}>
-                <img src="/ng-logo.jpg" alt="NuGens"
+                <img src={NG_LOGO} alt="NuGens"
                   style={{ width:34, height:34, borderRadius:8, objectFit:"cover" }} />
                 <span style={{ fontWeight:800, fontSize:17, color:"#0a0a0a", letterSpacing:"-0.025em" }}>NuGens</span>
               </Link>
