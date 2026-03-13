@@ -1,0 +1,14 @@
+{
+  "name": "nugens-platform",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "backend"
+  ],
+  "scripts": {
+    "gene": "cd apps/gene && npm run dev",
+    "backend": "cd backend && npm run dev",
+    "build:gene": "cd apps/gene && npm run build"
+  }
+}
