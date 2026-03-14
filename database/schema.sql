@@ -129,3 +129,75 @@ CREATE POLICY "own resumes"        ON resumes           FOR ALL USING (auth.uid(
 CREATE POLICY "own job apps"       ON job_applications  FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "own sub logs"       ON subscription_logs FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "own nudge log"      ON nudge_log         FOR ALL USING (auth.uid() = user_id);
+
+-- ── HYPERX COURSES ────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS hx_courses (
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title        TEXT NOT NULL,
+  description  TEXT,
+  category     TEXT NOT NULL,
+  level        TEXT DEFAULT 'Beginner' CHECK (level IN ('Beginner','Intermediate','Advanced')),
+  thumbnail_url TEXT,
+  is_free      BOOLEAN DEFAULT false,
+  is_published BOOLEAN DEFAULT false,
+  total_lessons INTEGER DEFAULT 0,
+  duration_mins INTEGER DEFAULT 0,
+  created_at   TIMESTAMPTZ DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ── HYPERX LESSONS ────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS hx_lessons (
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  course_id    UUID REFERENCES hx_courses(id) ON DELETE CASCADE,
+  title        TEXT NOT NULL,
+  description  TEXT,
+  video_url    TEXT,
+  duration_mins INTEGER DEFAULT 0,
+  sort_order   INTEGER DEFAULT 0,
+  is_free      BOOLEAN DEFAULT false,
+  created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ── HYPERX ENROLLMENTS ────────────────────────────────────
+CREATE TABLE IF NOT EXISTS hx_enrollments (
+  id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id    UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  course_id  UUID REFERENCES hx_courses(id) ON DELETE CASCADE,
+  enrolled_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, course_id)
+);
+
+-- ── HYPERX PROGRESS ───────────────────────────────────────
+CREATE TABLE IF NOT EXISTS hx_progress (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id     UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  lesson_id   UUID REFERENCES hx_lessons(id) ON DELETE CASCADE,
+  completed_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, lesson_id)
+);
+
+-- RLS
+ALTER TABLE hx_courses     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hx_lessons     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hx_enrollments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hx_progress    ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can view published courses/lessons
+CREATE POLICY "view published courses" ON hx_courses FOR SELECT USING (is_published = true);
+CREATE POLICY "view lessons"           ON hx_lessons FOR SELECT USING (true);
+-- Users manage their own data
+CREATE POLICY "own enrollments" ON hx_enrollments FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "own progress"    ON hx_progress    FOR ALL USING (auth.uid() = user_id);
+-- Admin full access (service role bypasses RLS anyway)
+CREATE POLICY "admin courses" ON hx_courses FOR ALL USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND plan = 'admin')
+);
+CREATE POLICY "admin lessons" ON hx_lessons FOR ALL USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND plan = 'admin')
+);
+
+-- Storage bucket for HyperX videos
+INSERT INTO storage.buckets (id, name, public) VALUES ('hx-videos', 'hx-videos', true) ON CONFLICT DO NOTHING;
+CREATE POLICY "public read videos" ON storage.objects FOR SELECT USING (bucket_id = 'hx-videos');
+CREATE POLICY "admin upload videos" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'hx-videos');
