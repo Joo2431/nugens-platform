@@ -20,6 +20,7 @@ const TALENT_RECENT = [
 
 export default function Dashboard({ profile }) {
   const plan = profile?.plan || "free";
+  const userType = profile?.user_type || "individual";
   const firstName = (profile?.full_name || "").split(" ")[0] || "there";
 
   return (
@@ -37,7 +38,7 @@ export default function Dashboard({ profile }) {
       {/* Header */}
       <div style={{ marginBottom:32 }}>
         <h1 style={{ fontWeight:800, fontSize:"clamp(20px,2.5vw,26px)", letterSpacing:"-0.03em", color:"#fff", marginBottom:4 }}>
-          Welcome back, {firstName} 👋
+          {userType === "business" ? `${firstName}'s Brand HQ 🏢` : `Welcome back, ${firstName} 👋`}
         </h1>
         <p style={{ fontSize:13.5, color:"#445" }}>Here's what's happening across your brands and talent network.</p>
       </div>

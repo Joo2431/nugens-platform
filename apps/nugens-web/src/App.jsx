@@ -103,7 +103,7 @@ export default function App() {
             <Route path="*"         element={<Layout><Home /></Layout>} />
           </Routes>
         </Suspense>
-        <GenEMiniPopup />
+        <GenEMiniPopup product="nugens" />
       </AuthContext.Provider>
     </BrowserRouter>
   );

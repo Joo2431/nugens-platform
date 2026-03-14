@@ -1183,6 +1183,86 @@ app.post("/api/nudge/send", async (req, res) => {
   }
 });
 
+
+/* ── POST /api/mini-chat ── GEN-E Mini for all platforms ── */
+app.post("/api/mini-chat", requireAuth, async (req, res) => {
+  const { message, history = [], product, userType, goal, businessNeed } = req.body;
+  if (!message) return res.status(400).json({ error: "Message required" });
+
+  // Build context-aware system prompt based on user type and product
+  const productContext = {
+    nugens:  "NuGens ecosystem (Gen-E AI, HyperX, DigiHub, The Wedding Unit)",
+    hyperx:  "HyperX — professional skills and career learning platform",
+    digihub: "DigiHub — digital marketing, brand growth and talent community",
+    units:   "The Wedding Unit — wedding and event production platform",
+    gene:    "Gen-E AI — AI-powered career intelligence assistant",
+  };
+
+  const individualPrompts = {
+    get_promoted:    "Focus on career advancement, workplace skills, salary negotiation, and promotion strategies.",
+    switch_career:   "Focus on career transitions, skill gaps, resume tailoring, and interview prep for new fields.",
+    learn_skills:    "Focus on course recommendations, learning paths, and skill development within HyperX.",
+    get_first_job:   "Focus on entry-level job search, resume building, interview prep, and first-job tips.",
+    grow_income:     "Focus on salary negotiation, freelancing, upskilling, and income growth strategies.",
+    build_brand:     "Focus on LinkedIn optimization, personal branding, DigiHub tools, and visibility strategies.",
+  };
+
+  const businessPrompts = {
+    train_team:           "Focus on team learning plans, HyperX courses for employees, and skill development at scale.",
+    hire_talent:          "Focus on DigiHub talent network, hiring best practices, and team building.",
+    digital_marketing:    "Focus on DigiHub tools, content strategy, SEO, social media, and brand growth.",
+    content_production:   "Focus on The Wedding Unit services, photography, video production, and content creation.",
+  };
+
+  const contextHint = userType === "business"
+    ? (businessPrompts[businessNeed] || "Focus on business growth, team development, and NuGens business tools.")
+    : (individualPrompts[goal] || "Focus on personal career growth and professional development.");
+
+  const systemPrompt = \`You are GEN-E Mini, the AI assistant for ${productContext[product] || "the NuGens ecosystem"}.
+
+STRICT SCOPE — You ONLY answer questions about:
+- NuGens products: Gen-E AI (career intelligence), HyperX (learning platform), DigiHub (digital marketing), The Wedding Unit (production)
+- Career development, professional skills, workplace situations
+- Learning paths, courses, certifications
+- Digital marketing, brand building, content strategy
+- Wedding/event production and photography
+- Subscriptions, pricing, and features of NuGens products
+
+USER CONTEXT:
+- Account type: ${userType === "business" ? "Business" : "Individual"}
+- ${contextHint}
+- Current platform: ${productContext[product] || "NuGens"}
+
+FOR OFF-TOPIC QUESTIONS (cooking, sports, politics, entertainment, etc.):
+Respond EXACTLY: "I'm GEN-E Mini — I can only help with NuGens products and career/business topics. What can I help you with today?"
+
+RESPONSE STYLE:
+- Be direct and practical — max 4-5 sentences unless listing steps
+- ${userType === "business" ? "Use business-focused language — ROI, team, scale, growth" : "Use personal career language — skills, growth, opportunities"}
+- Always relate advice back to relevant NuGens products when useful
+- Never be vague or generic\`;
+
+  try {
+    const messages = [
+      ...history.slice(-8).map(m => ({ role: m.role, content: m.content })),
+      { role: "user", content: message }
+    ];
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "system", content: systemPrompt }, ...messages],
+      max_tokens: 400,
+      temperature: 0.7,
+    });
+
+    const reply = response.choices[0]?.message?.content || "Sorry, I couldn't get a response.";
+    res.json({ reply });
+  } catch (err) {
+    console.error("Mini chat error:", err.message);
+    res.status(500).json({ error: "Something went wrong." });
+  }
+});
+
 /* GET /health */
 app.get("/health", (req, res) =>
   res.json({ status: "ok", version: "GEN-E V6 \u2014 Streaming + Jobs + Multi-AI" })
