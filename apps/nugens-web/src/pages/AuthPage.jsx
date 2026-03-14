@@ -18,10 +18,11 @@ export default function AuthPage() {
   // even inside stale closures from onAuthStateChange
   const redirectRef = useRef("/dashboard");
   useEffect(() => {
-    // Parse redirect param — must run after mount so URL is final
+    // Read redirect from URL param OR sessionStorage (set before Google OAuth)
     const params = new URLSearchParams(window.location.search);
-    const r = params.get("redirect");
-    redirectRef.current = r || "/dashboard";
+    const fromUrl  = params.get("redirect");
+    const fromStorage = (() => { try { return sessionStorage.getItem("ng_redirect"); } catch(e) { return null; } })();
+    redirectRef.current = fromUrl || fromStorage || "/dashboard";
   }, []);
 
   const [tab,           setTab]           = useState("login");
@@ -33,14 +34,16 @@ export default function AuthPage() {
 
   const goAfterLogin = () => {
     const dest = redirectRef.current;
-    // Small delay — lets cookie storage write the session before navigating away
+    // Clear sessionStorage redirect now that we're using it
+    try { sessionStorage.removeItem("ng_redirect"); } catch(e) {}
+    // Delay lets cookie write complete before navigating to subdomain
     setTimeout(() => {
       if (dest.startsWith("http")) {
         window.location.href = dest;
       } else {
         navigate(dest, { replace: true });
       }
-    }, 400);
+    }, 600);
   };
 
   useEffect(() => {
@@ -102,9 +105,12 @@ export default function AuthPage() {
   const handleGoogle = async () => {
     setGoogleLoading(true); setError("");
     const dest = redirectRef.current;
+    // Save destination in sessionStorage before OAuth redirect
+    // so it survives the full page reload without being in the URL
+    try { sessionStorage.setItem("ng_redirect", dest); } catch(e) {}
     const { error: e2 } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `https://nugens.in.net/auth?redirect=${encodeURIComponent(dest)}` }
+      options: { redirectTo: "https://nugens.in.net/auth" }
     });
     if (e2) { setError(e2.message); setGoogleLoading(false); }
   };

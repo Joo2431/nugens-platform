@@ -58,11 +58,20 @@ export default function Dashboard() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) { window.location.href = "/auth"; return; }
+      if (!session) return; // ProtectedRoute handles redirect
       setUser(session.user);
       supabase.from("profiles").select("*").eq("id", session.user.id).single()
         .then(({ data }) => setProfile(data));
     });
+    // Keep in sync with auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        supabase.from("profiles").select("*").eq("id", session.user.id).single()
+          .then(({ data }) => setProfile(data));
+      }
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   const signOut = async () => { await supabase.auth.signOut(); window.location.href = "/"; };
