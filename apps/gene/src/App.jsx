@@ -23,8 +23,16 @@ const PINK = "#e8185d";
 
 function Spinner() {
   return (
-    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:"#09090a" }}>
-      <div style={{ fontWeight:800, fontSize:28, fontStyle:"italic", color:PINK, letterSpacing:"-0.04em", fontFamily:"'Plus Jakarta Sans',sans-serif" }}>GEN-E</div>
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:"#fff" }}>
+      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:12 }}>
+        <div style={{
+          width:40, height:40, borderRadius:12,
+          background:PINK, display:"flex", alignItems:"center", justifyContent:"center",
+          fontWeight:900, fontSize:13, color:"#fff", letterSpacing:"-0.03em",
+          fontFamily:"'Plus Jakarta Sans',sans-serif",
+        }}>GE</div>
+        <div style={{ color:"#e0e0e0", fontSize:13, fontFamily:"'Plus Jakarta Sans',sans-serif" }}>Loading…</div>
+      </div>
     </div>
   );
 }
@@ -34,43 +42,45 @@ function AppShell() {
   const [user,         setUser]        = useState(null);
   const [profile,      setProfile]     = useState(null);
   const [ready,        setReady]       = useState(false);
-  const [modeOverride, setModeOverride]= useState(() => localStorage.getItem("gene-mode-override") || null);
+  // modeOverride: lets users manually switch individual <-> business without changing DB
+  const [modeOverride, setModeOverride]= useState(() => {
+    // Clear stale overrides on fresh load if stored too long (> 7 days)
+    const stored = localStorage.getItem("gene-mode-override");
+    const ts     = localStorage.getItem("gene-mode-override-ts");
+    if (stored && ts && Date.now() - Number(ts) > 7 * 86400000) {
+      localStorage.removeItem("gene-mode-override");
+      localStorage.removeItem("gene-mode-override-ts");
+      return null;
+    }
+    return stored || null;
+  });
 
   const isFullscreen = ["/pricing", "/auth"].some(p => location.pathname.startsWith(p));
+
+  const fetchProfile = async (uid) => {
+    const { data } = await supabase.from("profiles").select("*").eq("id", uid).single();
+    if (data) setProfile(data);
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data:{ session } }) => {
       setUser(session?.user ?? null);
       setReady(true);
-      if (session?.user) {
-        supabase.from("profiles").select("*").eq("id", session.user.id).single()
-          .then(({ data }) => {
-            setProfile(data);
-            // Auto-apply DB user_type if no manual override
-            if (!localStorage.getItem("gene-mode-override") && data?.user_type) {
-              // clear any stale override if DB type changed
-            }
-          });
-      }
+      if (session?.user) fetchProfile(session.user.id);
     });
     const { data:{ subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null);
-      if (session?.user) {
-        supabase.from("profiles").select("*").eq("id", session.user.id).single()
-          .then(({ data }) => setProfile(data));
-      } else setProfile(null);
+      if (session?.user) fetchProfile(session.user.id);
+      else { setProfile(null); }
     });
     return () => subscription.unsubscribe();
   }, []);
 
-  // Refresh profile on window focus (catches plan upgrades in other tabs)
+  // Re-fetch profile on window focus — catches plan/type changes from nugens-web onboarding
   useEffect(() => {
     const h = async () => {
       const { data:{ session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const { data } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
-        if (data) setProfile(data);
-      }
+      if (session?.user) fetchProfile(session.user.id);
     };
     window.addEventListener("focus", h);
     return () => window.removeEventListener("focus", h);
@@ -80,17 +90,19 @@ function AppShell() {
 
   const signOut = async () => {
     localStorage.removeItem("gene-mode-override");
+    localStorage.removeItem("gene-mode-override-ts");
     await supabase.auth.signOut();
     window.location.href = "https://nugens.in.net/auth";
   };
 
-  // modeOverride lets users manually toggle — clears when they sign out
+  // Effective user type: manual override > Supabase profile > individual default
   const dbUserType = profile?.user_type || "individual";
   const userType   = modeOverride ?? dbUserType;
 
   const handleSwitchMode = (newMode) => {
     setModeOverride(newMode);
     localStorage.setItem("gene-mode-override", newMode);
+    localStorage.setItem("gene-mode-override-ts", String(Date.now()));
   };
 
   if (isFullscreen) return (
@@ -103,7 +115,7 @@ function AppShell() {
   );
 
   return (
-    <div style={{ display:"flex", minHeight:"100vh", background:"#09090a" }}>
+    <div style={{ display:"flex", minHeight:"100vh", background:"#f7f7f8" }}>
       {user && (
         <Sidebar
           userType={userType}
@@ -116,7 +128,7 @@ function AppShell() {
       <div style={{ flex:1, minWidth:0, overflowX:"hidden" }}>
         <Suspense fallback={<Spinner />}>
           <Routes>
-            {/* ROOT — business users land on /business */}
+            {/* ROOT — send business users to /business automatically */}
             <Route path="/" element={
               <ProtectedRoute>
                 {userType === "business"
@@ -144,7 +156,7 @@ function AppShell() {
 
             {/* SHARED */}
             <Route path="/pricing" element={<PricingPage />} />
-            <Route path="*" element={<Navigate to={userType === "business" ? "/business" : "/"} replace />} />
+            <Route path="*" element={<Navigate to={userType === "business" ? "/business" : "/chat"} replace />} />
           </Routes>
         </Suspense>
       </div>

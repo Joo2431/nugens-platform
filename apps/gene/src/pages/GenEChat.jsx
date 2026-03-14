@@ -755,6 +755,7 @@ export default function GenEChat() {
 
   const handleSignOut = async () => {
     localStorage.removeItem("gene-mode-override");
+    localStorage.removeItem("gene-mode-override-ts");
     await supabase.auth.signOut();
     window.location.href = "https://nugens.in.net/auth";
   };
@@ -948,7 +949,7 @@ export default function GenEChat() {
           <div style={{ flex:1,minWidth:0 }}>
             <div style={{ fontSize:12,fontWeight:600,color:"#222",
               overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
-              {profile?.full_name||user?.email?.split("@")[0]}
+              {profile?.full_name || user?.email?.split("@")[0] || "User"}
             </div>
             <PlanBadge plan={profile?.plan||"free"} />
           </div>
