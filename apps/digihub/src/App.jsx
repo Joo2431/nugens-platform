@@ -10,6 +10,7 @@ import TalentHub      from "./pages/TalentHub";
 import Analytics      from "./pages/Analytics";
 import Projects       from "./pages/Projects";
 import AIAssistant    from "./pages/AIAssistant";
+import GenEMiniPopup  from "./components/GenEMiniPopup";
 
 function AppShell() {
   const [user,    setUser]    = useState(null);

@@ -5,6 +5,7 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Home from "./pages/Home";
+import GenEMiniPopup from "./components/GenEMiniPopup";
 
 /* ── Auth context ── */
 export const AuthContext = createContext({ user: null, profile: null, ready: false });
@@ -102,6 +103,7 @@ export default function App() {
             <Route path="*"         element={<Layout><Home /></Layout>} />
           </Routes>
         </Suspense>
+        <GenEMiniPopup />
       </AuthContext.Provider>
     </BrowserRouter>
   );

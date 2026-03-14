@@ -9,6 +9,7 @@ import Booking        from "./pages/Booking";
 import Projects       from "./pages/Projects";
 import Portfolio      from "./pages/Portfolio";
 import AIAssistant    from "./pages/AIAssistant";
+import GenEMiniPopup  from "./components/GenEMiniPopup";
 
 function AppShell() {
   const [user,    setUser]    = useState(null);
