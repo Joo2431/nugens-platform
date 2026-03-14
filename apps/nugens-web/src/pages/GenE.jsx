@@ -193,7 +193,7 @@ export default function GenE() {
             transition: "all 0.46s ease 0.34s", marginBottom: 48
           }}>
             <a href="https://gene.nugens.in.net" target="_blank" rel="noreferrer" className="ge-btn-purple">Launch Gen-E AI →</a>
-            <Link to="/hyperx" className="ge-btn-ghost">Pair with HyperX</a>
+            <Link to="/hyperx" className="ge-btn-ghost">Pair with HyperX</Link>
           </div>
 
           {/* stats strip */}
@@ -338,7 +338,7 @@ export default function GenE() {
                   <h4 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: "-0.02em", marginBottom: 10, color: i === 0 ? "#fff" : "#0a0a0a" }}>{c.label}</h4>
                   <p style={{ fontSize: 13, lineHeight: 1.65, color: i === 0 ? "#9ca3af" : "#6b7280", marginBottom: 20 }}>{c.desc}</p>
                   {c.link
-                    ? <Link to={c.link} style={{ fontSize: 12.5, fontWeight: 600, color: c.color, textDecoration: "none" }}>{c.cta} →</a>
+                    ? <Link to={c.link} style={{ fontSize: 12.5, fontWeight: 600, color: c.color, textDecoration: "none" }}>{c.cta} →</Link>
                     : <span style={{ fontSize: 12.5, fontWeight: 600, color: c.color }}>{c.cta}</span>
                   }
                 </div>
@@ -365,7 +365,7 @@ export default function GenE() {
             </p>
             <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
               <a href="https://gene.nugens.in.net" target="_blank" rel="noreferrer" className="ge-btn-purple">Launch Gen-E AI →</a>
-              <Link to="/about" className="ge-btn-ghost">Learn about Nugens</a>
+              <Link to="/about" className="ge-btn-ghost">Learn about Nugens</Link>
             </div>
           </Reveal>
         </div>
