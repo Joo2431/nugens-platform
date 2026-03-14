@@ -12,7 +12,7 @@ const NAV = [
   { to:"/paths",       icon:"◈", label:"Learning Paths"},
   { to:"/certificates",icon:"◇", label:"Certificates" },
   { to:"/community",   icon:"⬟", label:"Community"    },
-  { to:"/assistant",   icon:"✦", label:"AI Assistant" },
+  // Gen-E Mini is now floating popup
   { to:"/pricing",     icon:"↑", label:"Pricing"       },
 ];
 

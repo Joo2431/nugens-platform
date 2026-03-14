@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { supabase } from "./lib/supabase";
 import Sidebar from "./components/Sidebar";
 import ProtectedRoute from "./components/ProtectedRoute";
+import GenEMiniPopup from "./components/GenEMiniPopup";
+import ChatWidget from "./components/ChatWidget";
 
 const Dashboard     = lazy(() => import("./pages/Dashboard"));
 const CoursesPage   = lazy(() => import("./pages/Courses"));
@@ -72,13 +74,14 @@ function AppShell() {
             <Route path="/paths/:id"    element={<ProtectedRoute><LearningPaths profile={profile} /></ProtectedRoute>} />
             <Route path="/certificates" element={<ProtectedRoute><Certificates profile={profile} /></ProtectedRoute>} />
             <Route path="/community"    element={<ProtectedRoute><Community profile={profile} /></ProtectedRoute>} />
-            <Route path="/assistant"    element={<ProtectedRoute><AIAssistant profile={profile} /></ProtectedRoute>} />
+            {/* Gen-E Mini is now a floating popup — accessible from every page */}
             <Route path="/pricing"      element={<ProtectedRoute><Pricing profile={profile} /></ProtectedRoute>} />
             <Route path="/admin"        element={<ProtectedRoute><AdminPanel profile={profile} /></ProtectedRoute>} />
             <Route path="*"             element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
       </div>
+      {user && <ChatWidget />}
     </div>
   );
 }
