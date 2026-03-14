@@ -25,13 +25,11 @@ function Spinner() {
   return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:"#fff" }}>
       <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:12 }}>
-        <div style={{
-          width:40, height:40, borderRadius:12,
-          background:PINK, display:"flex", alignItems:"center", justifyContent:"center",
+        <div style={{ width:40, height:40, borderRadius:12, background:PINK,
+          display:"flex", alignItems:"center", justifyContent:"center",
           fontWeight:900, fontSize:13, color:"#fff", letterSpacing:"-0.03em",
-          fontFamily:"'Plus Jakarta Sans',sans-serif",
-        }}>GE</div>
-        <div style={{ color:"#e0e0e0", fontSize:13, fontFamily:"'Plus Jakarta Sans',sans-serif" }}>Loading…</div>
+          fontFamily:"'Plus Jakarta Sans',sans-serif" }}>GE</div>
+        <div style={{ color:"#ddd", fontSize:13, fontFamily:"'Plus Jakarta Sans',sans-serif" }}>Loading…</div>
       </div>
     </div>
   );
@@ -39,52 +37,53 @@ function Spinner() {
 
 function AppShell() {
   const location = useLocation();
-  const [user,         setUser]        = useState(null);
-  const [profile,      setProfile]     = useState(null);
-  const [ready,        setReady]       = useState(false);
-  // modeOverride: lets users manually switch individual <-> business without changing DB
-  const [modeOverride, setModeOverride]= useState(() => {
-    // Clear stale overrides on fresh load if stored too long (> 7 days)
-    const stored = localStorage.getItem("gene-mode-override");
-    const ts     = localStorage.getItem("gene-mode-override-ts");
-    if (stored && ts && Date.now() - Number(ts) > 7 * 86400000) {
-      localStorage.removeItem("gene-mode-override");
-      localStorage.removeItem("gene-mode-override-ts");
-      return null;
-    }
-    return stored || null;
-  });
+  const [user,        setUser]       = useState(null);
+  const [profile,     setProfile]    = useState(null);
+  const [ready,       setReady]      = useState(false);
+  // modeOverride: ONLY set when user manually clicks switch in sidebar
+  // Starts as null — always defer to DB on first load
+  const [modeOverride, setModeOverride] = useState(null);
 
   const isFullscreen = ["/pricing", "/auth"].some(p => location.pathname.startsWith(p));
 
   const fetchProfile = async (uid) => {
-    const { data } = await supabase.from("profiles").select("*").eq("id", uid).single();
-    if (!data) return;
-    setProfile(data);
-    // If DB says business but localStorage has stale individual override, clear it
-    const storedOverride = localStorage.getItem("gene-mode-override");
-    if (data.user_type === "business" && storedOverride === "individual") {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", uid)
+      .single();
+
+    if (data) {
+      setProfile(data);
+      // Always clear any stale localStorage override — DB is the source of truth
+      // Only keep override if user explicitly switched this session (modeOverride state is set)
       localStorage.removeItem("gene-mode-override");
-      localStorage.removeItem("gene-mode-override-ts");
-      setModeOverride(null);
     }
   };
 
   useEffect(() => {
+    // Clear any stale localStorage from previous sessions on mount
+    localStorage.removeItem("gene-mode-override");
+
     supabase.auth.getSession().then(({ data:{ session } }) => {
       setUser(session?.user ?? null);
       setReady(true);
       if (session?.user) fetchProfile(session.user.id);
     });
+
     const { data:{ subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      else { setProfile(null); }
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
+        setProfile(null);
+        setModeOverride(null);
+      }
     });
     return () => subscription.unsubscribe();
   }, []);
 
-  // Re-fetch profile on window focus — catches plan/type changes from nugens-web onboarding
+  // Re-fetch profile on window focus (catches onboarding changes from nugens-web)
   useEffect(() => {
     const h = async () => {
       const { data:{ session } } = await supabase.auth.getSession();
@@ -97,20 +96,19 @@ function AppShell() {
   if (!ready) return <Spinner />;
 
   const signOut = async () => {
+    setModeOverride(null);
     localStorage.removeItem("gene-mode-override");
-    localStorage.removeItem("gene-mode-override-ts");
     await supabase.auth.signOut();
     window.location.href = "https://nugens.in.net/auth";
   };
 
-  // Effective user type: manual override > Supabase profile > individual default
+  // Source of truth: modeOverride (manual session switch) → DB user_type → individual
   const dbUserType = profile?.user_type || "individual";
   const userType   = modeOverride ?? dbUserType;
 
   const handleSwitchMode = (newMode) => {
     setModeOverride(newMode);
-    localStorage.setItem("gene-mode-override", newMode);
-    localStorage.setItem("gene-mode-override-ts", String(Date.now()));
+    // Don't persist to localStorage — only valid for this browser session
   };
 
   if (isFullscreen) return (
@@ -136,7 +134,7 @@ function AppShell() {
       <div style={{ flex:1, minWidth:0, overflowX:"hidden" }}>
         <Suspense fallback={<Spinner />}>
           <Routes>
-            {/* ROOT — send business users to /business automatically */}
+            {/* ROOT — business users redirect to /business immediately */}
             <Route path="/" element={
               <ProtectedRoute>
                 {userType === "business"
