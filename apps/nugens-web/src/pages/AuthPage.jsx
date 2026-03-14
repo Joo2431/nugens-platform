@@ -25,11 +25,28 @@ export default function AuthPage() {
   const [error,         setError]         = useState("");
   const [success,       setSuccess]       = useState("");
 
-  // If already logged in, skip the auth page
+  // Handle both existing session AND hash token from Google OAuth
   useEffect(() => {
+    // onAuthStateChange catches hash tokens (SIGNED_IN fires after hash is processed)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        // Upsert profile for OAuth users
+        supabase.from("profiles").upsert({
+          id: session.user.id,
+          email: session.user.email,
+          full_name: session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "",
+          avatar_url: session.user.user_metadata?.avatar_url || "",
+          plan: "free",
+          questions_used: 0,
+        }, { onConflict: "id", ignoreDuplicates: true });
+        navigate(returnTo, { replace: true });
+      }
+    });
+    // Also check existing session (for when user visits /auth while already logged in)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) navigate(returnTo, { replace: true });
     });
+    return () => subscription.unsubscribe();
   }, []); // eslint-disable-line
 
   const handleChange = (e) => {
@@ -99,7 +116,7 @@ export default function AuthPage() {
     setError("");
     const { error: e2 } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/` }
+      options: { redirectTo: `${window.location.origin}/auth` }
     });
     if (e2) { setError(e2.message); setGoogleLoading(false); }
   };

@@ -18,9 +18,22 @@ export default function AuthPage() {
   const [success,       setSuccess]       = useState("");
 
   useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        supabase.from("profiles").upsert({
+          id: session.user.id,
+          email: session.user.email,
+          full_name: session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "",
+          avatar_url: session.user.user_metadata?.avatar_url || "",
+          plan: "free", questions_used: 0,
+        }, { onConflict: "id", ignoreDuplicates: true });
+        navigate(returnTo, { replace: true });
+      }
+    });
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) navigate(returnTo, { replace: true });
     });
+    return () => subscription.unsubscribe();
   }, []); // eslint-disable-line
 
   const handleChange = (e) => { setForm(f => ({ ...f, [e.target.name]: e.target.value })); setError(""); };
@@ -50,7 +63,7 @@ export default function AuthPage() {
 
   const handleGoogle = async () => {
     setGoogleLoading(true); setError("");
-    const { error: e2 } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/` } });
+    const { error: e2 } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/auth` } });
     if (e2) { setError(e2.message); setGoogleLoading(false); }
   };
 
