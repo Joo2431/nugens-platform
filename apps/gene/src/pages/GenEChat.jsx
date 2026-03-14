@@ -480,7 +480,11 @@ export default function GenEChat() {
   };
 
   /* ─── Helpers ─── */
-  const canSend = () => profile && (profile.plan !== "free" || (profile.questions_used||0) < LIMIT);
+  const canSend = () => {
+    if (!profile) return false;
+    if (profile.plan === "admin" || profile.plan === "monthly" || profile.plan === "yearly") return true;
+    return (profile.questions_used || 0) < LIMIT;
+  };
 
   const getToken = async () => {
     const { data:{ session } } = await supabase.auth.getSession();
@@ -745,9 +749,10 @@ export default function GenEChat() {
   const sendTool = async tool => {
     if (!canSend()) { setUpgrade("limit"); return; }
     const p = profile?.plan || "free";
-    if (tool.mode === "RESUME"    && p === "free")    { setUpgrade("resume_builder");    return; }
-    if (tool.mode === "INTERVIEW" && p === "free")    { setUpgrade("interview_advanced"); return; }
-    if (tool.label === "Job Match" && p !== "yearly") { setUpgrade("job_search");         return; }
+    const isAdmin = p === "admin";
+    if (!isAdmin && tool.mode === "RESUME"    && p === "free")    { setUpgrade("resume_builder");    return; }
+    if (!isAdmin && tool.mode === "INTERVIEW" && p === "free")    { setUpgrade("interview_advanced"); return; }
+    if (!isAdmin && tool.label === "Job Match" && p !== "yearly") { setUpgrade("job_search");         return; }
     const c = freshChat(tool.mode);
     setChats(prev => [c,...prev]); setActiveId(c.id); setMode(tool.mode); setSidebarOpen(false);
     setTimeout(() => send(tool.body, c.id, tool.mode, null), 80);
@@ -917,6 +922,7 @@ export default function GenEChat() {
 
       {/* User */}
       <div style={{ padding:"10px 12px 14px",borderTop:"1px solid #f5f5f5",flexShrink:0 }}>
+        {/* Only show upgrade banner for genuine free users — hide for admin/pro */}
         {profile?.plan === "free" && (
           <div style={{ marginBottom:10 }}>
             <div style={{ display:"flex",justifyContent:"space-between",fontSize:10.5,color:"#bbb",marginBottom:4 }}>
@@ -939,35 +945,60 @@ export default function GenEChat() {
           </div>
         )}
 
-        <div style={{ display:"flex",alignItems:"center",gap:9 }}>
-          <div style={{ width:30,height:30,borderRadius:"50%",background:"#f5f5f5",
-            border:`2px solid ${PINK}22`,flexShrink:0,
-            display:"flex",alignItems:"center",justifyContent:"center",
-            color:"#555",fontWeight:700,fontSize:12 }}>
-            {(profile?.full_name||user?.email||"U").charAt(0).toUpperCase()}
-          </div>
-          <div style={{ flex:1,minWidth:0 }}>
-            <div style={{ fontSize:12,fontWeight:600,color:"#222",
-              overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
-              {profile?.full_name || user?.email?.split("@")[0] || "User"}
+        {(() => {
+          // Resolve display name: profile DB > Google OAuth metadata > email > fallback
+          const displayName =
+            profile?.full_name ||
+            user?.user_metadata?.full_name ||
+            user?.user_metadata?.name ||
+            user?.email?.split("@")[0] ||
+            "Me";
+          const initial = displayName.charAt(0).toUpperCase();
+          const planLabel = profile?.plan === "admin" ? "Admin ✦"
+            : profile?.plan === "yearly" ? "Pro ✦"
+            : profile?.plan === "monthly" ? "Pro"
+            : "Free";
+          const planColor = profile?.plan === "admin" ? "#7c3aed"
+            : profile?.plan === "yearly" ? "#7c3aed"
+            : profile?.plan === "monthly" ? PINK
+            : "#bbb";
+
+          return (
+            <div style={{ display:"flex",alignItems:"center",gap:9 }}>
+              <div style={{ width:32,height:32,borderRadius:"50%",flexShrink:0,
+                background:profile?.avatar_url?"transparent":`${PINK}15`,
+                border:`2px solid ${PINK}30`,overflow:"hidden",
+                display:"flex",alignItems:"center",justifyContent:"center" }}>
+                {profile?.avatar_url
+                  ? <img src={profile.avatar_url} style={{width:32,height:32,objectFit:"cover"}} alt={displayName}/>
+                  : <span style={{fontSize:12,fontWeight:800,color:PINK}}>{initial}</span>}
+              </div>
+              <div style={{ flex:1,minWidth:0 }}>
+                <div style={{ fontSize:12.5,fontWeight:700,color:"#222",
+                  overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
+                  {displayName}
+                </div>
+                <span style={{ fontSize:10,fontWeight:700,color:planColor,letterSpacing:"0.03em" }}>
+                  {planLabel}
+                </span>
+              </div>
+              <div style={{ display:"flex",gap:4 }}>
+                {profile?.plan !== "free" && profile?.plan !== "admin" && (
+                  <button onClick={()=>nav("/pricing")} title="Manage plan"
+                    style={{ fontSize:11,color:"#ccc",background:"none",border:"none",
+                      cursor:"pointer",padding:"4px 6px",borderRadius:6 }}
+                    onMouseEnter={e=>e.currentTarget.style.color=PINK}
+                    onMouseLeave={e=>e.currentTarget.style.color="#ccc"}>Plan</button>
+                )}
+                <button onClick={handleSignOut} title="Sign out"
+                  style={{ fontSize:11,color:"#ccc",background:"none",border:"none",
+                    cursor:"pointer",padding:"4px 6px",borderRadius:6 }}
+                  onMouseEnter={e=>e.currentTarget.style.color="#e55"}
+                  onMouseLeave={e=>e.currentTarget.style.color="#ccc"}>Out</button>
+              </div>
             </div>
-            <PlanBadge plan={profile?.plan||"free"} />
-          </div>
-          <div style={{ display:"flex",gap:4 }}>
-            {profile?.plan !== "free" && (
-              <button onClick={()=>nav("/pricing")} title="Manage plan"
-                style={{ fontSize:11,color:"#bbb",background:"none",border:"none",
-                  cursor:"pointer",padding:"4px 6px",borderRadius:6 }}
-                onMouseEnter={e=>e.currentTarget.style.color=PINK}
-                onMouseLeave={e=>e.currentTarget.style.color="#bbb"}>Plan</button>
-            )}
-            <button onClick={handleSignOut} title="Sign out"
-              style={{ fontSize:11,color:"#bbb",background:"none",border:"none",
-                cursor:"pointer",padding:"4px 6px",borderRadius:6 }}
-              onMouseEnter={e=>e.currentTarget.style.color="#e55"}
-              onMouseLeave={e=>e.currentTarget.style.color="#bbb"}>Out</button>
-          </div>
-        </div>
+          );
+        })()}
       </div>
     </div>
   );
@@ -1126,6 +1157,8 @@ export default function GenEChat() {
                     borderRadius:20,fontSize:11,color:PINK,cursor:"pointer",fontWeight:700 }}>
                   {Math.max(0,LIMIT-(profile.questions_used||0))} left
                 </button>
+              ) : profile?.plan === "admin" ? (
+                <span style={{ fontSize:10,fontWeight:800,color:"#7c3aed",letterSpacing:"0.04em",background:"#f5f3ff",padding:"3px 9px",borderRadius:20 }}>Admin ✦</span>
               ) : <PlanBadge plan={profile?.plan}/>}
               <LanguagePicker lang={lang} setLang={setLang} open={langOpen} setOpen={setLangOpen} />
               <button onClick={newChat} title="New chat"
