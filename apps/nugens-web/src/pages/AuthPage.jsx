@@ -8,7 +8,7 @@ const PRODUCTS = [
   { icon:"◎", label:"Gen-E AI",         sub:"Career intelligence & resume AI",  color:"#7c3aed" },
   { icon:"⬡", label:"HyperX",           sub:"Professional skills training",     color:PINK      },
   { icon:"◈", label:"DigiHub",          sub:"Marketing agency & community",     color:"#0284c7" },
-  { icon:"◇", label:"The Wedding Unit", sub:"Wedding & event production",       color:"#d97706" },
+  { icon:"◇", label:"Units", sub:"Wedding & event production",       color:"#d97706" },
 ];
 
 export default function AuthPage() {
@@ -169,7 +169,7 @@ export default function AuthPage() {
                 <span style={{ fontSize:11, fontWeight:600, color:PINK, letterSpacing:"0.06em", textTransform:"uppercase" }}>One account · All products</span>
               </div>
               <h1 style={{ fontSize:"clamp(22px,2.8vw,30px)", fontWeight:800, color:"#fff", lineHeight:1.2, letterSpacing:"-0.03em", marginBottom:12 }}>One login.<br />Every Nugens product.</h1>
-              <p style={{ fontSize:13.5, color:"rgba(255,255,255,0.4)", lineHeight:1.72, maxWidth:280 }}>Sign in once — access Gen-E, HyperX, DigiHub and The Wedding Unit without logging in again.</p>
+              <p style={{ fontSize:13.5, color:"rgba(255,255,255,0.4)", lineHeight:1.72, maxWidth:280 }}>Sign in once — access Gen-E, HyperX, DigiHub and Units without logging in again.</p>
             </div>
             <div style={{ border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, overflow:"hidden", background:"rgba(255,255,255,0.02)", marginBottom:28 }} className="fu">
               {PRODUCTS.map(p => (

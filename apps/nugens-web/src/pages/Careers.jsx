@@ -32,7 +32,7 @@ const JOBS = [
   {
     id: 3, title: "Video Editor", type: "Full-time / Freelance",
     team: "Production", color: "#d97706",
-    description: "Edit high-quality videos for brands, wedding films, ads, and social media content for The Wedding Unit and DigiHub.",
+    description: "Edit high-quality videos for brands, wedding films, ads, and social media content for Units and DigiHub.",
     responsibilities: [
       "Edit reels, highlights, and long-form videos",
       "Add motion graphics, titles, and transitions",

@@ -176,8 +176,8 @@ export default function DigiHub() {
             transition: "all 0.46s ease 0.34s", marginBottom: 44
           }}>
             {view === "agency"
-              ? <><Link to="/contact" className="dh-btn-pink">Book a strategy call →</Link><Link to="/portfolio" className="dh-btn-ghost">View our work</Link></>
-              : <><Link to="/contact" className="dh-btn-pink">Join the community →</Link><Link to="/gene" className="dh-btn-ghost">Start with Gen-E first</Link></>
+              ? <><Link to="/contact" className="dh-btn-pink">Book a strategy call →</a><Link to="/portfolio" className="dh-btn-ghost">View our work</a></>
+              : <><Link to="/contact" className="dh-btn-pink">Join the community →</a><a href="https://gene.nugens.in.net" target="_blank" rel="noreferrer" className="dh-btn-ghost">Start with Gen-E first</a></>
             }
           </div>
 
@@ -311,7 +311,7 @@ export default function DigiHub() {
                   <p style={{ fontSize: 14, color: "#9ca3af", lineHeight: 1.7, maxWidth: 340, marginBottom: 28 }}>
                     We don't promise placement. We build the conditions where placement naturally happens — through skills, community, and real connections.
                   </p>
-                  <Link to="/contact" className="dh-btn-pink">Join the community →</Link>
+                  <Link to="/contact" className="dh-btn-pink">Join the community →</a>
                 </Reveal>
                 <Reveal delay={100}>
                   {[
@@ -357,7 +357,7 @@ export default function DigiHub() {
                   <h4 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, fontSize: 14, letterSpacing: "-0.01em", lineHeight: 1.4, marginBottom: 10, color: i === 2 ? "#fff" : "#0a0a0a" }}>{c.label}</h4>
                   <p style={{ fontSize: 13, lineHeight: 1.65, color: i === 2 ? "#9ca3af" : "#6b7280", marginBottom: 20 }}>{c.desc}</p>
                   {c.link
-                    ? <Link to={c.link} style={{ fontSize: 12.5, fontWeight: 600, color: c.color, textDecoration: "none" }}>{c.cta} →</Link>
+                    ? <Link to={c.link} style={{ fontSize: 12.5, fontWeight: 600, color: c.color, textDecoration: "none" }}>{c.cta} →</a>
                     : <span style={{ fontSize: 12.5, fontWeight: 600, color: c.color }}>{c.cta}</span>
                   }
                 </div>
@@ -387,7 +387,7 @@ export default function DigiHub() {
                 : "Join the DigiHub community and get connected to brands and professionals who'll help you start your career."}
             </p>
             <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
-              <Link to="/contact" className="dh-btn-pink">{view === "agency" ? "Book a strategy call →" : "Join DigiHub →"}</Link>
+              <Link to="/contact" className="dh-btn-pink">{view === "agency" ? "Book a strategy call →" : "Join DigiHub →"}</a>
               <button className="dh-btn-ghost" onClick={() => setView(view === "agency" ? "community" : "agency")}>
                 {view === "agency" ? "See community" : "See agency services"}
               </button>

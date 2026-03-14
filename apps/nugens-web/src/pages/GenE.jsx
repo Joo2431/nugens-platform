@@ -192,8 +192,8 @@ export default function GenE() {
             opacity: on ? 1 : 0, transform: on ? "none" : "translateY(8px)",
             transition: "all 0.46s ease 0.34s", marginBottom: 48
           }}>
-            <Link to="/gen-e" className="ge-btn-purple">Launch Gen-E AI →</Link>
-            <Link to="/hyperx" className="ge-btn-ghost">Pair with HyperX</Link>
+            <a href="https://gene.nugens.in.net" target="_blank" rel="noreferrer" className="ge-btn-purple">Launch Gen-E AI →</a>
+            <Link to="/hyperx" className="ge-btn-ghost">Pair with HyperX</a>
           </div>
 
           {/* stats strip */}
@@ -292,7 +292,7 @@ export default function GenE() {
               <p style={{ fontSize: 14, color: "#9ca3af", lineHeight: 1.7, maxWidth: 300, marginBottom: 28 }}>
                 One conversation with Gen-E can reshape your entire direction. Start anytime — no preparation needed.
               </p>
-              <Link to="/gen-e" className="ge-btn-purple">Launch Gen-E →</Link>
+              <a href="https://gene.nugens.in.net" target="_blank" rel="noreferrer" className="ge-btn-purple">Launch Gen-E →</a>
             </Reveal>
 
             <Reveal delay={100}>
@@ -338,7 +338,7 @@ export default function GenE() {
                   <h4 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: "-0.02em", marginBottom: 10, color: i === 0 ? "#fff" : "#0a0a0a" }}>{c.label}</h4>
                   <p style={{ fontSize: 13, lineHeight: 1.65, color: i === 0 ? "#9ca3af" : "#6b7280", marginBottom: 20 }}>{c.desc}</p>
                   {c.link
-                    ? <Link to={c.link} style={{ fontSize: 12.5, fontWeight: 600, color: c.color, textDecoration: "none" }}>{c.cta} →</Link>
+                    ? <Link to={c.link} style={{ fontSize: 12.5, fontWeight: 600, color: c.color, textDecoration: "none" }}>{c.cta} →</a>
                     : <span style={{ fontSize: 12.5, fontWeight: 600, color: c.color }}>{c.cta}</span>
                   }
                 </div>
@@ -364,8 +364,8 @@ export default function GenE() {
               Start with Gen-E — it's free, it's specific, and it'll show you a path you probably haven't seen before.
             </p>
             <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
-              <Link to="/gen-e" className="ge-btn-purple">Launch Gen-E AI →</Link>
-              <Link to="/about" className="ge-btn-ghost">Learn about Nugens</Link>
+              <a href="https://gene.nugens.in.net" target="_blank" rel="noreferrer" className="ge-btn-purple">Launch Gen-E AI →</a>
+              <Link to="/about" className="ge-btn-ghost">Learn about Nugens</a>
             </div>
           </Reveal>
         </div>

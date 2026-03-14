@@ -60,11 +60,11 @@ const PRODUCTS = [
   },
   {
     id: "wedding",
-    name: "The Wedding Unit",
+    name: "Units",
     tag: "Production Studio",
     color: "#d97706",
     tagline: "The foundation",
-    desc: "The Wedding Unit is our photography and full-service wedding production studio. It also serves as the production backbone for HyperX's video learning content and DigiHub's content creation — providing the gear, team, and studio that makes everything visual across Nugens.",
+    desc: "Units is our photography and full-service wedding production studio. It also serves as the production backbone for HyperX's video learning content and DigiHub's content creation — providing the gear, team, and studio that makes everything visual across Nugens.",
     does: ["Wedding photography & videography", "End-to-end event production & decor", "In-house production for HyperX courses", "Content studio for DigiHub's brands", "Podcast, reel, and video production"],
     link: null, href: "https://theweddingunit.in"
   },
@@ -262,7 +262,7 @@ export default function About() {
                       padding: "10px 20px", borderRadius: 8, background: "#0a0a0a",
                       color: "#fff", fontSize: 13.5, fontWeight: 600, textDecoration: "none",
                       fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.01em"
-                    }}>Explore {P.name} →</Link>
+                    }}>Explore {P.name} →</a>
                   : <a href={P.href} target="_blank" rel="noreferrer" style={{
                       display: "inline-flex", alignItems: "center", gap: 7,
                       padding: "10px 20px", borderRadius: 8, background: "#0a0a0a",
@@ -382,8 +382,8 @@ export default function About() {
               Talk to Gen-E AI, explore HyperX, connect through DigiHub — or reach out to us directly.
             </p>
             <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
-              <Link to="/gene" className="ab-btn-pink">Start with Gen-E →</Link>
-              <Link to="/contact" className="ab-btn-ghost">Talk to us</Link>
+              <a href="https://gene.nugens.in.net" target="_blank" rel="noreferrer" className="ab-btn-pink">Start with Gen-E →</a>
+              <Link to="/contact" className="ab-btn-ghost">Talk to us</a>
             </div>
           </Reveal>
         </div>
