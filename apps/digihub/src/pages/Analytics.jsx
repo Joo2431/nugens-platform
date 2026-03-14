@@ -1,154 +1,149 @@
 import React, { useState } from "react";
 
 const BLUE = "#0284c7";
-const PINK = "#e8185d";
+const BG   = "#06101a";
+const CARD = "#0a1628";
 const B    = "#1a2030";
 
-const PERIODS = ["Last 7 days","Last 30 days","Last 90 days"];
-const BRANDS  = ["All Brands","Zara Fitness","VedaKitchen","ThinkBox","NovaTech"];
+const PLATFORMS = ["All","Instagram","LinkedIn","Twitter/X","Facebook","YouTube"];
 
-const CAMPAIGNS = [
-  { name:"Zara Fitness — Ramadan Reels",    platform:"Instagram", reach:"48.2K", clicks:"3,140", conv:"210", ctr:"6.5%", roas:"3.2×", spend:"₹18K",  brand:"Zara Fitness",  status:"Active"   },
-  { name:"VedaKitchen — Recipe Series",     platform:"Facebook",  reach:"22.8K", clicks:"1,820", conv:"94",  ctr:"7.9%", roas:"2.8×", spend:"₹12K",  brand:"VedaKitchen",  status:"Active"   },
-  { name:"ThinkBox — LinkedIn Thought Lead",platform:"LinkedIn",  reach:"14.1K", clicks:"890",   conv:"38",  ctr:"6.3%", roas:"4.1×", spend:"₹8K",   brand:"ThinkBox",     status:"Active"   },
-  { name:"NovaTech — Google Search",        platform:"Google",    reach:"31.5K", clicks:"2,400", conv:"178", ctr:"7.6%", roas:"2.1×", spend:"₹24K",  brand:"NovaTech",     status:"Paused"   },
-  { name:"Zara Fitness — Meta Retargeting", platform:"Meta",      reach:"19.3K", clicks:"2,100", conv:"156", ctr:"10.8%",roas:"4.8×", spend:"₹14K",  brand:"Zara Fitness",  status:"Active"   },
-];
+const MOCK_DATA = {
+  overview: [
+    { label:"Total Reach",       value:"48,320", change:"+12.4%", up:true },
+    { label:"Impressions",       value:"1,24,800", change:"+8.1%", up:true },
+    { label:"Engagements",       value:"3,240", change:"+21.3%", up:true },
+    { label:"Follower Growth",   value:"+384", change:"+5.2%", up:true },
+    { label:"Link Clicks",       value:"892", change:"-3.1%", up:false },
+    { label:"Scheduled Posts",   value:"14", change:"+7 this week", up:true },
+  ],
+  topPosts: [
+    { platform:"Instagram", caption:"Summer collection drop 🌊 Limited pieces available!", reach:8240, eng:642, rate:"7.8%", type:"Post" },
+    { platform:"LinkedIn",  caption:"Thrilled to share our Series A funding milestone!", reach:14200, eng:1120, rate:"7.9%", type:"Post" },
+    { platform:"Instagram", caption:"Behind the scenes of our new product shoot 📸",      reach:5180, eng:389, rate:"7.5%", type:"Reel" },
+    { platform:"Facebook",  caption:"Big sale this weekend! Up to 40% off on all items",  reach:3920, eng:214, rate:"5.5%", type:"Post" },
+  ],
+  weeklyEngagement: [
+    { day:"Mon", value:320 },{ day:"Tue", value:480 },{ day:"Wed", value:390 },
+    { day:"Thu", value:620 },{ day:"Fri", value:540 },{ day:"Sat", value:280 },{ day:"Sun", value:210 },
+  ],
+  platformBreakdown: [
+    { name:"Instagram", reach:"22,400", engagement:"1,820", color:"#e8185d",   percent:46 },
+    { name:"LinkedIn",  reach:"14,200", engagement:"1,120", color:BLUE,        percent:29 },
+    { name:"Facebook",  reach:"7,840",  engagement:"214",   color:"#3b82f6",   percent:16 },
+    { name:"YouTube",   reach:"3,880",  engagement:"86",    color:"#ef4444",   percent:9  },
+  ],
+};
 
-const BAR_DATA = [
-  { label:"Mon", reach:4200, clicks:280 },
-  { label:"Tue", reach:5100, clicks:340 },
-  { label:"Wed", reach:3800, clicks:260 },
-  { label:"Thu", reach:6200, clicks:420 },
-  { label:"Fri", reach:7100, clicks:510 },
-  { label:"Sat", reach:5400, clicks:370 },
-  { label:"Sun", reach:4800, clicks:310 },
-];
-const maxReach = Math.max(...BAR_DATA.map(d=>d.reach));
+export default function Analytics({ profile }) {
+  const [period, setPeriod] = useState("7d");
+  const [platform, setPlatform] = useState("All");
 
-export default function Analytics() {
-  const [period, setPeriod] = useState("Last 30 days");
-  const [brand, setBrand]   = useState("All Brands");
+  const maxVal = Math.max(...MOCK_DATA.weeklyEngagement.map(d=>d.value));
 
-  const shown = CAMPAIGNS.filter(c => brand==="All Brands" || c.brand===brand);
+  const S = {
+    page: { minHeight:"100vh", background:BG, padding:"32px 40px", fontFamily:"'Plus Jakarta Sans',sans-serif" },
+    h1: { fontSize:26, fontWeight:800, color:"#fff", letterSpacing:"-0.04em", marginBottom:4 },
+    sub: { fontSize:13, color:"#445", marginBottom:28 },
+    card: { background:CARD, border:`1px solid ${B}`, borderRadius:14, padding:22 },
+    stat: { background:CARD, border:`1px solid ${B}`, borderRadius:12, padding:18 },
+    pill: { padding:"5px 14px", borderRadius:20, fontSize:11, fontWeight:600, cursor:"pointer", border:"none", fontFamily:"inherit" },
+    label: { fontSize:11, fontWeight:700, color:"#445", textTransform:"uppercase", letterSpacing:"0.08em" },
+  };
 
   return (
-    <div style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", padding:"32px 28px 80px", background:"#06101a", minHeight:"100vh" }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        .an-card { background:#080f1a; border:1px solid ${B}; border-radius:12px; padding:20px; }
-        .select-pill { padding:7px 14px; background:#080f1a; border:1px solid ${B}; border-radius:8px; color:#aaa; font-size:13px; font-family:'Plus Jakarta Sans',sans-serif; outline:none; cursor:pointer; }
-        .select-pill:focus { border-color:${BLUE}50; }
-        .tag { display:inline-block; padding:2px 7px; border-radius:4px; font-size:10.5px; font-weight:600; }
-        @media (max-width:700px) { .stats-g { grid-template-columns:1fr 1fr !important; } .an-two { grid-template-columns:1fr !important; } }
-      `}</style>
-
-      {/* Header */}
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:28, flexWrap:"wrap", gap:12 }}>
+    <div style={S.page}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');`}</style>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:28 }}>
         <div>
-          <h1 style={{ fontWeight:800, fontSize:"clamp(20px,2.5vw,26px)", letterSpacing:"-0.03em", color:"#fff", marginBottom:4 }}>Analytics</h1>
-          <p style={{ fontSize:13.5, color:"#445" }}>Campaign performance across all brands and platforms.</p>
+          <div style={S.h1}>⬟ Analytics</div>
+          <div style={S.sub}>Track your content performance across all platforms</div>
         </div>
-        <div style={{ display:"flex", gap:10 }}>
-          <select className="select-pill" value={period} onChange={e=>setPeriod(e.target.value)}>
-            {PERIODS.map(p => <option key={p}>{p}</option>)}
-          </select>
-          <select className="select-pill" value={brand} onChange={e=>setBrand(e.target.value)}>
-            {BRANDS.map(b => <option key={b}>{b}</option>)}
-          </select>
+        <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+          {["7d","30d","90d"].map(p=>(
+            <button key={p} onClick={()=>setPeriod(p)} style={{ ...S.pill, background:period===p?BLUE:"#0d1624", color:period===p?"#fff":"#445", border:period===p?"none":`1px solid ${B}` }}>{p}</button>
+          ))}
         </div>
       </div>
 
-      {/* KPI stats */}
-      <div className="stats-g" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:28 }}>
-        {[
-          { label:"Total reach",       value:"136K",   delta:"+18%", color:BLUE     },
-          { label:"Total clicks",      value:"10,350", delta:"+24%", color:"#16a34a"},
-          { label:"Avg CTR",           value:"7.8%",   delta:"+1.2%",color:"#d97706"},
-          { label:"Avg ROAS",          value:"3.4×",   delta:"+0.6×",color:PINK     },
-        ].map(s => (
-          <div key={s.label} className="an-card">
-            <div style={{ fontSize:11, fontWeight:600, textTransform:"uppercase", letterSpacing:"0.07em", color:"#445", marginBottom:8 }}>{s.label}</div>
-            <div style={{ fontSize:26, fontWeight:800, color:s.color, letterSpacing:"-0.04em", lineHeight:1 }}>{s.value}</div>
-            <div style={{ fontSize:11.5, color:"#16a34a", marginTop:6 }}>{s.delta} vs prev period</div>
+      {/* Overview stats */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(6,1fr)", gap:12, marginBottom:28 }}>
+        {MOCK_DATA.overview.map(s=>(
+          <div key={s.label} style={S.stat}>
+            <div style={{ fontSize:20, fontWeight:800, color:"#fff", letterSpacing:"-0.03em" }}>{s.value}</div>
+            <div style={{ fontSize:10, color:"#334", marginTop:3 }}>{s.label}</div>
+            <div style={{ fontSize:11, fontWeight:600, color:s.up?"#22c55e":"#ef4444", marginTop:4 }}>{s.up?"↑":"↓"} {s.change}</div>
           </div>
         ))}
       </div>
 
-      {/* Chart + platform breakdown */}
-      <div className="an-two" style={{ display:"grid", gridTemplateColumns:"1.6fr 1fr", gap:16, marginBottom:28 }}>
-        {/* Bar chart */}
-        <div className="an-card">
-          <div style={{ fontSize:12, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", color:"#445", marginBottom:20 }}>Reach this week</div>
-          <div style={{ display:"flex", alignItems:"flex-end", gap:8, height:140 }}>
-            {BAR_DATA.map(d => (
-              <div key={d.label} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
-                <div style={{ width:"100%", display:"flex", flexDirection:"column", gap:3, alignItems:"center" }}>
-                  <div style={{ fontSize:10, color:BLUE, fontWeight:600 }}>{(d.reach/1000).toFixed(1)}K</div>
-                  <div style={{ width:"100%", background:BLUE+"20", borderRadius:"4px 4px 0 0", overflow:"hidden" }}>
-                    <div style={{ width:"100%", height: Math.round((d.reach/maxReach)*100)+"px", background:BLUE, borderRadius:"4px 4px 0 0", minHeight:8 }} />
-                  </div>
-                </div>
-                <div style={{ fontSize:10.5, color:"#445" }}>{d.label}</div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 340px", gap:24, marginBottom:24 }}>
+        {/* Engagement chart */}
+        <div style={S.card}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+            <div style={{ fontSize:13, fontWeight:700, color:"#fff" }}>Daily Engagement — Last 7 Days</div>
+          </div>
+          <div style={{ display:"flex", alignItems:"flex-end", gap:10, height:140 }}>
+            {MOCK_DATA.weeklyEngagement.map(d=>(
+              <div key={d.day} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
+                <div style={{ fontSize:10, color:"#ccc", fontWeight:600 }}>{d.value}</div>
+                <div style={{ width:"100%", height:`${(d.value/maxVal)*120}px`, background:`${BLUE}`, borderRadius:"4px 4px 0 0", minHeight:4 }}/>
+                <div style={{ fontSize:10, color:"#334" }}>{d.day}</div>
               </div>
             ))}
           </div>
         </div>
 
         {/* Platform breakdown */}
-        <div className="an-card">
-          <div style={{ fontSize:12, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", color:"#445", marginBottom:20 }}>Platform mix</div>
-          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-            {[
-              { name:"Instagram", pct:38, color:PINK      },
-              { name:"Facebook",  pct:24, color:BLUE      },
-              { name:"Google",    pct:20, color:"#d97706" },
-              { name:"LinkedIn",  pct:12, color:"#0a66c2" },
-              { name:"Other",     pct:6,  color:"#445"    },
-            ].map(p => (
-              <div key={p.name}>
-                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
-                  <span style={{ fontSize:12.5, fontWeight:600, color:"#aaa" }}>{p.name}</span>
-                  <span style={{ fontSize:12.5, fontWeight:700, color:p.color }}>{p.pct}%</span>
+        <div style={S.card}>
+          <div style={{ fontSize:13, fontWeight:700, color:"#fff", marginBottom:16 }}>Platform Breakdown</div>
+          {MOCK_DATA.platformBreakdown.map(p=>(
+            <div key={p.name} style={{ marginBottom:14 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:7 }}>
+                  <div style={{ width:8, height:8, borderRadius:"50%", background:p.color }}/>
+                  <span style={{ fontSize:12, color:"#ccc" }}>{p.name}</span>
                 </div>
-                <div style={{ height:5, background:"#0d1624", borderRadius:99 }}>
-                  <div style={{ width:`${p.pct}%`, height:"100%", background:p.color, borderRadius:99 }} />
-                </div>
+                <span style={{ fontSize:12, color:"#445" }}>{p.percent}%</span>
               </div>
-            ))}
-          </div>
+              <div style={{ height:5, background:"#0d1624", borderRadius:3, overflow:"hidden" }}>
+                <div style={{ height:"100%", width:`${p.percent}%`, background:p.color, borderRadius:3 }}/>
+              </div>
+              <div style={{ display:"flex", gap:12, marginTop:4 }}>
+                <span style={{ fontSize:10, color:"#334" }}>Reach: {p.reach}</span>
+                <span style={{ fontSize:10, color:"#334" }}>Eng: {p.engagement}</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Campaign table */}
-      <div className="an-card">
-        <div style={{ fontSize:12, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", color:"#445", marginBottom:20 }}>Campaign performance</div>
-        <div style={{ overflowX:"auto" }}>
-          <table style={{ width:"100%", borderCollapse:"collapse" }}>
-            <thead>
-              <tr>
-                {["Campaign","Platform","Reach","Clicks","CTR","ROAS","Spend","Status"].map(h => (
-                  <th key={h} style={{ textAlign:"left", padding:"8px 12px", fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", color:"#334", borderBottom:`1px solid ${B}` }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((c,i) => (
-                <tr key={c.name} style={{ borderBottom:`1px solid ${i<shown.length-1?B:"transparent"}` }}>
-                  <td style={{ padding:"12px", fontSize:13, fontWeight:600, color:"#ccc", maxWidth:200 }}>{c.name}</td>
-                  <td style={{ padding:"12px", fontSize:12.5, color:"#445" }}>{c.platform}</td>
-                  <td style={{ padding:"12px", fontSize:13, fontWeight:600, color:"#aaa" }}>{c.reach}</td>
-                  <td style={{ padding:"12px", fontSize:13, fontWeight:600, color:"#aaa" }}>{c.clicks}</td>
-                  <td style={{ padding:"12px", fontSize:13, fontWeight:700, color:BLUE }}>{c.ctr}</td>
-                  <td style={{ padding:"12px", fontSize:13, fontWeight:700, color:"#16a34a" }}>{c.roas}</td>
-                  <td style={{ padding:"12px", fontSize:13, color:"#aaa" }}>{c.spend}</td>
-                  <td style={{ padding:"12px" }}>
-                    <span className="tag" style={{ background:c.status==="Active"?BLUE+"18":"#d97706"+"18", color:c.status==="Active"?BLUE:"#d97706" }}>{c.status}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Top performing posts */}
+      <div style={S.card}>
+        <div style={{ fontSize:13, fontWeight:700, color:"#fff", marginBottom:16 }}>Top Performing Posts</div>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 100px 100px 80px 80px", gap:12, borderBottom:`1px solid ${B}`, paddingBottom:8, marginBottom:8 }}>
+          {["Post","Reach","Engagements","Rate","Type"].map(h=>(
+            <div key={h} style={{ fontSize:10, fontWeight:700, color:"#334", textTransform:"uppercase", letterSpacing:"0.06em" }}>{h}</div>
+          ))}
+        </div>
+        {MOCK_DATA.topPosts.map((p,i)=>(
+          <div key={i} style={{ display:"grid", gridTemplateColumns:"1fr 100px 100px 80px 80px", gap:12, alignItems:"center", paddingBottom:12, borderBottom:i<MOCK_DATA.topPosts.length-1?`1px solid ${B}`:"none", marginBottom:12 }}>
+            <div>
+              <div style={{ fontSize:11, fontWeight:700, color:p.platform==="Instagram"?"#e8185d":p.platform==="LinkedIn"?BLUE:"#aaa", marginBottom:2 }}>{p.platform}</div>
+              <div style={{ fontSize:12, color:"#aaa" }}>{p.caption.slice(0,55)}...</div>
+            </div>
+            <div style={{ fontSize:13, fontWeight:600, color:"#ccc" }}>{p.reach.toLocaleString()}</div>
+            <div style={{ fontSize:13, fontWeight:600, color:"#ccc" }}>{p.eng.toLocaleString()}</div>
+            <div style={{ fontSize:13, fontWeight:600, color:"#22c55e" }}>{p.rate}</div>
+            <div style={{ fontSize:11, fontWeight:600, color:"#445", background:"#0d1624", border:`1px solid ${B}`, borderRadius:5, padding:"2px 8px", display:"inline-block" }}>{p.type}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Pro tip */}
+      <div style={{ ...S.card, marginTop:20, border:`1px solid ${BLUE}20`, background:"#060e1a" }}>
+        <div style={{ fontSize:12, color:"#445" }}>
+          <span style={{ color:BLUE, fontWeight:700 }}>💡 Insight: </span>
+          Your LinkedIn posts get {Math.round(1120/14200*100)}% engagement rate — significantly above the platform average of 2.5%. Focus more content efforts on LinkedIn for maximum ROI. Schedule posts on Tuesday–Thursday 9–11am for best reach.
         </div>
       </div>
     </div>

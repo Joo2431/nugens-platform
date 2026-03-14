@@ -1,173 +1,119 @@
 import React, { useState } from "react";
 
 const BLUE = "#0284c7";
-const PINK = "#e8185d";
+const BG   = "#06101a";
+const CARD = "#0a1628";
 const B    = "#1a2030";
 
-const STATUSES = ["All","Planning","Active","Review","Completed"];
+const STATUS_COLORS = { active:"#22c55e", completed:BLUE, paused:"#f59e0b", draft:"#445" };
 
-const PROJECTS = [
-  { id:1,  brand:"Zara Fitness",  name:"Brand Relaunch Q2",        status:"Active",    due:"Mar 20", pm:"Priya S.",  budget:"₹80K",  progress:65, tags:["Brand","Social","Content"], color:BLUE,      tasks:[{t:"Brand kit finalized",done:true},{t:"Content calendar built",done:true},{t:"Reels campaign live",done:false},{t:"Analytics report",done:false}] },
-  { id:2,  brand:"ThinkBox",      name:"Social Media Setup",        status:"Review",    due:"Mar 15", pm:"Karthik R.",budget:"₹35K",  progress:90, tags:["Social","Strategy"],        color:"#d97706", tasks:[{t:"Audit complete",done:true},{t:"Platform setup",done:true},{t:"Content pillar doc",done:true},{t:"First month review",done:false}] },
-  { id:3,  brand:"VedaKitchen",   name:"SEO & Blog Campaign",       status:"Active",    due:"Apr 2",  pm:"Divya M.",  budget:"₹45K",  progress:30, tags:["SEO","Content"],            color:"#16a34a", tasks:[{t:"Keyword research",done:true},{t:"10 articles written",done:false},{t:"On-page SEO",done:false},{t:"Backlink outreach",done:false}] },
-  { id:4,  brand:"NovaTech",      name:"Performance Ads Launch",    status:"Planning",  due:"Apr 10", pm:"Arjun N.",  budget:"₹1.2L", progress:10, tags:["Ads","Google","Meta"],      color:PINK,      tasks:[{t:"Brief & strategy",done:true},{t:"Creative assets",done:false},{t:"Campaign setup",done:false},{t:"A/B test live",done:false}] },
-  { id:5,  brand:"Zara Fitness",  name:"Ramadan Reels Campaign",    status:"Completed", due:"Mar 1",  pm:"Sneha I.",  budget:"₹25K",  progress:100,tags:["Reels","Instagram"],        color:BLUE,      tasks:[{t:"Script & storyboard",done:true},{t:"Production",done:true},{t:"Editing",done:true},{t:"Published & reported",done:true}] },
-  { id:6,  brand:"VedaKitchen",   name:"YouTube Channel Setup",     status:"Planning",  due:"May 1",  pm:"Rahul K.",  budget:"₹60K",  progress:5,  tags:["YouTube","Video"],          color:"#16a34a", tasks:[{t:"Channel branding",done:false},{t:"Content plan",done:false},{t:"Pilot episode",done:false},{t:"10 uploads",done:false}] },
+const MOCK_PROJECTS = [
+  { id:1, name:"Diwali Campaign 2026", platform:"Instagram + Facebook", status:"active", tasks:8, done:5, deadline:"Oct 20, 2026", desc:"Full social media campaign for Diwali — creatives, captions, hashtags and scheduling." },
+  { id:2, name:"Brand Refresh Q2",     platform:"All Platforms",        status:"active", tasks:12, done:3, deadline:"May 30, 2026", desc:"Complete brand identity refresh — new color palette, fonts, and visual guidelines." },
+  { id:3, name:"Product Launch — V2",  platform:"LinkedIn + Instagram", status:"paused", tasks:6, done:6, deadline:"Mar 28, 2026", desc:"Launch campaign for Version 2.0 of the product. On hold pending product readiness." },
+  { id:4, name:"January Content Pack", platform:"Instagram",            status:"completed", tasks:20, done:20, deadline:"Jan 31, 2026", desc:"Monthly content creation and scheduling for January 2026." },
 ];
 
-export default function Projects() {
-  const [filter, setFilter]     = useState("All");
-  const [selected, setSelected] = useState(null);
+export default function Projects({ profile }) {
+  const [projects, setProjects] = useState(MOCK_PROJECTS);
   const [showNew, setShowNew]   = useState(false);
+  const [filter, setFilter]     = useState("all");
+  const [newP, setNewP]         = useState({ name:"", platform:"", status:"active", deadline:"", desc:"" });
 
-  const shown = PROJECTS.filter(p => filter==="All" || p.status===filter);
-  const statusColor = (s) => s==="Active"?BLUE:s==="Review"?"#d97706":s==="Completed"?"#16a34a":s==="Planning"?PINK:"#445";
+  const filtered = filter === "all" ? projects : projects.filter(p=>p.status===filter);
+
+  const save = () => {
+    if (!newP.name.trim()) return;
+    setProjects(ps=>[{ ...newP, id:Date.now(), tasks:0, done:0 }, ...ps]);
+    setNewP({ name:"", platform:"", status:"active", deadline:"", desc:"" });
+    setShowNew(false);
+  };
+
+  const S = {
+    page: { minHeight:"100vh", background:BG, padding:"32px 40px", fontFamily:"'Plus Jakarta Sans',sans-serif" },
+    h1: { fontSize:26, fontWeight:800, color:"#fff", letterSpacing:"-0.04em", marginBottom:4 },
+    card: { background:CARD, border:`1px solid ${B}`, borderRadius:14, padding:22 },
+    btn: { padding:"10px 22px", background:BLUE, color:"#fff", border:"none", borderRadius:9, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" },
+    inp: { width:"100%", background:"#0d1624", border:`1px solid ${B}`, borderRadius:8, padding:"9px 12px", color:"#ccc", fontSize:13, marginBottom:14, fontFamily:"inherit", outline:"none", boxSizing:"border-box" },
+    sel: { width:"100%", background:"#0d1624", border:`1px solid ${B}`, borderRadius:8, padding:"9px 12px", color:"#ccc", fontSize:13, marginBottom:14, fontFamily:"inherit", outline:"none", boxSizing:"border-box" },
+    pill: { padding:"5px 12px", borderRadius:20, fontSize:11, fontWeight:600, cursor:"pointer", border:"none", fontFamily:"inherit" },
+  };
 
   return (
-    <div style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", padding:"32px 28px 80px", background:"#06101a", minHeight:"100vh" }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        .proj-card { background:#080f1a; border:1px solid ${B}; border-radius:12px; padding:20px; cursor:pointer; transition:all 0.18s; }
-        .proj-card:hover { border-color:#243040; transform:translateY(-1px); }
-        .proj-card.sel { border-color:${BLUE}60; background:#0a1628; }
-        .filter-btn { padding:5px 14px; border-radius:7px; font-size:12px; font-weight:600; cursor:pointer; border:1px solid ${B}; font-family:'Plus Jakarta Sans',sans-serif; transition:all 0.13s; }
-        .filter-btn.on { background:${BLUE}; color:#fff; border-color:${BLUE}; }
-        .filter-btn.off { background:transparent; color:#445; }
-        .filter-btn.off:hover { color:#aaa; border-color:#243040; }
-        .tag { display:inline-block; padding:2px 7px; border-radius:4px; font-size:10.5px; font-weight:600; background:#1a2030; color:#445; }
-        .prog-bar { height:4px; background:#0d1624; border-radius:99px; overflow:hidden; }
-        .dh-input { width:100%; padding:9px 12px; background:#0d1624; border:1px solid ${B}; border-radius:8px; color:#ddd; font-size:13px; font-family:'Plus Jakarta Sans',sans-serif; outline:none; }
-        .dh-input:focus { border-color:${BLUE}60; }
-        .dh-input::placeholder { color:#334; }
-        @media (max-width:900px) { .proj-layout { grid-template-columns:1fr !important; } }
-        @media (max-width:640px) { .proj-g { grid-template-columns:1fr !important; } }
-      `}</style>
-
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:28, flexWrap:"wrap", gap:12 }}>
+    <div style={S.page}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');`}</style>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:28 }}>
         <div>
-          <h1 style={{ fontWeight:800, fontSize:"clamp(20px,2.5vw,26px)", letterSpacing:"-0.03em", color:"#fff", marginBottom:4 }}>Projects</h1>
-          <p style={{ fontSize:13.5, color:"#445" }}>Track all brand projects, tasks, and timelines in one place.</p>
+          <div style={S.h1}>◑ Projects</div>
+          <div style={{ fontSize:13, color:"#445" }}>Manage your brand campaigns and content projects</div>
         </div>
-        <button onClick={() => setShowNew(true)} style={{ padding:"9px 18px", background:BLUE, color:"#fff", border:"none", borderRadius:9, fontSize:13.5, fontWeight:700, cursor:"pointer", fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
-          + New project
-        </button>
-      </div>
-
-      {/* Summary */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10, marginBottom:24 }}>
-        {STATUSES.slice(1).map(s => (
-          <div key={s} style={{ background:"#080f1a", border:`1px solid ${B}`, borderRadius:10, padding:"14px 16px" }}>
-            <div style={{ fontSize:22, fontWeight:800, letterSpacing:"-0.04em", color:statusColor(s) }}>{PROJECTS.filter(p=>p.status===s).length}</div>
-            <div style={{ fontSize:11.5, color:"#445", marginTop:3 }}>{s}</div>
-          </div>
-        ))}
+        <button onClick={()=>setShowNew(true)} style={S.btn}>+ New Project</button>
       </div>
 
       {/* Filters */}
-      <div style={{ display:"flex", gap:6, marginBottom:20, flexWrap:"wrap" }}>
-        {STATUSES.map(s => (
-          <button key={s} className={`filter-btn ${filter===s?"on":"off"}`} onClick={() => setFilter(s)}>{s}</button>
+      <div style={{ display:"flex", gap:8, marginBottom:24 }}>
+        {["all","active","paused","completed","draft"].map(f=>(
+          <button key={f} onClick={()=>setFilter(f)} style={{ ...S.pill, background:filter===f?BLUE:"#0d1624", color:filter===f?"#fff":"#445", border:filter===f?"none":`1px solid ${B}` }}>
+            {f.charAt(0).toUpperCase()+f.slice(1)}
+          </button>
         ))}
       </div>
 
-      <div className="proj-layout" style={{ display:"grid", gridTemplateColumns:"1fr 360px", gap:16, alignItems:"start" }}>
-        {/* Project grid */}
-        <div className="proj-g" style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:10 }}>
-          {shown.map(p => (
-            <div key={p.id} className={`proj-card${selected?.id===p.id?" sel":""}`} onClick={() => setSelected(p)}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
+      {/* Projects grid */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:16 }}>
+        {filtered.map(p=>{
+          const pct = p.tasks > 0 ? Math.round((p.done/p.tasks)*100) : 0;
+          return (
+            <div key={p.id} style={S.card}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:12 }}>
                 <div>
-                  <div style={{ fontSize:11, color:"#445", marginBottom:3 }}>{p.brand}</div>
-                  <div style={{ fontSize:14, fontWeight:700, color:"#ddd", lineHeight:1.35 }}>{p.name}</div>
+                  <div style={{ fontSize:15, fontWeight:700, color:"#fff", marginBottom:3 }}>{p.name}</div>
+                  <div style={{ fontSize:12, color:"#445" }}>{p.platform}</div>
                 </div>
-                <span style={{ display:"inline-block", padding:"2px 8px", borderRadius:5, fontSize:10.5, fontWeight:700, background:statusColor(p.status)+"18", color:statusColor(p.status), flexShrink:0, marginLeft:8 }}>{p.status}</span>
+                <span style={{ fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.06em", color:STATUS_COLORS[p.status], background:`${STATUS_COLORS[p.status]}15`, border:`1px solid ${STATUS_COLORS[p.status]}30`, borderRadius:5, padding:"3px 8px" }}>{p.status}</span>
               </div>
-              <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:12 }}>
-                {p.tags.map(t => <span key={t} className="tag">{t}</span>)}
-              </div>
-              <div className="prog-bar" style={{ marginBottom:4 }}>
-                <div style={{ width:`${p.progress}%`, height:"100%", background:p.color, borderRadius:99 }} />
-              </div>
-              <div style={{ display:"flex", justifyContent:"space-between", fontSize:11.5, color:"#445" }}>
-                <span>{p.progress}% complete</span>
-                <span>Due {p.due}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Detail panel */}
-        {selected ? (
-          <div style={{ background:"#080f1a", border:`1px solid ${B}`, borderRadius:14, padding:22, position:"sticky", top:20 }}>
-            <div style={{ marginBottom:4 }}>
-              <div style={{ fontSize:11.5, color:"#445", marginBottom:4 }}>{selected.brand}</div>
-              <h2 style={{ fontWeight:800, fontSize:17, color:"#fff", letterSpacing:"-0.025em", marginBottom:6 }}>{selected.name}</h2>
-              <span style={{ display:"inline-block", padding:"2px 10px", borderRadius:5, fontSize:11, fontWeight:700, background:statusColor(selected.status)+"18", color:statusColor(selected.status) }}>{selected.status}</span>
-            </div>
-
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, margin:"16px 0" }}>
-              {[
-                { label:"Budget",  value:selected.budget  },
-                { label:"Due",     value:selected.due     },
-                { label:"PM",      value:selected.pm      },
-                { label:"Progress",value:selected.progress+"%" },
-              ].map(f => (
-                <div key={f.label} style={{ background:"#0d1624", borderRadius:8, padding:"10px 12px" }}>
-                  <div style={{ fontSize:11, color:"#445", marginBottom:2 }}>{f.label}</div>
-                  <div style={{ fontSize:13.5, fontWeight:700, color:"#bbb" }}>{f.value}</div>
+              <div style={{ fontSize:12, color:"#445", lineHeight:1.6, marginBottom:16 }}>{p.desc}</div>
+              <div style={{ marginBottom:14 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+                  <span style={{ fontSize:11, color:"#334" }}>Progress</span>
+                  <span style={{ fontSize:11, fontWeight:700, color:pct===100?"#22c55e":BLUE }}>{pct}% · {p.done}/{p.tasks} tasks</span>
                 </div>
-              ))}
-            </div>
-
-            <div style={{ marginBottom:8 }}>
-              <div style={{ height:6, background:"#0d1624", borderRadius:99, overflow:"hidden" }}>
-                <div style={{ width:`${selected.progress}%`, height:"100%", background:selected.color, borderRadius:99 }} />
+                <div style={{ height:5, background:"#0d1624", borderRadius:3, overflow:"hidden" }}>
+                  <div style={{ height:"100%", width:`${pct}%`, background:pct===100?"#22c55e":BLUE, borderRadius:3, transition:"width 0.3s" }}/>
+                </div>
+              </div>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <span style={{ fontSize:11, color:"#334" }}>📅 {p.deadline}</span>
+                <div style={{ display:"flex", gap:8 }}>
+                  <button onClick={()=>setProjects(ps=>ps.map(x=>x.id===p.id?{...x,done:Math.min(x.tasks,x.done+1)}:x))} style={{ fontSize:11, color:BLUE, background:"none", border:`1px solid ${BLUE}30`, borderRadius:5, padding:"3px 8px", cursor:"pointer", fontFamily:"inherit" }}>
+                    +Task Done
+                  </button>
+                  <button onClick={()=>setProjects(ps=>ps.filter(x=>x.id!==p.id))} style={{ fontSize:11, color:"#445", background:"none", border:`1px solid ${B}`, borderRadius:5, padding:"3px 8px", cursor:"pointer", fontFamily:"inherit" }}>
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
-
-            <div style={{ fontSize:12, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", color:"#445", marginBottom:12, marginTop:20 }}>Tasks</div>
-            <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
-              {selected.tasks.map((task,i) => (
-                <div key={i} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 12px", background:"#0d1624", borderRadius:8 }}>
-                  <div style={{ width:16, height:16, borderRadius:4, background:task.done?selected.color+"30":"#1a2030", border:`1.5px solid ${task.done?selected.color:"#243040"}`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                    {task.done && <span style={{ fontSize:9, color:selected.color, fontWeight:800 }}>✓</span>}
-                  </div>
-                  <span style={{ fontSize:12.5, color:task.done?"#667":"#aaa", textDecoration:task.done?"line-through":"none" }}>{task.t}</span>
-                </div>
-              ))}
-            </div>
-
-            <button style={{ width:"100%", marginTop:18, padding:"11px 0", background:BLUE, color:"#fff", border:"none", borderRadius:9, fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
-              Open full project
-            </button>
-          </div>
-        ) : (
-          <div style={{ background:"#080f1a", border:`1px solid ${B}`, borderRadius:14, padding:40, textAlign:"center" }}>
-            <div style={{ fontSize:28, marginBottom:12 }}>◑</div>
-            <div style={{ fontSize:13.5, color:"#334" }}>Select a project to view details</div>
-          </div>
-        )}
+          );
+        })}
       </div>
 
       {/* New project modal */}
       {showNew && (
-        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.7)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:999, padding:20 }}>
-          <div style={{ background:"#080f1a", border:`1px solid ${B}`, borderRadius:16, padding:28, width:"100%", maxWidth:480 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:22 }}>
-              <h2 style={{ fontWeight:700, fontSize:17, color:"#fff" }}>New project</h2>
-              <button onClick={()=>setShowNew(false)} style={{ background:"none", border:"none", color:"#445", fontSize:18, cursor:"pointer" }}>✕</button>
-            </div>
-            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-              {["Brand name","Project name","Budget","Due date","Project manager"].map(label => (
-                <div key={label}>
-                  <label style={{ fontSize:11.5, fontWeight:600, color:"#445", display:"block", marginBottom:5 }}>{label}</label>
-                  <input className="dh-input" placeholder={label} />
-                </div>
-              ))}
-            </div>
-            <div style={{ display:"flex", gap:10, marginTop:20 }}>
-              <button style={{ flex:1, padding:"11px 0", background:BLUE, color:"#fff", border:"none", borderRadius:9, fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"'Plus Jakarta Sans',sans-serif" }} onClick={()=>setShowNew(false)}>Create project</button>
-              <button style={{ padding:"11px 18px", background:"transparent", color:"#556", border:`1px solid ${B}`, borderRadius:9, fontSize:14, cursor:"pointer", fontFamily:"'Plus Jakarta Sans',sans-serif" }} onClick={()=>setShowNew(false)}>Cancel</button>
+        <div style={{ position:"fixed", inset:0, background:"#000b", display:"flex", alignItems:"center", justifyContent:"center", zIndex:100 }}>
+          <div style={{ background:"#0a1628", border:`1px solid ${B}`, borderRadius:18, padding:32, width:460 }}>
+            <div style={{ fontSize:16, fontWeight:800, color:"#fff", marginBottom:20 }}>New Project</div>
+            <label style={{ fontSize:11, fontWeight:700, color:"#445", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6, display:"block" }}>Project Name *</label>
+            <input value={newP.name} onChange={e=>setNewP(p=>({...p,name:e.target.value}))} placeholder="e.g. Summer Campaign 2026" style={S.inp} />
+            <label style={{ fontSize:11, fontWeight:700, color:"#445", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6, display:"block" }}>Platform(s)</label>
+            <input value={newP.platform} onChange={e=>setNewP(p=>({...p,platform:e.target.value}))} placeholder="e.g. Instagram + LinkedIn" style={S.inp} />
+            <label style={{ fontSize:11, fontWeight:700, color:"#445", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6, display:"block" }}>Description</label>
+            <input value={newP.desc} onChange={e=>setNewP(p=>({...p,desc:e.target.value}))} placeholder="Brief description..." style={S.inp} />
+            <label style={{ fontSize:11, fontWeight:700, color:"#445", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6, display:"block" }}>Deadline</label>
+            <input type="date" value={newP.deadline} onChange={e=>setNewP(p=>({...p,deadline:e.target.value}))} style={S.inp} />
+            <div style={{ display:"flex", gap:10 }}>
+              <button onClick={save} style={{ ...S.btn, flex:1 }}>Create Project</button>
+              <button onClick={()=>setShowNew(false)} style={{ flex:1, background:"none", border:`1px solid ${B}`, color:"#556", borderRadius:9, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>Cancel</button>
             </div>
           </div>
         </div>

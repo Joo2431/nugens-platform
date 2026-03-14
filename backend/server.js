@@ -1434,3 +1434,114 @@ Provide:
     res.end();
   }
 });
+
+
+// ============================================================
+// ADD THESE ROUTES TO backend/server.js
+// DigiHub - Image Generation + Community endpoints
+// ============================================================
+
+// ─── Imports to add at top of server.js ───
+// (openai is already imported)
+
+// ─── DigiHub: AI Image Generation ───────────────────────────
+app.post('/api/digihub/generate-image', async (req, res) => {
+  const { prompt, size: sizeStr, style } = req.body;
+  if (!prompt) return res.status(400).json({ error: 'Prompt required' });
+
+  // Parse size string to DALL-E format
+  let size = '1024x1024';
+  if (sizeStr?.includes('1792x1024') || sizeStr?.includes('16:9')) size = '1792x1024';
+  if (sizeStr?.includes('1024x1792') || sizeStr?.includes('9:16')) size = '1024x1792';
+
+  try {
+    const response = await openai.images.generate({
+      model: 'dall-e-3',
+      prompt: `${prompt}. Style: ${style || 'Digital Art'}. High quality, professional design.`,
+      n: 1,
+      size,
+      quality: 'standard',
+    });
+    res.json({ url: response.data[0].url });
+  } catch (err) {
+    console.error('Image gen error:', err.message);
+    res.status(500).json({ error: 'Image generation failed', details: err.message });
+  }
+});
+
+// ─── DigiHub: AI Content Ideas ───────────────────────────────
+app.post('/api/digihub/content-ideas', async (req, res) => {
+  const { platform, tone, industry, topic, count = 5 } = req.body;
+  if (!topic) return res.status(400).json({ error: 'Topic required' });
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{
+        role: 'system',
+        content: 'You are a social media content strategist specializing in Indian markets. Generate practical, engaging content ideas. Return JSON only.'
+      }, {
+        role: 'user',
+        content: [
+          'Generate',
+          count,
+          'content ideas for',
+          platform,
+          'for a',
+          industry,
+          'brand.',
+          'Tone:',
+          tone,
+          '.',
+          'Theme:',
+          topic,
+          '.',
+          'Return JSON array: [{"type":"string","caption":"string","hashtags":"string","tip":"string"}]'
+        ].join(' ')
+      }],
+      response_format: { type: 'json_object' },
+      temperature: 0.8,
+    });
+
+    const parsed = JSON.parse(completion.choices[0].message.content);
+    res.json(parsed.ideas || parsed);
+  } catch (err) {
+    console.error('Content ideas error:', err.message);
+    res.status(500).json({ error: 'Content generation failed' });
+  }
+});
+
+// ─── DigiHub: Prompt Enhancement ─────────────────────────────
+app.post('/api/digihub/enhance-prompt', async (req, res) => {
+  const { prompt, style, purpose } = req.body;
+  if (!prompt) return res.status(400).json({ error: 'Prompt required' });
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{
+        role: 'system',
+        content: 'You are an expert AI image prompt engineer. Enhance prompts to be highly detailed and effective for DALL-E 3 or Midjourney. Return ONLY the enhanced prompt, no explanations.'
+      }, {
+        role: 'user',
+        content: [
+          'Enhance this prompt for AI image generation.',
+          'Style:',
+          style || 'Digital Art',
+          '.',
+          'Purpose:',
+          purpose || 'Social Media',
+          '.',
+          'Original prompt:',
+          prompt
+        ].join(' ')
+      }],
+      temperature: 0.7,
+    });
+
+    res.json({ enhanced: completion.choices[0].message.content.trim() });
+  } catch (err) {
+    console.error('Prompt enhance error:', err.message);
+    res.status(500).json({ error: 'Enhancement failed' });
+  }
+});

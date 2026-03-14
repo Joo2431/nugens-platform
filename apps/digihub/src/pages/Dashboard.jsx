@@ -1,144 +1,173 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const BLUE = "#0284c7";
-const PINK = "#e8185d";
+const BG   = "#06101a";
+const CARD = "#0a1628";
 const B    = "#1a2030";
 
-const RECENT_PROJECTS = [
-  { name: "Zara Fitness — Brand Relaunch",    status: "Active",    due: "Mar 20", color: BLUE,    progress: 65 },
-  { name: "ThinkBox — Social Media Setup",    status: "Review",    due: "Mar 15", color: "#d97706", progress: 90 },
-  { name: "VedaKitchen — SEO Campaign",       status: "Active",    due: "Apr 2",  color: "#16a34a", progress: 30 },
-  { name: "NovaTech — Performance Ads",       status: "Planning",  due: "Apr 10", color: PINK,     progress: 10 },
+const BIZ_FEATURES = [
+  { icon:"✦", label:"Prompt Space",    desc:"Generate design prompts for your brand",  to:"/prompts",   color:BLUE },
+  { icon:"⬡", label:"Image Generator", desc:"AI-powered poster & banner creation",      to:"/imagegen",  color:"#8b5cf6" },
+  { icon:"◈", label:"Content Planner", desc:"4-week AI content calendar",               to:"/planner",   color:"#22c55e" },
+  { icon:"⊞", label:"Scheduler",       desc:"Schedule posts across all platforms",      to:"/scheduler", color:"#f59e0b" },
+  { icon:"◉", label:"Community",       desc:"Business network — hiring, offers, news",  to:"/community", color:"#e8185d" },
+  { icon:"⬟", label:"Analytics",       desc:"Track your content performance",           to:"/analytics", color:BLUE },
 ];
 
-const TALENT_RECENT = [
-  { name: "Priya S.",   skill: "Social Media",    status: "Available",  match: 94 },
-  { name: "Karthik R.", skill: "SEO & Content",   status: "Available",  match: 88 },
-  { name: "Meera J.",   skill: "Performance Ads", status: "Placed",     match: 91 },
+const IND_FEATURES = [
+  { icon:"✦", label:"Prompt Space",    desc:"Generate design prompts for your work",    to:"/prompts",   color:BLUE },
+  { icon:"⬡", label:"Image Generator", desc:"Create stunning portfolio visuals",         to:"/imagegen",  color:"#8b5cf6" },
+  { icon:"◈", label:"Content Planner", desc:"Plan your personal brand content",          to:"/planner",   color:"#22c55e" },
+  { icon:"⊞", label:"Scheduler",       desc:"Schedule posts consistently",               to:"/scheduler", color:"#f59e0b" },
+  { icon:"◇", label:"Job Board",       desc:"Find jobs posted by DigiHub businesses",   to:"/jobs",      color:"#e8185d" },
+  { icon:"◉", label:"Community",       desc:"Connect, showcase & collaborate",           to:"/community", color:BLUE },
+];
+
+const BIZ_TIPS = [
+  "Post hiring updates in Community to attract DigiHub talent",
+  "Use Image Generator for festive offer banners",
+  "Schedule posts 3 days in advance for consistent reach",
+  "Add hashtags from Prompt Space to boost discoverability",
+];
+
+const IND_TIPS = [
+  "Complete your Gen-E profile to get noticed by businesses",
+  "Share your portfolio in Community to get freelance inquiries",
+  "Apply to urgent jobs first — they hire fast",
+  "Use the Content Planner to build a strong personal brand",
 ];
 
 export default function Dashboard({ profile }) {
-  const plan = profile?.plan || "free";
-  const userType = profile?.user_type || "individual";
+  const nav = useNavigate();
+  const isBusiness = profile?.user_type === "business";
+  const features = isBusiness ? BIZ_FEATURES : IND_FEATURES;
+  const tips = isBusiness ? BIZ_TIPS : IND_TIPS;
   const firstName = (profile?.full_name || "").split(" ")[0] || "there";
+  const plan = profile?.plan || "free";
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+
+  const S = {
+    page: { minHeight:"100vh", background:BG, padding:"32px 40px", fontFamily:"'Plus Jakarta Sans',sans-serif" },
+    card: { background:CARD, border:`1px solid ${B}`, borderRadius:14, padding:22 },
+    featureCard: { background:CARD, border:`1px solid ${B}`, borderRadius:12, padding:18, cursor:"pointer", transition:"border-color 0.15s, transform 0.15s" },
+    stat: { background:CARD, border:`1px solid ${B}`, borderRadius:11, padding:16 },
+    btn: { padding:"10px 22px", background:BLUE, color:"#fff", border:"none", borderRadius:9, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" },
+  };
 
   return (
-    <div style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", padding:"32px 28px 80px", background:"#06101a", minHeight:"100vh" }}>
+    <div style={S.page}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        .dh-card { background:#080f1a; border:1px solid ${B}; border-radius:12px; padding:20px; transition:border-color 0.18s; }
-        .dh-card:hover { border-color:#243040; }
-        .stat { background:#080f1a; border:1px solid ${B}; border-radius:10px; padding:16px 18px; }
-        .prog-bar { height:4px; background:#0d1624; border-radius:99px; overflow:hidden; margin-top:8px; }
-        .tag { display:inline-block; padding:2px 8px; border-radius:5px; font-size:10.5px; font-weight:600; }
-        @media (max-width:700px) { .stats-g { grid-template-columns:1fr 1fr !important; } .two-g { grid-template-columns:1fr !important; } }
+        .feat-card:hover { border-color: #0284c740 !important; transform: translateY(-2px); }
       `}</style>
 
       {/* Header */}
       <div style={{ marginBottom:32 }}>
-        <h1 style={{ fontWeight:800, fontSize:"clamp(20px,2.5vw,26px)", letterSpacing:"-0.03em", color:"#fff", marginBottom:4 }}>
-          {userType === "business" ? `${firstName}'s Brand HQ 🏢` : `Welcome back, ${firstName} 👋`}
-        </h1>
-        <p style={{ fontSize:13.5, color:"#445" }}>Here's what's happening across your brands and talent network.</p>
+        <div style={{ fontSize:11, fontWeight:700, color:"#334", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:6 }}>
+          {isBusiness ? "🏢 Business Dashboard" : "👤 Personal Dashboard"}
+        </div>
+        <div style={{ fontSize:28, fontWeight:800, color:"#fff", letterSpacing:"-0.04em" }}>
+          {greeting}, {firstName} 👋
+        </div>
+        <div style={{ fontSize:13, color:"#445", marginTop:4 }}>
+          {isBusiness ? "Grow your brand with AI-powered tools" : "Build your digital presence and discover opportunities"}
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="stats-g" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:32 }}>
-        {[
-          { label:"Active projects",   value:"4",    sub:"2 due this week",    color:BLUE    },
-          { label:"Talent pool",        value:"24",   sub:"8 available now",    color:"#16a34a"},
-          { label:"Content scheduled", value:"18",   sub:"This month",         color:"#d97706"},
-          { label:"Campaign ROI avg",  value:"2.4×", sub:"Last 30 days",       color:PINK    },
-        ].map(s => (
-          <div key={s.label} className="stat">
-            <div style={{ fontSize:11, fontWeight:600, textTransform:"uppercase", letterSpacing:"0.07em", color:"#445", marginBottom:6 }}>{s.label}</div>
-            <div style={{ fontSize:24, fontWeight:800, letterSpacing:"-0.04em", color:s.color, lineHeight:1 }}>{s.value}</div>
-            <div style={{ fontSize:11.5, color:"#445", marginTop:4 }}>{s.sub}</div>
+      {/* Stats row */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:14, marginBottom:28 }}>
+        {(isBusiness ? [
+          { label:"Prompts Used", value:"24", change:"+8 this week" },
+          { label:"Posts Scheduled", value:"12", change:"Next: Tomorrow" },
+          { label:"Images Generated", value:"7", change:"3 remaining" },
+          { label:"Community Posts", value:"5", change:"+2 this week" },
+        ] : [
+          { label:"Prompts Used", value:"8", change:"42 remaining" },
+          { label:"Jobs Applied", value:"3", change:"2 pending" },
+          { label:"Posts Scheduled", value:"6", change:"Next: Today" },
+          { label:"Profile Views", value:"47", change:"+12 this week" },
+        ]).map(s => (
+          <div key={s.label} style={S.stat}>
+            <div style={{ fontSize:24, fontWeight:800, color:"#fff", letterSpacing:"-0.04em" }}>{s.value}</div>
+            <div style={{ fontSize:11, color:"#334", marginTop:2 }}>{s.label}</div>
+            <div style={{ fontSize:11, color:BLUE, marginTop:4 }}>{s.change}</div>
           </div>
         ))}
       </div>
 
-      {/* Upgrade banner */}
-      {plan === "free" && (
-        <div style={{ background:"#0d1624", border:`1px solid ${BLUE}30`, borderRadius:12, padding:"18px 22px", marginBottom:32, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
-          <div>
-            <div style={{ fontSize:14, fontWeight:700, color:"#fff", marginBottom:2 }}>Unlock DigiHub Premium</div>
-            <div style={{ fontSize:12.5, color:"#556" }}>Full brand tools, analytics dashboard, poster generator + talent marketplace access</div>
-          </div>
-          <Link to="/pricing" style={{ padding:"8px 18px", borderRadius:8, background:BLUE, color:"#fff", fontSize:13, fontWeight:700, textDecoration:"none" }}>Upgrade →</Link>
-        </div>
-      )}
-
-      <div className="two-g" style={{ display:"grid", gridTemplateColumns:"1.4fr 1fr", gap:16 }}>
-        {/* Projects */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 300px", gap:24 }}>
         <div>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
-            <div style={{ fontSize:13, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", color:"#445" }}>Active projects</div>
-            <Link to="/projects" style={{ fontSize:12, color:BLUE, textDecoration:"none", fontWeight:600 }}>View all →</Link>
+          {/* Features */}
+          <div style={{ fontSize:14, fontWeight:700, color:"#fff", marginBottom:14 }}>Your Tools</div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12, marginBottom:28 }}>
+            {features.map(f => (
+              <div key={f.to} className="feat-card" style={S.featureCard} onClick={()=>nav(f.to)}>
+                <div style={{ fontSize:20, color:f.color, marginBottom:8 }}>{f.icon}</div>
+                <div style={{ fontSize:13, fontWeight:700, color:"#fff", marginBottom:4 }}>{f.label}</div>
+                <div style={{ fontSize:12, color:"#445", lineHeight:1.5 }}>{f.desc}</div>
+              </div>
+            ))}
           </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-            {RECENT_PROJECTS.map(p => (
-              <div key={p.name} className="dh-card">
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
-                  <div style={{ fontSize:13.5, fontWeight:700, color:"#ddd", lineHeight:1.35, maxWidth:220 }}>{p.name}</div>
-                  <span className="tag" style={{ background:p.status==="Active" ? BLUE+"20" : p.status==="Review" ? "#d97706"+"20" : "#1a2030", color:p.status==="Active" ? BLUE : p.status==="Review" ? "#d97706" : "#556", flexShrink:0, marginLeft:8 }}>{p.status}</span>
+
+          {/* Recent activity */}
+          <div style={S.card}>
+            <div style={{ fontSize:13, fontWeight:700, color:"#fff", marginBottom:14 }}>Recent Activity</div>
+            {[
+              { icon:"✦", text:`Generated 3 design prompts for ${isBusiness?"your Instagram campaign":"your portfolio content"}`, time:"2h ago" },
+              { icon:"⊞", text:`Scheduled ${isBusiness?"a hiring post on LinkedIn":"a portfolio post on Instagram"}`, time:"Yesterday" },
+              { icon:"◉", text:`${isBusiness?"Your offer post got 23 likes":"Your career update got 18 likes"} in Community`, time:"2 days ago" },
+            ].map((a,i) => (
+              <div key={i} style={{ display:"flex", gap:12, paddingBottom:12, borderBottom:i<2?`1px solid ${B}`:"none", marginBottom:i<2?12:0 }}>
+                <div style={{ fontSize:16, color:BLUE, flexShrink:0 }}>{a.icon}</div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:13, color:"#aaa" }}>{a.text}</div>
+                  <div style={{ fontSize:11, color:"#334", marginTop:3 }}>{a.time}</div>
                 </div>
-                <div style={{ fontSize:12, color:"#445", marginBottom:6 }}>Due {p.due}</div>
-                <div className="prog-bar">
-                  <div style={{ width:`${p.progress}%`, height:"100%", background:p.color, borderRadius:99 }} />
-                </div>
-                <div style={{ fontSize:11, color:"#445", marginTop:4 }}>{p.progress}%</div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Right column */}
-        <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-          {/* Talent */}
-          <div>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
-              <div style={{ fontSize:13, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", color:"#445" }}>Top talent matches</div>
-              <Link to="/talent" style={{ fontSize:12, color:BLUE, textDecoration:"none", fontWeight:600 }}>View all →</Link>
+        {/* Sidebar */}
+        <div>
+          {/* Plan card */}
+          <div style={{ ...S.card, marginBottom:16, border:`1px solid ${plan==="free"?B:BLUE+"40"}` }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:12 }}>
+              <div>
+                <div style={{ fontSize:11, fontWeight:700, color:"#334", textTransform:"uppercase", letterSpacing:"0.08em" }}>Current Plan</div>
+                <div style={{ fontSize:18, fontWeight:800, color:plan==="free"?"#ccc":BLUE, textTransform:"capitalize", marginTop:2 }}>{plan}</div>
+              </div>
+              {plan === "free" && <button onClick={()=>nav("/pricing")} style={S.btn}>Upgrade</button>}
             </div>
-            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-              {TALENT_RECENT.map(t => (
-                <div key={t.name} className="dh-card" style={{ display:"flex", alignItems:"center", gap:12 }}>
-                  <div style={{ width:34, height:34, borderRadius:"50%", background:BLUE+"20", border:`1px solid ${BLUE}30`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:BLUE, flexShrink:0 }}>{t.name[0]}</div>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:13, fontWeight:700, color:"#ccc" }}>{t.name}</div>
-                    <div style={{ fontSize:11.5, color:"#445" }}>{t.skill}</div>
-                  </div>
-                  <div style={{ textAlign:"right" }}>
-                    <div style={{ fontSize:13, fontWeight:800, color:BLUE }}>{t.match}%</div>
-                    <span className="tag" style={{ background: t.status==="Available" ? "#16a34a"+"18" : "#d97706"+"18", color: t.status==="Available" ? "#16a34a" : "#d97706" }}>{t.status}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {plan === "free" && (
+              <div style={{ fontSize:12, color:"#445", lineHeight:1.5 }}>
+                {isBusiness ? "Upgrade to unlock unlimited prompts, more image generations, and team features." : "Upgrade to apply for jobs, get unlimited prompts, and a verified community badge."}
+              </div>
+            )}
           </div>
 
-          {/* Quick actions */}
-          <div>
-            <div style={{ fontSize:13, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", color:"#445", marginBottom:14 }}>Quick actions</div>
-            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-              {[
-                { icon:"◈", label:"Create content post",  to:"/planner",   color:BLUE    },
-                { icon:"⬡", label:"Generate brand poster", to:"/tools",     color:"#d97706"},
-                { icon:"◇", label:"Browse talent",         to:"/talent",    color:"#16a34a"},
-                { icon:"⬟", label:"View analytics",        to:"/analytics", color:PINK    },
-              ].map(a => (
-                <Link key={a.label} to={a.to} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", background:"#080f1a", border:`1px solid ${B}`, borderRadius:10, textDecoration:"none", transition:"all 0.15s" }}
-                  onMouseOver={e => { e.currentTarget.style.borderColor = a.color+"40"; }}
-                  onMouseOut={e => { e.currentTarget.style.borderColor = B; }}
-                >
-                  <span style={{ fontSize:16, color:a.color }}>{a.icon}</span>
-                  <span style={{ fontSize:13, fontWeight:600, color:"#aaa" }}>{a.label}</span>
-                  <span style={{ marginLeft:"auto", fontSize:12, color:"#445" }}>→</span>
-                </Link>
-              ))}
-            </div>
+          {/* Tips */}
+          <div style={S.card}>
+            <div style={{ fontSize:13, fontWeight:700, color:"#fff", marginBottom:14 }}>💡 Quick Tips</div>
+            {tips.map((t,i) => (
+              <div key={i} style={{ fontSize:12, color:"#445", marginBottom:10, display:"flex", gap:7, lineHeight:1.5 }}>
+                <span style={{ color:BLUE, flexShrink:0, marginTop:1 }}>→</span>{t}
+              </div>
+            ))}
+          </div>
+
+          {/* Quick links */}
+          <div style={{ ...S.card, marginTop:14 }}>
+            <div style={{ fontSize:13, fontWeight:700, color:"#fff", marginBottom:12 }}>Quick Links</div>
+            {[
+              { label:"Gen-E AI Career Tools", url:"https://gene.nugens.in.net" },
+              { label:"HyperX Learning Platform", url:"https://hyperx.nugens.in.net" },
+              { label:"NuGens Dashboard", url:"https://nugens.in.net" },
+            ].map(l => (
+              <a key={l.label} href={l.url} style={{ display:"block", fontSize:12, color:BLUE, textDecoration:"none", marginBottom:8 }}>→ {l.label}</a>
+            ))}
           </div>
         </div>
       </div>

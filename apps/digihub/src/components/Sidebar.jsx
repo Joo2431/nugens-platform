@@ -5,22 +5,25 @@ import { NG_LOGO } from "../lib/logo";
 const BLUE = "#0284c7";
 const B    = "#1a2030";
 
-const INDIVIDUAL_NAV = [
+const BUSINESS_NAV = [
   { to:"/",          icon:"◎", label:"Dashboard"       },
-  { to:"/tools",     icon:"⬡", label:"Brand Tools"     },
+  { to:"/prompts",   icon:"✦", label:"Prompt Space"    },
+  { to:"/imagegen",  icon:"⬡", label:"Image Generator" },
   { to:"/planner",   icon:"◈", label:"Content Planner" },
+  { to:"/scheduler", icon:"⊞", label:"Scheduler"       },
+  { to:"/community", icon:"◉", label:"Community"       },
   { to:"/analytics", icon:"⬟", label:"Analytics"       },
-  { to:"/projects",  icon:"◑", label:"My Projects"     },
   { to:"/pricing",   icon:"↑", label:"Upgrade"         },
 ];
 
-const BUSINESS_NAV = [
+const INDIVIDUAL_NAV = [
   { to:"/",          icon:"◎", label:"Dashboard"       },
-  { to:"/tools",     icon:"⬡", label:"Brand Tools"     },
+  { to:"/prompts",   icon:"✦", label:"Prompt Space"    },
+  { to:"/imagegen",  icon:"⬡", label:"Image Generator" },
   { to:"/planner",   icon:"◈", label:"Content Planner" },
-  { to:"/talent",    icon:"◇", label:"Talent Hub"      },
-  { to:"/analytics", icon:"⬟", label:"Analytics"       },
-  { to:"/projects",  icon:"◑", label:"Projects"        },
+  { to:"/scheduler", icon:"⊞", label:"Scheduler"       },
+  { to:"/jobs",      icon:"◇", label:"Job Board"       },
+  { to:"/community", icon:"◉", label:"Community"       },
   { to:"/pricing",   icon:"↑", label:"Upgrade"         },
 ];
 
@@ -29,9 +32,7 @@ export default function Sidebar({ profile, onSignOut }) {
   const isBusiness = profile?.user_type === "business";
   const nav        = isBusiness ? BUSINESS_NAV : INDIVIDUAL_NAV;
   const firstName  = (profile?.full_name || "").split(" ")[0] || "User";
-  const initials   = firstName.slice(0,2).toUpperCase();
   const plan       = profile?.plan || "free";
-  const avatar     = profile?.avatar_url || null;
 
   return (
     <>
@@ -65,7 +66,7 @@ export default function Sidebar({ profile, onSignOut }) {
               {isBusiness?"🏢 Business":"👤 Individual"}
             </div>
             <div style={{ fontSize:9.5, color:"#334", marginTop:1 }}>
-              {isBusiness?"Talent, analytics & tools":"Brand tools & content"}
+              {isBusiness?"Grow & manage your brand":"Build your digital presence"}
             </div>
           </div>
         )}
@@ -84,7 +85,7 @@ export default function Sidebar({ profile, onSignOut }) {
         {!collapsed && plan === "free" && (
           <div style={{ background:"#0d1624", border:`1px solid ${B}`, borderRadius:9, padding:"10px 12px", marginBottom:12 }}>
             <div style={{ fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", color:"#334", marginBottom:4 }}>Free Plan</div>
-            <a href="https://nugens.in.net/pricing" style={{ fontSize:11.5, color:"#e8185d", fontWeight:600, textDecoration:"none" }}>Upgrade →</a>
+            <a href="/pricing" style={{ fontSize:11.5, color:"#e8185d", fontWeight:600, textDecoration:"none" }}>Upgrade →</a>
           </div>
         )}
 
