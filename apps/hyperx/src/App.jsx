@@ -4,7 +4,6 @@ import { supabase } from "./lib/supabase";
 import Sidebar from "./components/Sidebar";
 import ProtectedRoute from "./components/ProtectedRoute";
 
-const AuthPage      = lazy(() => import("./pages/AuthPage"));
 const Dashboard     = lazy(() => import("./pages/Dashboard"));
 const CoursesPage   = lazy(() => import("./pages/Courses"));
 const CoursePlayer  = lazy(() => import("./pages/CoursePlayer"));
@@ -16,27 +15,29 @@ const AIAssistant   = lazy(() => import("./pages/AIAssistant"));
 function Spinner() {
   return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:"#080814" }}>
-      <div style={{ fontWeight:800, fontSize:22, color:"#7c3aed", letterSpacing:"-0.04em" }}>HyperX</div>
+      <div style={{ fontWeight:800, fontSize:22, color:"#7c3aed" }}>HyperX</div>
     </div>
   );
 }
 
-const FULL_SCREEN = ["/auth", "/login", "/signup"];
-
-function AppShell({ user, profile }) {
+function AppShell() {
   const location = useLocation();
-  const isFullScreen = FULL_SCREEN.some(r => location.pathname.startsWith(r));
+  const [user,    setUser]    = useState(null);
+  const [profile, setProfile] = useState(null);
   const isCoursePlayer = location.pathname.match(/^\/courses\/.+/);
 
-  if (isFullScreen) return (
-    <Suspense fallback={<Spinner />}>
-      <Routes>
-        <Route path="/auth"   element={<AuthPage />} />
-        <Route path="/login"  element={<Navigate to="/auth" replace />} />
-        <Route path="/signup" element={<Navigate to="/auth?mode=signup" replace />} />
-      </Routes>
-    </Suspense>
-  );
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) supabase.from("profiles").select("*").eq("id", session.user.id).single().then(({ data }) => setProfile(data));
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) supabase.from("profiles").select("*").eq("id", session.user.id).single().then(({ data }) => setProfile(data));
+      else setProfile(null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   if (isCoursePlayer) return (
     <Suspense fallback={<Spinner />}>
@@ -48,7 +49,7 @@ function AppShell({ user, profile }) {
 
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:"#080814" }}>
-      {user && <Sidebar user={user} profile={profile} />}
+      {user && <Sidebar />}
       <div style={{ flex:1, minWidth:0, overflowX:"hidden" }}>
         <Suspense fallback={<Spinner />}>
           <Routes>
@@ -68,31 +69,5 @@ function AppShell({ user, profile }) {
 }
 
 export default function App() {
-  const [user,    setUser]    = useState(null);
-  const [profile, setProfile] = useState(null);
-  const [ready,   setReady]   = useState(false);
-
-  const fetchProfile = async (uid) => {
-    const { data } = await supabase.from("profiles").select("*").eq("id", uid).single();
-    setProfile(data ?? null);
-  };
-
-  useEffect(() => {
-    // Set ready IMMEDIATELY — don't block on fetchProfile
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setReady(true);
-      if (session?.user) fetchProfile(session.user.id);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      else setProfile(null);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
-
-  if (!ready) return <Spinner />;
-
-  return <BrowserRouter><AppShell user={user} profile={profile} /></BrowserRouter>;
+  return <BrowserRouter><AppShell /></BrowserRouter>;
 }
