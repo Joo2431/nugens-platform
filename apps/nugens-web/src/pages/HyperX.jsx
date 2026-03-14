@@ -222,7 +222,7 @@ export default function HyperX() {
             opacity: on ? 1 : 0, transform: on ? "none" : "translateY(8px)",
             transition: "all 0.46s ease 0.34s", marginBottom: 48
           }}>
-            <Link to="/contact" className="hx-btn-pink">Enroll in HyperX →</a>
+            <Link to="/contact" className="hx-btn-pink">Enroll in HyperX →</Link>
             <a href="https://gene.nugens.in.net" target="_blank" rel="noreferrer" className="hx-btn-ghost">Pair with Gen-E AI</a>
           </div>
 
@@ -422,7 +422,7 @@ export default function HyperX() {
                   <h4 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, fontSize: 14, letterSpacing: "-0.01em", lineHeight: 1.4, marginBottom: 10, color: i === 1 ? "#fff" : "#0a0a0a" }}>{c.label}</h4>
                   <p style={{ fontSize: 13, lineHeight: 1.65, color: i === 1 ? "#9ca3af" : "#6b7280", marginBottom: 20 }}>{c.desc}</p>
                   {c.link
-                    ? <Link to={c.link} style={{ fontSize: 12.5, fontWeight: 600, color: c.color, textDecoration: "none" }}>{c.cta} →</a>
+                    ? <Link to={c.link} style={{ fontSize: 12.5, fontWeight: 600, color: c.color, textDecoration: "none" }}>{c.cta} →</Link>
                     : <span style={{ fontSize: 12.5, fontWeight: 600, color: c.color }}>◎ {c.cta}</span>
                   }
                 </div>
@@ -448,7 +448,7 @@ export default function HyperX() {
               Enroll in HyperX and get the professional foundation that years of experience used to be the only way to build.
             </p>
             <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
-              <Link to="/contact" className="hx-btn-pink">Enroll in HyperX →</a>
+              <Link to="/contact" className="hx-btn-pink">Enroll in HyperX →</Link>
               <a href="https://gene.nugens.in.net" target="_blank" rel="noreferrer" className="hx-btn-ghost">Start with Gen-E first</a>
             </div>
           </Reveal>

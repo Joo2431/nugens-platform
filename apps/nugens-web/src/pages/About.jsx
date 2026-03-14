@@ -262,7 +262,7 @@ export default function About() {
                       padding: "10px 20px", borderRadius: 8, background: "#0a0a0a",
                       color: "#fff", fontSize: 13.5, fontWeight: 600, textDecoration: "none",
                       fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.01em"
-                    }}>Explore {P.name} →</a>
+                    }}>Explore {P.name} →</Link>
                   : <a href={P.href} target="_blank" rel="noreferrer" style={{
                       display: "inline-flex", alignItems: "center", gap: 7,
                       padding: "10px 20px", borderRadius: 8, background: "#0a0a0a",
@@ -383,7 +383,7 @@ export default function About() {
             </p>
             <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
               <a href="https://gene.nugens.in.net" target="_blank" rel="noreferrer" className="ab-btn-pink">Start with Gen-E →</a>
-              <Link to="/contact" className="ab-btn-ghost">Talk to us</a>
+              <Link to="/contact" className="ab-btn-ghost">Talk to us</Link>
             </div>
           </Reveal>
         </div>
