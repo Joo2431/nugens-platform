@@ -1,129 +1,239 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "../lib/supabase";
 
-const PINK = "#e8185d";
-const B    = "#1e1e1e";
+const PINK   = "#e8185d";
+const TEXT   = "#111827";
+const MUTED  = "#6b7280";
+const LIGHT  = "#f8f9fb";
+const CARD   = "#ffffff";
+const BORDER = "#e8eaed";
+const GREEN  = "#16a34a";
+const API    = "https://nugens-platform.onrender.com";
 
-const PLANS = [
+const IND_PLANS = [
   {
-    id: "hyperx_monthly",
-    label: "Monthly",
-    price: "₹299",
-    sub: "per month",
-    badge: null,
-    features: [
-      "Full access to all courses",
-      "All learning paths",
-      "Downloadable certificates",
-      "Community access",
-      "AI Learning Assistant",
-      "Cancel anytime",
-    ],
+    id:"hx_ind_starter", name:"Starter", price:{ monthly:0, yearly:0 },
+    tag:"Always Free", color:MUTED, popular:false, free:true,
+    certLimit:0,
+    features:["Access to all free courses","Individual courses only","Community access","Gen-E Mini AI support","No certifications"],
+    cta:"Current Free Plan",
   },
   {
-    id: "hyperx_yearly",
-    label: "Yearly",
-    price: "₹1,999",
-    sub: "per year — save 44%",
-    badge: "Best Value",
-    features: [
-      "Everything in Monthly",
-      "Priority support",
-      "Early access to new courses",
-      "Offline viewing (coming soon)",
-      "Team learning dashboard",
-      "2 months free",
-    ],
+    id:"hx_ind_premium", name:"Premium", price:{ monthly:299, yearly:null },
+    tag:"Monthly Plan", color:PINK, popular:false, free:false,
+    certLimit:2,
+    features:["All individual courses","2 certifications per year","Monthly exclusive course","Real-time AI guidance","Gen-E Mini support","Course progress tracking"],
+    cta:"Get Premium — ₹299/mo",
+    razorpayPlan:"hx_ind_premium_monthly",
+  },
+  {
+    id:"hx_ind_pro", name:"Pro", price:{ monthly:1299, yearly:null },
+    tag:"Serious Learners", color:"#7c3aed", popular:true, free:false,
+    certLimit:6,
+    features:["Everything in Premium","6 certifications per year","All exclusive courses","Priority AI guidance","Certificate with LinkedIn export","Early course access"],
+    cta:"Go Pro — ₹1,299/mo",
+    razorpayPlan:"hx_ind_pro_monthly",
+  },
+  {
+    id:"hx_ind_yearly", name:"Yearly", price:{ monthly:null, yearly:2999 },
+    tag:"Best Value", color:GREEN, popular:false, free:false,
+    certLimit:999,
+    features:["Everything in Pro","Unlimited certifications","All courses forever","Priority support","Save ₹12,589 vs monthly Pro","Yearly exclusive course pack"],
+    cta:"Go Yearly — ₹2,999/yr",
+    razorpayPlan:"hx_ind_yearly",
   },
 ];
 
-export default function HyperXPricing({ profile }) {
-  const [loading, setLoading] = useState(null);
-  const [error,   setError]   = useState("");
-  const navigate = useNavigate();
-  const plan = profile?.plan || "free";
+const BIZ_PLANS = [
+  {
+    id:"hx_biz_starter", name:"Starter", price:{ monthly:299, yearly:null },
+    tag:"Teams starting out", color:MUTED, popular:false, free:false,
+    certLimit:2,
+    features:["Access to free courses only","Business + Individual courses","2 certifications per year","Community access","Gen-E Mini support"],
+    cta:"Get Starter — ₹299/mo",
+    razorpayPlan:"hx_biz_starter_monthly",
+  },
+  {
+    id:"hx_biz_premium", name:"Premium", price:{ monthly:699, yearly:null },
+    tag:"Growing Teams", color:PINK, popular:true, free:false,
+    certLimit:2,
+    features:["All business & individual courses","2 certifications per year","Monthly exclusive course","Real-time AI guidance","Team progress dashboard","Gen-E Mini support"],
+    cta:"Get Premium — ₹699/mo",
+    razorpayPlan:"hx_biz_premium_monthly",
+  },
+  {
+    id:"hx_biz_pro", name:"Pro", price:{ monthly:1599, yearly:null },
+    tag:"Scaling Businesses", color:"#7c3aed", popular:false, free:false,
+    certLimit:6,
+    features:["Everything in Premium","6 certifications per year","All exclusive courses","Priority AI & team guidance","Team certification tracker","Early course access"],
+    cta:"Go Pro — ₹1,599/mo",
+    razorpayPlan:"hx_biz_pro_monthly",
+  },
+  {
+    id:"hx_biz_yearly", name:"Yearly Pro", price:{ monthly:null, yearly:3499 },
+    tag:"Best Value", color:GREEN, popular:false, free:false,
+    certLimit:999,
+    features:["Everything in Business Pro","Unlimited certifications","Yearly exclusive business pack","Priority team support","Bulk seat discounts available","Save ₹15,689 vs monthly Pro"],
+    cta:"Go Yearly — ₹3,499/yr",
+    razorpayPlan:"hx_biz_yearly",
+  },
+];
 
-  const handleUpgrade = async (planId) => {
-    setLoading(planId); setError("");
-    // For now redirect to nugens main pricing
-    // Later: integrate Razorpay directly
-    window.location.href = "https://nugens.in.net/pricing?product=hyperx&plan=" + planId;
+export default function Pricing({ profile }) {
+  const [tab,     setTab]     = useState(profile?.user_type==="individual"?"individual":"business");
+  const [loading, setLoading] = useState(null);
+  const [success, setSuccess] = useState(null);
+
+  const plans = tab === "individual" ? IND_PLANS : BIZ_PLANS;
+
+  const pay = async (plan) => {
+    if (plan.free) return;
+    const amount = plan.price.yearly || plan.price.monthly;
+    if (!amount) return;
+    setLoading(plan.id);
+
+    try {
+      const res = await fetch(`${API}/api/subscription/create-order`, {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ amount, currency:"INR", plan:plan.id, billing:plan.price.yearly?"yearly":"monthly" })
+      });
+      const order = await res.json();
+      if (!order?.id) throw new Error("Order failed");
+
+      const rzp = new window.Razorpay({
+        key:"OKbq5A210M1EEWP4Wl213DOU",
+        amount:order.amount, currency:"INR", order_id:order.id,
+        name:"HyperX by NuGens",
+        description:`HyperX ${plan.name} — ${plan.price.yearly?"Yearly":"Monthly"}`,
+        theme:{ color:PINK },
+        prefill:{ name:profile?.full_name||"", email:profile?.email||"" },
+        handler: async (r) => {
+          await fetch(`${API}/api/subscription/verify`, {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body: JSON.stringify({ ...r, plan:plan.id, userId:profile?.id })
+          });
+          setSuccess(plan.name);
+          setLoading(null);
+        },
+        modal:{ ondismiss:()=>setLoading(null) }
+      });
+      rzp.open();
+    } catch(e) { console.error(e); setLoading(null); }
+  };
+
+  const S = {
+    page: { minHeight:"100vh", background:LIGHT, padding:"48px 44px", fontFamily:"'Plus Jakarta Sans',sans-serif" },
+    card: (featured) => ({ background:CARD, border:`1px solid ${featured?"#e8185d40":BORDER}`, borderRadius:18, padding:30, position:"relative", display:"flex", flexDirection:"column", boxShadow:featured?"0 8px 32px rgba(232,24,93,0.12)":"0 1px 3px rgba(0,0,0,0.04)" }),
+    btn:  (c) => ({ width:"100%", padding:"13px 0", background:c, color:"#fff", border:"none", borderRadius:10, fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"inherit", marginTop:"auto" }),
+    check:{ fontSize:13, color:MUTED, display:"flex", gap:8, marginBottom:9, alignItems:"flex-start" },
   };
 
   return (
-    <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",padding:"40px 28px 80px",background:"#09090a",minHeight:"100vh"}}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');*{box-sizing:border-box}`}</style>
+    <div style={S.page}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');`}</style>
+      <script src="https://checkout.razorpay.com/v1/checkout.js" />
 
-      {/* Header */}
-      <div style={{textAlign:"center",maxWidth:520,margin:"0 auto 48px"}}>
-        <div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"4px 12px",borderRadius:6,background:`${PINK}10`,border:`1px solid ${PINK}30`,marginBottom:16}}>
-          <span style={{fontSize:11,fontWeight:700,color:PINK,letterSpacing:"0.06em",textTransform:"uppercase"}}>HyperX Pro</span>
-        </div>
-        <h1 style={{fontWeight:800,fontSize:"clamp(24px,3vw,36px)",color:"#fff",letterSpacing:"-0.035em",marginBottom:12}}>
-          Invest in your career.<br/>One skill at a time.
-        </h1>
-        <p style={{fontSize:14,color:"#555",lineHeight:1.7}}>
-          Get unlimited access to every HyperX course, learning path, certificate and AI assistant feature.
-        </p>
+      <div style={{ textAlign:"center", marginBottom:40 }}>
+        <div style={{ fontSize:32, fontWeight:800, color:TEXT, letterSpacing:"-0.05em", marginBottom:8 }}>HyperX Learning Plans</div>
+        <div style={{ fontSize:14, color:MUTED }}>Certifications, exclusive courses, and real-time AI guidance — built for your career.</div>
       </div>
 
-      {/* Current plan */}
-      {plan !== "free" && (
-        <div style={{maxWidth:480,margin:"0 auto 28px",background:`${PINK}10`,border:`1px solid ${PINK}30`,borderRadius:12,padding:"14px 20px",textAlign:"center"}}>
-          <span style={{fontSize:13.5,fontWeight:600,color:"#fff"}}>✓ You're on </span>
-          <span style={{fontSize:13.5,fontWeight:800,color:PINK,textTransform:"capitalize"}}>{plan} plan</span>
-          <span style={{fontSize:13.5,fontWeight:600,color:"#fff"}}> — full access active</span>
-        </div>
-      )}
-
-      {/* Plans */}
-      <div style={{display:"flex",gap:20,justifyContent:"center",flexWrap:"wrap",maxWidth:780,margin:"0 auto 40px"}}>
-        {PLANS.map(p=>(
-          <div key={p.id} style={{
-            flex:1, minWidth:300, maxWidth:360,
-            background:"#111", border:`1.5px solid ${p.badge?PINK:B}`,
-            borderRadius:16, padding:"28px 24px", position:"relative",
-          }}>
-            {p.badge && (
-              <div style={{position:"absolute",top:-12,left:"50%",transform:"translateX(-50%)",background:PINK,color:"#fff",fontSize:11,fontWeight:700,padding:"3px 14px",borderRadius:20,whiteSpace:"nowrap"}}>{p.badge}</div>
-            )}
-            <div style={{fontSize:15,fontWeight:700,color:"#fff",marginBottom:4}}>{p.label}</div>
-            <div style={{fontSize:32,fontWeight:800,color:p.badge?PINK:"#fff",letterSpacing:"-0.04em",lineHeight:1,marginBottom:4}}>{p.price}</div>
-            <div style={{fontSize:12.5,color:"#555",marginBottom:24}}>{p.sub}</div>
-            <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:28}}>
-              {p.features.map(f=>(
-                <div key={f} style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{color:PINK,fontSize:13,flexShrink:0}}>✓</span>
-                  <span style={{fontSize:13,color:"#aaa"}}>{f}</span>
-                </div>
-              ))}
-            </div>
-            <button onClick={()=>handleUpgrade(p.id)} disabled={!!loading||plan!=="free"}
-              style={{width:"100%",padding:"12px 0",borderRadius:10,border:"none",
-                background:plan!=="free"?"#1a1a1a":p.badge?PINK:"#fff",
-                color:plan!=="free"?"#444":p.badge?"#fff":"#0a0a0a",
-                fontSize:14,fontWeight:700,cursor:plan!=="free"?"default":"pointer",fontFamily:"inherit"}}>
-              {plan!=="free"?"Already subscribed":loading===p.id?"Redirecting…":"Get "+p.label+" →"}
+      {/* Tab switcher */}
+      <div style={{ display:"flex", justifyContent:"center", marginBottom:40 }}>
+        <div style={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:12, padding:4, display:"flex", gap:4 }}>
+          {["individual","business"].map(t=>(
+            <button key={t} onClick={()=>setTab(t)} style={{ padding:"9px 28px", background:tab===t?PINK:"none", color:tab===t?"#fff":MUTED, border:"none", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>
+              {t==="individual" ? "👤 Individual" : "🏢 Business"}
             </button>
-          </div>
-        ))}
-      </div>
-
-      {/* Free features */}
-      <div style={{maxWidth:640,margin:"0 auto",background:"#111",border:`1px solid ${B}`,borderRadius:14,padding:"24px 28px"}}>
-        <div style={{fontSize:13,fontWeight:700,color:"#555",marginBottom:16}}>FREE PLAN INCLUDES</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          {["3 free courses","1 learning path","Community access","AI Assistant (limited)"].map(f=>(
-            <div key={f} style={{display:"flex",alignItems:"center",gap:8}}>
-              <span style={{color:"#444",fontSize:13}}>◎</span>
-              <span style={{fontSize:13,color:"#666"}}>{f}</span>
-            </div>
           ))}
         </div>
       </div>
 
-      {error && <div style={{textAlign:"center",marginTop:16,fontSize:13,color:"#f87171"}}>{error}</div>}
+      {success && (
+        <div style={{ background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:12, padding:"14px 24px", maxWidth:500, margin:"0 auto 28px", textAlign:"center", color:GREEN, fontWeight:700 }}>
+          ✓ {success} plan activated! Refresh to see your new access.
+        </div>
+      )}
+
+      {/* Plans grid */}
+      <div style={{ display:"grid", gridTemplateColumns:`repeat(${plans.length},1fr)`, gap:16, maxWidth:1100, margin:"0 auto" }}>
+        {plans.map(plan => (
+          <div key={plan.id} style={S.card(plan.popular)}>
+            {plan.popular && (
+              <div style={{ position:"absolute", top:-13, left:"50%", transform:"translateX(-50%)", background:plan.color, color:"#fff", fontSize:9, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.08em", padding:"4px 16px", borderRadius:20, whiteSpace:"nowrap" }}>
+                Most Popular
+              </div>
+            )}
+            <div style={{ fontSize:9, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", color:plan.color, marginBottom:6 }}>{plan.tag}</div>
+            <div style={{ fontSize:18, fontWeight:800, color:TEXT, marginBottom:4 }}>{plan.name}</div>
+
+            {/* Price */}
+            <div style={{ marginBottom:20 }}>
+              {plan.free ? (
+                <div style={{ fontSize:30, fontWeight:800, color:TEXT }}>Free</div>
+              ) : plan.price.yearly ? (
+                <>
+                  <div style={{ fontSize:30, fontWeight:800, color:TEXT }}>₹{plan.price.yearly.toLocaleString()}</div>
+                  <div style={{ fontSize:11, color:MUTED }}>per year · + GST</div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize:30, fontWeight:800, color:TEXT }}>₹{plan.price.monthly?.toLocaleString()}</div>
+                  <div style={{ fontSize:11, color:MUTED }}>per month · + GST</div>
+                </>
+              )}
+            </div>
+
+            {/* Cert badge */}
+            <div style={{ background:`${plan.color}10`, border:`1px solid ${plan.color}30`, borderRadius:8, padding:"8px 12px", marginBottom:16, textAlign:"center" }}>
+              <div style={{ fontSize:11, fontWeight:700, color:plan.color }}>
+                {plan.certLimit===999 ? "∞ Unlimited Certifications" : plan.certLimit===0 ? "No Certifications" : `${plan.certLimit} Certification${plan.certLimit>1?"s":""} / year`}
+              </div>
+            </div>
+
+            {/* Features */}
+            <div style={{ flex:1, marginBottom:20 }}>
+              {plan.features.map((f,i)=>(
+                <div key={i} style={S.check}>
+                  <span style={{color:plan.color,flexShrink:0}}>✓</span>
+                  <span>{f}</span>
+                </div>
+              ))}
+            </div>
+
+            {plan.free ? (
+              <div style={{ width:"100%", padding:"12px 0", background:"#f8f9fb", border:`1px solid ${BORDER}`, borderRadius:10, textAlign:"center", fontSize:13, color:MUTED }}>Current Plan</div>
+            ) : (
+              <button onClick={()=>pay(plan)} disabled={loading===plan.id} style={{ ...S.btn(plan.color), opacity:loading===plan.id?0.6:1 }}>
+                {loading===plan.id ? "Processing..." : plan.cta}
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Comparison note */}
+      <div style={{ textAlign:"center", marginTop:32, fontSize:12, color:MUTED }}>
+        {tab==="business" ? "Business plans include both individual and business courses." : "Individual plans only include individual courses."}
+        {" "}All plans include Gen-E Mini AI support.
+      </div>
+
+      {/* FAQ */}
+      <div style={{ maxWidth:680, margin:"44px auto 0" }}>
+        <div style={{ fontSize:20, fontWeight:800, color:TEXT, textAlign:"center", marginBottom:24 }}>Questions</div>
+        {[
+          { q:"What are certifications?", a:"After completing a course, you can generate a verified certificate of completion. The number of certificates you can earn per year depends on your plan. Yearly plans have unlimited certs." },
+          { q:"What are exclusive courses?", a:"Every month, we release a new exclusive course available only to subscribers. These are not available on the free plan and are released only for that calendar month." },
+          { q:"Can business users access individual courses?", a:"Yes. All business plans include access to both individual and business courses. Individual plans only include individual courses." },
+          { q:"How does Razorpay billing work?", a:"All payments are one-time (monthly or yearly). There is no auto-renewal currently. You'll need to manually renew when your plan expires." },
+        ].map((f,i)=>(
+          <div key={i} style={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:10, padding:"16px 20px", marginBottom:10 }}>
+            <div style={{ fontSize:13, fontWeight:700, color:TEXT, marginBottom:6 }}>{f.q}</div>
+            <div style={{ fontSize:13, color:MUTED, lineHeight:1.65 }}>{f.a}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

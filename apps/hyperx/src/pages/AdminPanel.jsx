@@ -1,249 +1,545 @@
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 
-const PINK = "#e8185d";
-const B    = "#1e1e1e";
-const CATS = ["Communication","Career Strategy","Mindset","Interview Prep","Personal Brand","Leadership","Productivity","English for Work"];
-const LEVELS = ["Beginner","Intermediate","Advanced"];
+const PINK   = "#e8185d";
+const TEXT   = "#111827";
+const MUTED  = "#6b7280";
+const LIGHT  = "#f8f9fb";
+const CARD   = "#ffffff";
+const BORDER = "#e8eaed";
+const GREEN  = "#16a34a";
 
-export default function AdminPanel() {
-  const [tab,         setTab]         = useState("courses");
-  const [courses,     setCourses]     = useState([]);
-  const [selCourse,   setSelCourse]   = useState(null);
-  const [lessons,     setLessons]     = useState([]);
-  const [loading,     setLoading]     = useState(false);
-  const [msg,         setMsg]         = useState("");
-  const [uploading,   setUploading]   = useState(false);
+const IND_CATS = ["Communication","Career Strategy","Mindset","Interview Prep","Personal Brand","Leadership","Productivity","English for Work","Soft Skills","Time Management","Finance & Investing","Health & Wellness"];
+const BIZ_CATS = ["Business Strategy","Marketing & Growth","Sales","HR & People","Finance","Operations","Startup & Entrepreneurship","Management","B2B Skills","Digital Transformation","Legal Basics","Customer Success"];
+const LEVELS   = ["Beginner","Intermediate","Advanced"];
+
+const EMPTY_COURSE = { title:"", description:"", category:"Communication", course_type:"individual", level:"Beginner", is_free:false, price:0, offer_percent:0, is_published:false, is_exclusive:false, total_lessons:0, duration_mins:0, thumbnail_url:"" };
+const EMPTY_LESSON = { title:"", description:"", duration_mins:0, sort_order:0, is_free:false, video_url:"" };
+
+export default function AdminPanel({ profile }) {
+  const [tab,       setTab]       = useState("courses");   // courses | lessons | offers | analytics
+  const [courses,   setCourses]   = useState([]);
+  const [selCourse, setSelCourse] = useState(null);
+  const [lessons,   setLessons]   = useState([]);
+  const [loading,   setLoading]   = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadPct, setUploadPct] = useState(0);
+  const [msg,       setMsg]       = useState({ text:"", type:"" });
+  const [cf,        setCf]        = useState(EMPTY_COURSE);
+  const [lf,        setLf]        = useState(EMPTY_LESSON);
+  const [editMode,  setEditMode]  = useState(false);
+  const [search,    setSearch]    = useState("");
+  const [typeFilter,setTypeFilter]= useState("all");
   const thumbRef = useRef();
   const videoRef = useRef();
 
-  const [cf, setCf] = useState({ title:"",description:"",category:"Communication",level:"Beginner",is_free:false,is_published:false });
-  const [lf, setLf] = useState({ title:"",description:"",duration_mins:0,sort_order:0,is_free:false });
-
-  const notify = (m) => { setMsg(m); setTimeout(()=>setMsg(""),3000); };
+  const notify = (text, type="success") => { setMsg({text,type}); setTimeout(()=>setMsg({text:"",type:""}),4000); };
+  const isAdmin = profile?.plan === "admin";
 
   useEffect(() => {
-    supabase.from("hx_courses").select("*").order("created_at",{ascending:false}).then(({data})=>setCourses(data||[]));
+    loadCourses();
   }, []);
+
+  const loadCourses = async () => {
+    const { data } = await supabase.from("hx_courses").select("*").order("created_at",{ascending:false});
+    setCourses(data||[]);
+  };
 
   const loadLessons = async (courseId) => {
     const { data } = await supabase.from("hx_lessons").select("*").eq("course_id",courseId).order("sort_order");
     setLessons(data||[]);
   };
 
-  // Upload thumbnail to Supabase storage
-  const uploadThumb = async (file) => {
+  const selectCourse = (course) => {
+    setSelCourse(course);
+    setCf(course);
+    setEditMode(false);
+    setLf(EMPTY_LESSON);
+    loadLessons(course.id);
+    setTab("lessons");
+  };
+
+  const uploadFile = async (file, bucket, folder) => {
     const ext  = file.name.split(".").pop();
-    const path = `thumbnails/${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("hx-videos").upload(path, file, { upsert:true });
-    if (error) throw error;
-    const { data } = supabase.storage.from("hx-videos").getPublicUrl(path);
+    const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    setUploading(true); setUploadPct(0);
+    const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert:true });
+    if (error) { setUploading(false); throw error; }
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+    setUploading(false); setUploadPct(100);
     return data.publicUrl;
   };
 
-  // Upload video to Supabase storage
-  const uploadVideo = async (file, onProgress) => {
-    const ext  = file.name.split(".").pop();
-    const path = `videos/${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("hx-videos").upload(path, file, {
-      upsert: true,
-      onUploadProgress: (p) => onProgress(Math.round(p.loaded/p.total*100)),
-    });
-    if (error) throw error;
-    const { data } = supabase.storage.from("hx-videos").getPublicUrl(path);
-    return data.publicUrl;
-  };
-
-  const createCourse = async () => {
-    if (!cf.title.trim()) { notify("❌ Title required"); return; }
+  const saveCourse = async () => {
+    if (!cf.title.trim()) return notify("Title required","error");
     setLoading(true);
-    let thumbnail_url = null;
-    if (thumbRef.current?.files?.[0]) {
-      try { thumbnail_url = await uploadThumb(thumbRef.current.files[0]); }
-      catch(e) { notify("❌ Thumbnail upload failed: "+e.message); setLoading(false); return; }
-    }
-    const { data, error } = await supabase.from("hx_courses").insert({ ...cf, thumbnail_url }).select().single();
-    if (error) { notify("❌ "+error.message); }
-    else { setCourses(p=>[data,...p]); setCf({title:"",description:"",category:"Communication",level:"Beginner",is_free:false,is_published:false}); notify("✅ Course created!"); }
-    setLoading(false);
-  };
+    const payload = { ...cf, total_lessons:Number(cf.total_lessons||0), duration_mins:Number(cf.duration_mins||0), price:Number(cf.price||0), offer_percent:Number(cf.offer_percent||0) };
 
-  const togglePublish = async (course) => {
-    const { data } = await supabase.from("hx_courses").update({is_published:!course.is_published}).eq("id",course.id).select().single();
-    if (data) setCourses(p=>p.map(c=>c.id===data.id?data:c));
+    if (selCourse && editMode) {
+      const { error } = await supabase.from("hx_courses").update(payload).eq("id",selCourse.id);
+      if (error) notify(error.message,"error"); else { notify("Course updated ✓"); await loadCourses(); }
+    } else {
+      const { data, error } = await supabase.from("hx_courses").insert([payload]).select().single();
+      if (error) notify(error.message,"error"); else { notify("Course created ✓"); setSelCourse(data); setCf(data); setEditMode(false); await loadCourses(); loadLessons(data.id); setTab("lessons"); }
+    }
+    setLoading(false);
   };
 
   const deleteCourse = async (id) => {
-    if (!confirm("Delete this course and all lessons?")) return;
+    if (!window.confirm("Delete this course and all lessons?")) return;
     await supabase.from("hx_courses").delete().eq("id",id);
-    setCourses(p=>p.filter(c=>c.id!==id));
-    if (selCourse?.id===id) { setSelCourse(null); setLessons([]); }
-    notify("✅ Deleted");
+    notify("Course deleted"); await loadCourses();
+    if (selCourse?.id===id) { setSelCourse(null); setLessons([]); setTab("courses"); }
   };
 
-  const addLesson = async () => {
-    if (!selCourse) { notify("❌ Select a course first"); return; }
-    if (!lf.title.trim()) { notify("❌ Lesson title required"); return; }
+  const saveLesson = async () => {
+    if (!lf.title.trim() || !selCourse) return notify("Lesson title required","error");
     setLoading(true);
-    let video_url = null;
-    if (videoRef.current?.files?.[0]) {
-      setUploading(true);
-      try {
-        video_url = await uploadVideo(videoRef.current.files[0], (pct) => setMsg(`Uploading video… ${pct}%`));
-        setUploading(false);
-      } catch(e) { notify("❌ Video upload failed: "+e.message); setLoading(false); setUploading(false); return; }
-    }
-    const { data, error } = await supabase.from("hx_lessons").insert({...lf,course_id:selCourse.id,video_url}).select().single();
-    if (error) { notify("❌ "+error.message); }
-    else {
-      setLessons(p=>[...p,data]);
-      // Update course lesson count and duration
-      await supabase.from("hx_courses").update({
-        total_lessons: lessons.length+1,
-        duration_mins: (lessons.reduce((a,l)=>a+l.duration_mins,0))+lf.duration_mins
-      }).eq("id",selCourse.id);
-      setLf({title:"",description:"",duration_mins:0,sort_order:lessons.length+1,is_free:false});
-      notify("✅ Lesson added!");
+    const payload = { ...lf, course_id:selCourse.id, duration_mins:Number(lf.duration_mins||0), sort_order:Number(lf.sort_order||0) };
+    if (lf.id) {
+      const { error } = await supabase.from("hx_lessons").update(payload).eq("id",lf.id);
+      if (error) notify(error.message,"error"); else { notify("Lesson saved ✓"); await loadLessons(selCourse.id); setLf(EMPTY_LESSON); }
+    } else {
+      const { error } = await supabase.from("hx_lessons").insert([payload]);
+      if (error) notify(error.message,"error"); else {
+        notify("Lesson added ✓");
+        // Update total_lessons count
+        await supabase.from("hx_courses").update({ total_lessons:(selCourse.total_lessons||0)+1 }).eq("id",selCourse.id);
+        await loadLessons(selCourse.id); await loadCourses();
+        setLf(EMPTY_LESSON);
+      }
     }
     setLoading(false);
   };
 
-  const deleteLesson = async (id) => {
-    await supabase.from("hx_lessons").delete().eq("id",id);
-    setLessons(p=>p.filter(l=>l.id!==id));
-    notify("✅ Lesson deleted");
+  const deleteLesson = async (lessonId) => {
+    await supabase.from("hx_lessons").delete().eq("id",lessonId);
+    await supabase.from("hx_courses").update({ total_lessons:Math.max(0,(selCourse.total_lessons||1)-1) }).eq("id",selCourse.id);
+    await loadLessons(selCourse.id); await loadCourses();
+    notify("Lesson deleted");
   };
 
-  const inp = {width:"100%",padding:"9px 12px",background:"#111",border:`1px solid ${B}`,borderRadius:8,color:"#fff",fontSize:13,fontFamily:"inherit",outline:"none"};
-  const btn = (bg="#111",c="#aaa")=>({padding:"9px 18px",borderRadius:8,background:bg,border:`1px solid ${bg==="#111"?B:bg}`,color:c,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit",transition:"all 0.14s"});
+  const handleThumb = async (e) => {
+    const file = e.target.files?.[0]; if(!file) return;
+    try { const url = await uploadFile(file,"hx-videos","thumbnails"); setCf(c=>({...c,thumbnail_url:url})); notify("Thumbnail uploaded ✓"); } catch(err) { notify(err.message,"error"); }
+  };
+
+  const handleVideo = async (e) => {
+    const file = e.target.files?.[0]; if(!file) return;
+    try { const url = await uploadFile(file,"hx-videos","lessons"); setLf(l=>({...l,video_url:url})); notify("Video uploaded ✓"); } catch(err) { notify(err.message,"error"); }
+  };
+
+  const togglePublish = async (course) => {
+    await supabase.from("hx_courses").update({ is_published:!course.is_published }).eq("id",course.id);
+    await loadCourses();
+    notify(course.is_published?"Course unpublished":"Course published ✓");
+  };
+
+  const filtered = courses.filter(c => {
+    const matchSearch = !search || c.title.toLowerCase().includes(search.toLowerCase());
+    const matchType = typeFilter==="all" || c.course_type===typeFilter;
+    return matchSearch && matchType;
+  });
+
+  const S = {
+    page:  { minHeight:"100vh", background:LIGHT, fontFamily:"'Plus Jakarta Sans',sans-serif", display:"flex" },
+    aside: { width:320, minHeight:"100vh", background:CARD, borderRight:`1px solid ${BORDER}`, display:"flex", flexDirection:"column", flexShrink:0 },
+    main:  { flex:1, padding:"28px 36px", overflowY:"auto" },
+    card:  { background:CARD, border:`1px solid ${BORDER}`, borderRadius:12, padding:20, marginBottom:16, boxShadow:"0 1px 3px rgba(0,0,0,0.04)" },
+    label: { fontSize:11, fontWeight:700, color:MUTED, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6, display:"block" },
+    inp:   { width:"100%", border:`1px solid ${BORDER}`, borderRadius:8, padding:"9px 12px", fontSize:13, color:TEXT, fontFamily:"inherit", outline:"none", background:"#fafafa", boxSizing:"border-box", marginBottom:14 },
+    sel:   { width:"100%", border:`1px solid ${BORDER}`, borderRadius:8, padding:"9px 12px", fontSize:13, color:TEXT, fontFamily:"inherit", outline:"none", background:"#fafafa", boxSizing:"border-box", marginBottom:14 },
+    ta:    { width:"100%", border:`1px solid ${BORDER}`, borderRadius:8, padding:"9px 12px", fontSize:13, color:TEXT, fontFamily:"inherit", outline:"none", resize:"vertical", minHeight:72, background:"#fafafa", boxSizing:"border-box", marginBottom:14 },
+    btn:   { padding:"10px 22px", background:PINK, color:"#fff", border:"none", borderRadius:9, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" },
+    ghost: { padding:"9px 18px", background:"#fff", color:MUTED, border:`1px solid ${BORDER}`, borderRadius:9, fontSize:12, cursor:"pointer", fontFamily:"inherit" },
+    toggle:(on)=>({ width:40, height:22, borderRadius:11, background:on?PINK:"#d1d5db", position:"relative", cursor:"pointer", border:"none", flexShrink:0 }),
+    uploadBtn: { padding:"8px 16px", background:"#f3f4f6", border:`1px solid ${BORDER}`, borderRadius:8, fontSize:12, color:TEXT, cursor:"pointer", fontFamily:"inherit" },
+  };
+
+  if (!isAdmin) return (
+    <div style={{ ...S.page, alignItems:"center", justifyContent:"center" }}>
+      <div style={{ textAlign:"center" }}>
+        <div style={{ fontSize:32, marginBottom:12 }}>🔒</div>
+        <div style={{ fontSize:16, fontWeight:700, color:TEXT }}>Admin Access Required</div>
+        <div style={{ fontSize:13, color:MUTED, marginTop:4 }}>Run: <code>UPDATE profiles SET plan='admin' WHERE email='your@email.com'</code></div>
+      </div>
+    </div>
+  );
+
+  const courseCats = cf.course_type === "business" ? BIZ_CATS : IND_CATS;
 
   return (
-    <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",padding:"28px",background:"#09090a",minHeight:"100vh",color:"#e8e8e8"}}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');*{box-sizing:border-box}input:focus,textarea:focus,select:focus{border-color:${PINK}60!important;outline:none}`}</style>
+    <div style={S.page}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');`}</style>
 
-      {/* Header */}
-      <div style={{marginBottom:28}}>
-        <h1 style={{fontWeight:800,fontSize:22,color:"#fff",letterSpacing:"-0.03em",marginBottom:4}}>⚙ Admin Panel</h1>
-        <p style={{fontSize:13,color:"#555"}}>Manage HyperX courses and lessons</p>
-      </div>
-
-      {/* Msg toast */}
-      {msg && <div style={{background:msg.startsWith("❌")?"#2d0a0a":"#0a2d0a",border:`1px solid ${msg.startsWith("❌")?"#4d1515":"#154d15"}`,borderRadius:9,padding:"10px 16px",marginBottom:16,fontSize:13,fontWeight:600,color:msg.startsWith("❌")?"#f87171":"#4ade80"}}>{msg}</div>}
-
-      {/* Tabs */}
-      <div style={{display:"flex",gap:8,marginBottom:24}}>
-        {[["courses","Courses"],["lessons","Lessons"]].map(([id,lbl])=>(
-          <button key={id} onClick={()=>setTab(id)} style={{...btn(tab===id?PINK:"#111",tab===id?"#fff":"#666"),border:`1px solid ${tab===id?PINK:B}`}}>{lbl}</button>
-        ))}
-      </div>
-
-      {tab === "courses" && (
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1.4fr",gap:24,alignItems:"start"}}>
-          {/* Create course form */}
-          <div style={{background:"#111",border:`1px solid ${B}`,borderRadius:14,padding:24}}>
-            <div style={{fontSize:14,fontWeight:700,color:"#fff",marginBottom:18}}>Create New Course</div>
-            <div style={{display:"flex",flexDirection:"column",gap:12}}>
-              <div><label style={{fontSize:11.5,fontWeight:600,color:"#555",display:"block",marginBottom:4}}>Title *</label><input style={inp} value={cf.title} onChange={e=>setCf(p=>({...p,title:e.target.value}))} placeholder="Course title"/></div>
-              <div><label style={{fontSize:11.5,fontWeight:600,color:"#555",display:"block",marginBottom:4}}>Description</label><textarea style={{...inp,height:72,resize:"vertical"}} value={cf.description} onChange={e=>setCf(p=>({...p,description:e.target.value}))} placeholder="What will students learn?"/></div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                <div><label style={{fontSize:11.5,fontWeight:600,color:"#555",display:"block",marginBottom:4}}>Category</label>
-                  <select style={inp} value={cf.category} onChange={e=>setCf(p=>({...p,category:e.target.value}))}>
-                    {CATS.map(c=><option key={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div><label style={{fontSize:11.5,fontWeight:600,color:"#555",display:"block",marginBottom:4}}>Level</label>
-                  <select style={inp} value={cf.level} onChange={e=>setCf(p=>({...p,level:e.target.value}))}>
-                    {LEVELS.map(l=><option key={l}>{l}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div><label style={{fontSize:11.5,fontWeight:600,color:"#555",display:"block",marginBottom:4}}>Thumbnail Image</label><input ref={thumbRef} type="file" accept="image/*" style={{...inp,padding:"7px 12px",cursor:"pointer"}}/></div>
-              <div style={{display:"flex",gap:16}}>
-                <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:13,color:"#aaa"}}>
-                  <input type="checkbox" checked={cf.is_free} onChange={e=>setCf(p=>({...p,is_free:e.target.checked}))} style={{accentColor:PINK}}/>Free course
-                </label>
-                <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:13,color:"#aaa"}}>
-                  <input type="checkbox" checked={cf.is_published} onChange={e=>setCf(p=>({...p,is_published:e.target.checked}))} style={{accentColor:PINK}}/>Publish now
-                </label>
-              </div>
-              <button onClick={createCourse} disabled={loading} style={{...btn(PINK,"#fff"),marginTop:4}}>{loading?"Creating…":"Create Course"}</button>
-            </div>
-          </div>
-
-          {/* Course list */}
-          <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            <div style={{fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:"#444",marginBottom:4}}>{courses.length} Courses</div>
-            {courses.length===0 && <div style={{background:"#111",border:`1px solid ${B}`,borderRadius:12,padding:24,textAlign:"center",color:"#444",fontSize:13}}>No courses yet. Create one!</div>}
-            {courses.map(c=>(
-              <div key={c.id} style={{background:"#111",border:`1px solid ${selCourse?.id===c.id?PINK+"40":B}`,borderRadius:12,padding:"14px 16px",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}
-                onClick={()=>{setSelCourse(c);loadLessons(c.id);setTab("lessons");}}>
-                {c.thumbnail_url && <img src={c.thumbnail_url} style={{width:48,height:48,borderRadius:8,objectFit:"cover",flexShrink:0}} alt=""/>}
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:13.5,fontWeight:700,color:"#e8e8e8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.title}</div>
-                  <div style={{fontSize:11.5,color:"#555",marginTop:2}}>{c.category} · {c.total_lessons} lessons · {c.level}</div>
-                </div>
-                <div style={{display:"flex",gap:6,flexShrink:0}}>
-                  <button onClick={e=>{e.stopPropagation();togglePublish(c)}} style={{...btn(c.is_published?"#16a34a18":"#1a1a1a",c.is_published?"#4ade80":"#666"),padding:"4px 10px",fontSize:11,border:`1px solid ${c.is_published?"#16a34a30":B}`}}>{c.is_published?"Live":"Draft"}</button>
-                  <button onClick={e=>{e.stopPropagation();deleteCourse(c.id)}} style={{...btn("#2d0a0a","#f87171"),padding:"4px 10px",fontSize:11,border:"1px solid #4d1515"}}>Del</button>
-                </div>
-              </div>
+      {/* LEFT: Course list */}
+      <div style={S.aside}>
+        {/* Header */}
+        <div style={{ padding:"20px 16px 14px", borderBottom:`1px solid ${BORDER}` }}>
+          <div style={{ fontSize:16, fontWeight:800, color:TEXT, marginBottom:12 }}>⚙ Admin Panel</div>
+          <div style={{ display:"flex", gap:6 }}>
+            {[["all","All"],["individual","Individual"],["business","Business"]].map(([v,l])=>(
+              <button key={v} onClick={()=>setTypeFilter(v)} style={{ flex:1, padding:"5px 0", background:typeFilter===v?PINK:"#f3f4f6", color:typeFilter===v?"#fff":MUTED, border:"none", borderRadius:6, fontSize:10, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>{l}</button>
             ))}
           </div>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search courses..." style={{ ...S.inp, marginBottom:0, marginTop:10, fontSize:12 }} />
         </div>
-      )}
 
-      {tab === "lessons" && (
-        <div>
-          {!selCourse ? (
-            <div style={{background:"#111",border:`1px solid ${B}`,borderRadius:12,padding:40,textAlign:"center"}}>
-              <div style={{fontSize:22,marginBottom:10}}>◎</div>
-              <div style={{fontSize:14,fontWeight:600,color:"#666"}}>Select a course first</div>
-              <button onClick={()=>setTab("courses")} style={{...btn(PINK,"#fff"),marginTop:14}}>← Go to Courses</button>
-            </div>
-          ) : (
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1.4fr",gap:24,alignItems:"start"}}>
-              {/* Add lesson form */}
-              <div style={{background:"#111",border:`1px solid ${B}`,borderRadius:14,padding:24}}>
-                <div style={{fontSize:13,fontWeight:600,color:"#555",marginBottom:4}}>Adding to:</div>
-                <div style={{fontSize:15,fontWeight:800,color:"#fff",marginBottom:18}}>{selCourse.title}</div>
-                <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                  <div><label style={{fontSize:11.5,fontWeight:600,color:"#555",display:"block",marginBottom:4}}>Lesson Title *</label><input style={inp} value={lf.title} onChange={e=>setLf(p=>({...p,title:e.target.value}))} placeholder="Lesson title"/></div>
-                  <div><label style={{fontSize:11.5,fontWeight:600,color:"#555",display:"block",marginBottom:4}}>Description</label><textarea style={{...inp,height:60,resize:"vertical"}} value={lf.description} onChange={e=>setLf(p=>({...p,description:e.target.value}))} placeholder="Optional description"/></div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                    <div><label style={{fontSize:11.5,fontWeight:600,color:"#555",display:"block",marginBottom:4}}>Duration (mins)</label><input type="number" style={inp} value={lf.duration_mins} onChange={e=>setLf(p=>({...p,duration_mins:+e.target.value}))}/></div>
-                    <div><label style={{fontSize:11.5,fontWeight:600,color:"#555",display:"block",marginBottom:4}}>Order</label><input type="number" style={inp} value={lf.sort_order} onChange={e=>setLf(p=>({...p,sort_order:+e.target.value}))}/></div>
+        {/* New course btn */}
+        <div style={{ padding:"10px 12px", borderBottom:`1px solid ${BORDER}` }}>
+          <button onClick={()=>{ setSelCourse(null); setCf(EMPTY_COURSE); setLessons([]); setEditMode(false); setTab("courses"); }} style={{ ...S.btn, width:"100%", fontSize:12 }}>+ New Course</button>
+        </div>
+
+        {/* Course list */}
+        <div style={{ flex:1, overflowY:"auto" }}>
+          {filtered.map(c => (
+            <div key={c.id} onClick={()=>selectCourse(c)} style={{ padding:"12px 14px", borderBottom:`1px solid ${BORDER}`, cursor:"pointer", background:selCourse?.id===c.id?`${PINK}08`:"transparent", borderLeft:selCourse?.id===c.id?`3px solid ${PINK}`:"3px solid transparent" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:12, fontWeight:700, color:TEXT, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.title}</div>
+                  <div style={{ display:"flex", gap:5, marginTop:3, flexWrap:"wrap" }}>
+                    <span style={{ fontSize:9, fontWeight:700, color:c.course_type==="business"?"#0284c7":PINK, background:c.course_type==="business"?"#eff6ff":"#fef2f2", borderRadius:3, padding:"1px 5px" }}>{c.course_type}</span>
+                    <span style={{ fontSize:9, color:MUTED }}>{c.category}</span>
+                    {c.is_exclusive && <span style={{ fontSize:9, fontWeight:700, color:"#d97706", background:"#fffbeb", borderRadius:3, padding:"1px 5px" }}>EXCL</span>}
                   </div>
-                  <div>
-                    <label style={{fontSize:11.5,fontWeight:600,color:"#555",display:"block",marginBottom:4}}>Video File</label>
-                    <input ref={videoRef} type="file" accept="video/*" style={{...inp,padding:"7px 12px",cursor:"pointer"}}/>
-                    <div style={{fontSize:11,color:"#444",marginTop:4}}>MP4, MOV, WebM supported. Uploads to Supabase storage.</div>
-                  </div>
-                  <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:13,color:"#aaa"}}>
-                    <input type="checkbox" checked={lf.is_free} onChange={e=>setLf(p=>({...p,is_free:e.target.checked}))} style={{accentColor:PINK}}/>Free lesson (accessible to all)
-                  </label>
-                  <button onClick={addLesson} disabled={loading||uploading} style={{...btn(PINK,"#fff"),marginTop:4}}>{uploading?msg||"Uploading…":loading?"Saving…":"Add Lesson"}</button>
+                </div>
+                <div style={{ display:"flex", flexDirection:"column", gap:3, alignItems:"flex-end", flexShrink:0, marginLeft:8 }}>
+                  <span style={{ fontSize:9, fontWeight:700, color:c.is_published?GREEN:"#9ca3af", background:c.is_published?"#f0fdf4":"#f9fafb", borderRadius:3, padding:"2px 5px" }}>
+                    {c.is_published?"LIVE":"DRAFT"}
+                  </span>
+                  <span style={{ fontSize:9, color:MUTED }}>{c.total_lessons} lessons</span>
                 </div>
               </div>
+            </div>
+          ))}
+          {filtered.length===0 && <div style={{ padding:24, textAlign:"center", fontSize:12, color:MUTED }}>No courses. Create one →</div>}
+        </div>
 
-              {/* Lesson list */}
-              <div>
-                <div style={{fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:"#444",marginBottom:12}}>{lessons.length} Lessons</div>
-                {lessons.length===0 && <div style={{background:"#111",border:`1px solid ${B}`,borderRadius:12,padding:24,textAlign:"center",color:"#444",fontSize:13}}>No lessons yet. Add the first one!</div>}
-                {lessons.map((l,i)=>(
-                  <div key={l.id} style={{background:"#111",border:`1px solid ${B}`,borderRadius:10,padding:"12px 16px",display:"flex",alignItems:"center",gap:12,marginBottom:8}}>
-                    <div style={{width:28,height:28,borderRadius:7,background:`${PINK}15`,border:`1px solid ${PINK}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:PINK,flexShrink:0}}>{i+1}</div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:13,fontWeight:600,color:"#e8e8e8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.title}</div>
-                      <div style={{fontSize:11.5,color:"#555",marginTop:1}}>{l.duration_mins}m {l.is_free&&<span style={{color:"#16a34a",fontWeight:600,marginLeft:4}}>FREE</span>} {l.video_url&&<span style={{color:PINK,marginLeft:4}}>• Video ✓</span>}</div>
-                    </div>
-                    <button onClick={()=>deleteLesson(l.id)} style={{...btn("#2d0a0a","#f87171"),padding:"4px 10px",fontSize:11,border:"1px solid #4d1515",flexShrink:0}}>Del</button>
-                  </div>
-                ))}
+        {/* Stats */}
+        <div style={{ padding:"12px 14px", borderTop:`1px solid ${BORDER}`, background:"#f8f9fb" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, textAlign:"center" }}>
+            <div><div style={{ fontSize:16, fontWeight:800, color:TEXT }}>{courses.length}</div><div style={{ fontSize:9, color:MUTED }}>Total</div></div>
+            <div><div style={{ fontSize:16, fontWeight:800, color:GREEN }}>{courses.filter(c=>c.is_published).length}</div><div style={{ fontSize:9, color:MUTED }}>Live</div></div>
+            <div><div style={{ fontSize:16, fontWeight:800, color:PINK }}>{courses.filter(c=>c.course_type==="business").length}</div><div style={{ fontSize:9, color:MUTED }}>Biz</div></div>
+          </div>
+        </div>
+      </div>
+
+      {/* MAIN panel */}
+      <div style={S.main}>
+        {/* Toast */}
+        {msg.text && (
+          <div style={{ position:"fixed", top:20, right:24, background:msg.type==="error"?"#fef2f2":CARD, border:`1px solid ${msg.type==="error"?"#fca5a5":BORDER}`, borderRadius:9, padding:"12px 18px", fontSize:13, fontWeight:600, color:msg.type==="error"?"#dc2626":GREEN, boxShadow:"0 4px 16px rgba(0,0,0,0.1)", zIndex:1000 }}>
+            {msg.text}
+          </div>
+        )}
+
+        {/* Tab switcher */}
+        <div style={{ display:"flex", gap:6, marginBottom:24 }}>
+          {[["courses","📋 Course Info"],["lessons","📹 Lessons"],["offers","🏷 Offers & Pricing"],["analytics","📊 Analytics"]].map(([t,l])=>(
+            <button key={t} onClick={()=>setTab(t)} style={{ padding:"8px 18px", background:tab===t?PINK:"#fff", color:tab===t?"#fff":MUTED, border:`1px solid ${tab===t?PINK:BORDER}`, borderRadius:8, fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>{l}</button>
+          ))}
+        </div>
+
+        {/* ─── COURSE INFO TAB ─── */}
+        {tab==="courses" && (
+          <div style={{ maxWidth:700 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+              <div style={{ fontSize:18, fontWeight:800, color:TEXT }}>{selCourse && !editMode ? selCourse.title : selCourse ? "Edit Course" : "New Course"}</div>
+              <div style={{ display:"flex", gap:8 }}>
+                {selCourse && !editMode && (
+                  <>
+                    <button onClick={()=>setEditMode(true)} style={S.ghost}>Edit</button>
+                    <button onClick={()=>togglePublish(selCourse)} style={{ ...S.ghost, color:selCourse.is_published?"#dc2626":GREEN, borderColor:selCourse.is_published?"#fca5a5":"#bbf7d0" }}>
+                      {selCourse.is_published?"Unpublish":"Publish"}
+                    </button>
+                    <button onClick={()=>deleteCourse(selCourse.id)} style={{ ...S.ghost, color:"#dc2626", borderColor:"#fca5a5" }}>Delete</button>
+                  </>
+                )}
               </div>
             </div>
-          )}
-        </div>
-      )}
+
+            {(!selCourse || editMode) && (
+              <div style={S.card}>
+                {/* Type */}
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+                  <div>
+                    <label style={S.label}>Course Type *</label>
+                    <select value={cf.course_type} onChange={e=>setCf(c=>({...c,course_type:e.target.value,category:e.target.value==="business"?BIZ_CATS[0]:IND_CATS[0]}))} style={S.sel}>
+                      <option value="individual">Individual</option>
+                      <option value="business">Business</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={S.label}>Category *</label>
+                    <select value={cf.category} onChange={e=>setCf(c=>({...c,category:e.target.value}))} style={S.sel}>
+                      {courseCats.map(c=><option key={c}>{c}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <label style={S.label}>Course Title *</label>
+                <input value={cf.title} onChange={e=>setCf(c=>({...c,title:e.target.value}))} placeholder="e.g. Communication Mastery for Professionals" style={S.inp} />
+
+                <label style={S.label}>Description</label>
+                <textarea value={cf.description||""} onChange={e=>setCf(c=>({...c,description:e.target.value}))} placeholder="What will students learn in this course?" style={S.ta}/>
+
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:14 }}>
+                  <div>
+                    <label style={S.label}>Level</label>
+                    <select value={cf.level} onChange={e=>setCf(c=>({...c,level:e.target.value}))} style={S.sel}>
+                      {LEVELS.map(l=><option key={l}>{l}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={S.label}>Total Lessons</label>
+                    <input type="number" value={cf.total_lessons||0} onChange={e=>setCf(c=>({...c,total_lessons:e.target.value}))} style={S.inp}/>
+                  </div>
+                  <div>
+                    <label style={S.label}>Duration (mins)</label>
+                    <input type="number" value={cf.duration_mins||0} onChange={e=>setCf(c=>({...c,duration_mins:e.target.value}))} style={S.inp}/>
+                  </div>
+                </div>
+
+                {/* Thumbnail */}
+                <label style={S.label}>Thumbnail</label>
+                <div style={{ display:"flex", gap:12, alignItems:"center", marginBottom:14 }}>
+                  {cf.thumbnail_url && <img src={cf.thumbnail_url} style={{ width:80, height:52, borderRadius:6, objectFit:"cover", border:`1px solid ${BORDER}` }}/>}
+                  <button onClick={()=>thumbRef.current.click()} style={S.uploadBtn}>{uploading?"Uploading...":"Upload Thumbnail"}</button>
+                  <input ref={thumbRef} type="file" accept="image/*" onChange={handleThumb} style={{ display:"none" }}/>
+                  {cf.thumbnail_url && <input value={cf.thumbnail_url} onChange={e=>setCf(c=>({...c,thumbnail_url:e.target.value}))} placeholder="or paste URL" style={{ ...S.inp, marginBottom:0, flex:1 }}/>}
+                </div>
+
+                {/* Toggles */}
+                <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:14 }}>
+                  {[["is_free","Free Course"],["is_published","Published"],["is_exclusive","Monthly Exclusive"]].map(([key,label])=>(
+                    <label key={key} style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer" }}>
+                      <button type="button" onClick={()=>setCf(c=>({...c,[key]:!c[key]}))} style={{ ...S.toggle(cf[key]), outline:"none" }}>
+                        <div style={{ position:"absolute", width:18, height:18, borderRadius:9, background:"#fff", top:2, left:cf[key]?20:2, transition:"left 0.15s", boxShadow:"0 1px 3px rgba(0,0,0,0.2)" }}/>
+                      </button>
+                      <span style={{ fontSize:12, color:TEXT, fontWeight:500 }}>{label}</span>
+                    </label>
+                  ))}
+                </div>
+
+                <div style={{ display:"flex", gap:10 }}>
+                  <button onClick={saveCourse} disabled={loading} style={{ ...S.btn, opacity:loading?0.5:1 }}>
+                    {loading?"Saving...":(selCourse&&editMode?"Update Course":"Create Course")}
+                  </button>
+                  {editMode && <button onClick={()=>{setEditMode(false);setCf(selCourse);}} style={S.ghost}>Cancel</button>}
+                </div>
+              </div>
+            )}
+
+            {selCourse && !editMode && (
+              <div style={S.card}>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+                  <div><div style={{ fontSize:11, color:MUTED, marginBottom:2 }}>Type</div><div style={{ fontSize:13, fontWeight:600, color:TEXT }}>{selCourse.course_type}</div></div>
+                  <div><div style={{ fontSize:11, color:MUTED, marginBottom:2 }}>Category</div><div style={{ fontSize:13, fontWeight:600, color:TEXT }}>{selCourse.category}</div></div>
+                  <div><div style={{ fontSize:11, color:MUTED, marginBottom:2 }}>Level</div><div style={{ fontSize:13, fontWeight:600, color:TEXT }}>{selCourse.level}</div></div>
+                  <div><div style={{ fontSize:11, color:MUTED, marginBottom:2 }}>Lessons</div><div style={{ fontSize:13, fontWeight:600, color:TEXT }}>{selCourse.total_lessons}</div></div>
+                  <div><div style={{ fontSize:11, color:MUTED, marginBottom:2 }}>Price</div><div style={{ fontSize:13, fontWeight:600, color:TEXT }}>{selCourse.is_free?"Free":"₹"+selCourse.price}</div></div>
+                  <div><div style={{ fontSize:11, color:MUTED, marginBottom:2 }}>Offer</div><div style={{ fontSize:13, fontWeight:600, color:TEXT }}>{selCourse.offer_percent||0}% off</div></div>
+                </div>
+                {selCourse.description && <div style={{ marginTop:14, fontSize:13, color:MUTED, lineHeight:1.65 }}>{selCourse.description}</div>}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ─── LESSONS TAB ─── */}
+        {tab==="lessons" && (
+          <div style={{ maxWidth:800 }}>
+            {!selCourse ? (
+              <div style={{ textAlign:"center", padding:"48px 0", color:MUTED }}>Select a course first to manage its lessons.</div>
+            ) : (
+              <>
+                <div style={{ fontSize:16, fontWeight:800, color:TEXT, marginBottom:4 }}>Lessons — {selCourse.title}</div>
+                <div style={{ fontSize:12, color:MUTED, marginBottom:24 }}>{lessons.length} lessons · Drag to reorder (coming soon)</div>
+
+                {/* Existing lessons */}
+                {lessons.map((l,i)=>(
+                  <div key={l.id} style={{ ...S.card, padding:16, marginBottom:10, display:"grid", gridTemplateColumns:"auto 1fr auto", gap:14, alignItems:"center" }}>
+                    <div style={{ width:32, height:32, borderRadius:8, background:`${PINK}10`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:PINK }}>{i+1}</div>
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:700, color:TEXT }}>{l.title}</div>
+                      <div style={{ display:"flex", gap:10, marginTop:3 }}>
+                        <span style={{ fontSize:11, color:MUTED }}>⏱ {l.duration_mins} min</span>
+                        {l.is_free && <span style={{ fontSize:10, color:GREEN, fontWeight:600 }}>Free preview</span>}
+                        {l.video_url ? <span style={{ fontSize:10, color:PINK, fontWeight:600 }}>▶ Has video</span> : <span style={{ fontSize:10, color:MUTED }}>No video yet</span>}
+                      </div>
+                    </div>
+                    <div style={{ display:"flex", gap:6 }}>
+                      <button onClick={()=>setLf({...l})} style={{ ...S.ghost, fontSize:11, padding:"5px 10px" }}>Edit</button>
+                      <button onClick={()=>deleteLesson(l.id)} style={{ ...S.ghost, fontSize:11, padding:"5px 10px", color:"#dc2626", borderColor:"#fca5a5" }}>Del</button>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Add/Edit lesson form */}
+                <div style={{ ...S.card, border:`1px solid ${PINK}30` }}>
+                  <div style={{ fontSize:13, fontWeight:700, color:TEXT, marginBottom:16 }}>{lf.id?"Edit Lesson":"+ Add New Lesson"}</div>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+                    <div>
+                      <label style={S.label}>Lesson Title *</label>
+                      <input value={lf.title} onChange={e=>setLf(l=>({...l,title:e.target.value}))} placeholder="e.g. Introduction to Communication" style={S.inp}/>
+                    </div>
+                    <div>
+                      <label style={S.label}>Duration (minutes)</label>
+                      <input type="number" value={lf.duration_mins||0} onChange={e=>setLf(l=>({...l,duration_mins:e.target.value}))} style={S.inp}/>
+                    </div>
+                  </div>
+
+                  <label style={S.label}>Description / Notes</label>
+                  <textarea value={lf.description||""} onChange={e=>setLf(l=>({...l,description:e.target.value}))} placeholder="Key takeaways and lesson notes..." style={S.ta}/>
+
+                  {/* Video upload */}
+                  <label style={S.label}>Video</label>
+                  <div style={{ display:"flex", gap:12, alignItems:"center", marginBottom:14 }}>
+                    <button onClick={()=>videoRef.current.click()} style={{ ...S.uploadBtn, background:uploading?"#fef2f2":undefined }}>
+                      {uploading ? `Uploading ${uploadPct}%...` : "Upload Video"}
+                    </button>
+                    <input ref={videoRef} type="file" accept="video/*" onChange={handleVideo} style={{ display:"none" }}/>
+                    <input value={lf.video_url||""} onChange={e=>setLf(l=>({...l,video_url:e.target.value}))} placeholder="or paste Supabase/S3/CDN URL" style={{ ...S.inp, marginBottom:0, flex:1 }}/>
+                  </div>
+                  {uploading && <div style={{ height:4, background:"#f3f4f6", borderRadius:2, marginBottom:14 }}><div style={{ height:"100%", width:`${uploadPct}%`, background:PINK, borderRadius:2, transition:"width 0.3s" }}/></div>}
+
+                  <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+                    <label style={{ display:"flex", alignItems:"center", gap:7, cursor:"pointer" }}>
+                      <button type="button" onClick={()=>setLf(l=>({...l,is_free:!l.is_free}))} style={{ ...S.toggle(lf.is_free), outline:"none" }}>
+                        <div style={{ position:"absolute", width:18, height:18, borderRadius:9, background:"#fff", top:2, left:lf.is_free?20:2, transition:"left 0.15s", boxShadow:"0 1px 3px rgba(0,0,0,0.2)" }}/>
+                      </button>
+                      <span style={{ fontSize:12, color:TEXT }}>Free Preview Lesson</span>
+                    </label>
+
+                    <div style={{ marginLeft:"auto", display:"flex", gap:8 }}>
+                      {lf.id && <button onClick={()=>setLf(EMPTY_LESSON)} style={S.ghost}>Cancel</button>}
+                      <button onClick={saveLesson} disabled={loading} style={{ ...S.btn, opacity:loading?0.5:1 }}>
+                        {loading?"Saving...":(lf.id?"Update Lesson":"Add Lesson")}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ─── OFFERS & PRICING TAB ─── */}
+        {tab==="offers" && (
+          <div style={{ maxWidth:600 }}>
+            {!selCourse ? (
+              <div style={{ textAlign:"center", padding:"48px 0", color:MUTED }}>Select a course to manage its pricing.</div>
+            ) : (
+              <>
+                <div style={{ fontSize:16, fontWeight:800, color:TEXT, marginBottom:4 }}>Offers & Pricing — {selCourse.title}</div>
+                <div style={{ fontSize:12, color:MUTED, marginBottom:24 }}>Set course price, discount offers, and access type</div>
+
+                <div style={S.card}>
+                  {/* Free toggle */}
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20, paddingBottom:16, borderBottom:`1px solid ${BORDER}` }}>
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:700, color:TEXT }}>Free Course</div>
+                      <div style={{ fontSize:11, color:MUTED }}>Accessible to all users including free plan</div>
+                    </div>
+                    <button type="button" onClick={()=>setCf(c=>({...c,is_free:!c.is_free}))} style={{ ...S.toggle(cf.is_free), outline:"none" }}>
+                      <div style={{ position:"absolute", width:18, height:18, borderRadius:9, background:"#fff", top:2, left:cf.is_free?20:2, transition:"left 0.15s", boxShadow:"0 1px 3px rgba(0,0,0,0.2)" }}/>
+                    </button>
+                  </div>
+
+                  {!cf.is_free && (
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:20 }}>
+                      <div>
+                        <label style={S.label}>Original Price (₹)</label>
+                        <input type="number" value={cf.price||0} onChange={e=>setCf(c=>({...c,price:e.target.value}))} style={S.inp}/>
+                      </div>
+                      <div>
+                        <label style={S.label}>Discount % (0 = no offer)</label>
+                        <input type="number" min="0" max="90" value={cf.offer_percent||0} onChange={e=>setCf(c=>({...c,offer_percent:e.target.value}))} style={S.inp}/>
+                      </div>
+                    </div>
+                  )}
+
+                  {!cf.is_free && cf.price > 0 && cf.offer_percent > 0 && (
+                    <div style={{ background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:9, padding:"12px 16px", marginBottom:16 }}>
+                      <div style={{ fontSize:13, fontWeight:700, color:GREEN }}>
+                        Effective Price: ₹{Math.round(cf.price*(1-cf.offer_percent/100))} <span style={{ fontSize:11, color:MUTED, fontWeight:400 }}>(was ₹{cf.price})</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Exclusive toggle */}
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20, paddingBottom:16, borderBottom:`1px solid ${BORDER}` }}>
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:700, color:TEXT }}>Monthly Exclusive</div>
+                      <div style={{ fontSize:11, color:MUTED }}>Only subscribers can access this course this month</div>
+                    </div>
+                    <button type="button" onClick={()=>setCf(c=>({...c,is_exclusive:!c.is_exclusive}))} style={{ ...S.toggle(cf.is_exclusive), outline:"none" }}>
+                      <div style={{ position:"absolute", width:18, height:18, borderRadius:9, background:"#fff", top:2, left:cf.is_exclusive?20:2, transition:"left 0.15s", boxShadow:"0 1px 3px rgba(0,0,0,0.2)" }}/>
+                    </button>
+                  </div>
+
+                  {/* Published toggle */}
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:700, color:TEXT }}>Published</div>
+                      <div style={{ fontSize:11, color:MUTED }}>Visible to students on the platform</div>
+                    </div>
+                    <button type="button" onClick={()=>setCf(c=>({...c,is_published:!c.is_published}))} style={{ ...S.toggle(cf.is_published), outline:"none" }}>
+                      <div style={{ position:"absolute", width:18, height:18, borderRadius:9, background:"#fff", top:2, left:cf.is_published?20:2, transition:"left 0.15s", boxShadow:"0 1px 3px rgba(0,0,0,0.2)" }}/>
+                    </button>
+                  </div>
+
+                  <button onClick={async()=>{ setLoading(true); await supabase.from("hx_courses").update({ is_free:cf.is_free, price:Number(cf.price||0), offer_percent:Number(cf.offer_percent||0), is_exclusive:cf.is_exclusive, is_published:cf.is_published }).eq("id",selCourse.id); await loadCourses(); notify("Pricing saved ✓"); setLoading(false); }} disabled={loading} style={{ ...S.btn, width:"100%", opacity:loading?0.5:1 }}>
+                    {loading?"Saving...":"Save Pricing & Offers"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ─── ANALYTICS TAB ─── */}
+        {tab==="analytics" && (
+          <div style={{ maxWidth:700 }}>
+            <div style={{ fontSize:16, fontWeight:800, color:TEXT, marginBottom:24 }}>📊 Platform Analytics</div>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14, marginBottom:24 }}>
+              {[
+                { label:"Total Courses",      value:courses.length,                                  color:PINK    },
+                { label:"Published",          value:courses.filter(c=>c.is_published).length,         color:GREEN   },
+                { label:"Business Courses",   value:courses.filter(c=>c.course_type==="business").length, color:"#0284c7"},
+                { label:"Individual Courses", value:courses.filter(c=>c.course_type==="individual").length, color:"#7c3aed"},
+                { label:"Free Courses",       value:courses.filter(c=>c.is_free).length,              color:"#16a34a"},
+                { label:"Monthly Exclusives", value:courses.filter(c=>c.is_exclusive).length,         color:"#d97706"},
+              ].map(s=>(
+                <div key={s.label} style={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:12, padding:"16px 18px" }}>
+                  <div style={{ fontSize:24, fontWeight:800, color:s.color }}>{s.value}</div>
+                  <div style={{ fontSize:11, color:MUTED, marginTop:2 }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Course breakdown table */}
+            <div style={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:12, overflow:"hidden" }}>
+              <div style={{ padding:"14px 18px", borderBottom:`1px solid ${BORDER}`, display:"grid", gridTemplateColumns:"1fr 80px 70px 70px 70px 60px", gap:12 }}>
+                {["Course","Type","Level","Lessons","Status","Price"].map(h=>(
+                  <div key={h} style={{ fontSize:10, fontWeight:700, color:MUTED, textTransform:"uppercase", letterSpacing:"0.06em" }}>{h}</div>
+                ))}
+              </div>
+              {courses.slice(0,15).map(c=>(
+                <div key={c.id} style={{ padding:"12px 18px", borderBottom:`1px solid #f3f4f6`, display:"grid", gridTemplateColumns:"1fr 80px 70px 70px 70px 60px", gap:12, alignItems:"center" }}>
+                  <div style={{ fontSize:12, fontWeight:600, color:TEXT, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.title}</div>
+                  <span style={{ fontSize:10, fontWeight:700, color:c.course_type==="business"?"#0284c7":PINK }}>{c.course_type}</span>
+                  <span style={{ fontSize:11, color:MUTED }}>{c.level}</span>
+                  <span style={{ fontSize:11, color:TEXT }}>{c.total_lessons||0}</span>
+                  <span style={{ fontSize:10, fontWeight:700, color:c.is_published?GREEN:MUTED }}>{c.is_published?"Live":"Draft"}</span>
+                  <span style={{ fontSize:12, fontWeight:600, color:c.is_free?GREEN:PINK }}>{c.is_free?"Free":"₹"+c.price}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

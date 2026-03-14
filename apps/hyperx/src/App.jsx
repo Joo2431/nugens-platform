@@ -1,25 +1,25 @@
 import React, { Suspense, lazy, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { supabase } from "./lib/supabase";
-import Sidebar from "./components/Sidebar";
+import Sidebar       from "./components/Sidebar";
 import ProtectedRoute from "./components/ProtectedRoute";
-import GenEMiniPopup from "./components/GenEMiniPopup";
+import GenEMiniPopup  from "./components/GenEMiniPopup";
 
-const Dashboard     = lazy(() => import("./pages/Dashboard"));
-const CoursesPage   = lazy(() => import("./pages/Courses"));
-const CoursePlayer  = lazy(() => import("./pages/CoursePlayer"));
-const LearningPaths = lazy(() => import("./pages/LearningPaths"));
-const Certificates  = lazy(() => import("./pages/Certificates"));
-const Community     = lazy(() => import("./pages/Community"));
-const Pricing       = lazy(() => import("./pages/Pricing"));
-const AdminPanel    = lazy(() => import("./pages/AdminPanel"));
+const Dashboard    = lazy(() => import("./pages/Dashboard"));
+const CoursesPage  = lazy(() => import("./pages/Courses"));
+const CoursePlayer = lazy(() => import("./pages/CoursePlayer"));
+const Certificates = lazy(() => import("./pages/Certificates"));
+const Pricing      = lazy(() => import("./pages/Pricing"));
+const AdminPanel   = lazy(() => import("./pages/AdminPanel"));
 
 const PINK = "#e8185d";
 
 function Spinner() {
   return (
-    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:"#09090a" }}>
-      <div style={{ fontWeight:800, fontSize:22, color:PINK, fontFamily:"'Plus Jakarta Sans',sans-serif" }}>Hyper<span style={{color:"#fff"}}>X</span></div>
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:"#fff" }}>
+      <div style={{ fontWeight:800, fontSize:22, color:PINK, fontFamily:"'Plus Jakarta Sans',sans-serif", letterSpacing:"-0.04em" }}>
+        Hyper<span style={{color:"#111"}}>X</span>
+      </div>
     </div>
   );
 }
@@ -61,20 +61,17 @@ function AppShell() {
   );
 
   return (
-    <div style={{ display:"flex", minHeight:"100vh", background:"#09090a" }}>
-      {user && <Sidebar />}
+    <div style={{ display:"flex", minHeight:"100vh", background:"#f8f9fb" }}>
+      {user && <Sidebar profile={profile} />}
       <div style={{ flex:1, minWidth:0, overflowX:"hidden" }}>
         <Suspense fallback={<Spinner />}>
           <Routes>
-            <Route path="/"             element={<ProtectedRoute><Dashboard profile={profile} /></ProtectedRoute>} />
-            <Route path="/courses"      element={<ProtectedRoute><CoursesPage profile={profile} /></ProtectedRoute>} />
-            <Route path="/paths"        element={<ProtectedRoute><LearningPaths profile={profile} /></ProtectedRoute>} />
-            <Route path="/paths/:id"    element={<ProtectedRoute><LearningPaths profile={profile} /></ProtectedRoute>} />
-            <Route path="/certificates" element={<ProtectedRoute><Certificates profile={profile} /></ProtectedRoute>} />
-            <Route path="/community"    element={<ProtectedRoute><Community profile={profile} /></ProtectedRoute>} />
-            <Route path="/pricing"      element={<ProtectedRoute><Pricing profile={profile} /></ProtectedRoute>} />
-            <Route path="/admin"        element={<ProtectedRoute><AdminPanel profile={profile} /></ProtectedRoute>} />
-            <Route path="*"             element={<Navigate to="/" replace />} />
+            <Route path="/"            element={<ProtectedRoute><Dashboard   profile={profile} /></ProtectedRoute>} />
+            <Route path="/courses"     element={<ProtectedRoute><CoursesPage profile={profile} /></ProtectedRoute>} />
+            <Route path="/certs"       element={<ProtectedRoute><Certificates profile={profile} /></ProtectedRoute>} />
+            <Route path="/pricing"     element={<Pricing profile={profile} />} />
+            <Route path="/admin"       element={<ProtectedRoute><AdminPanel   profile={profile} /></ProtectedRoute>} />
+            <Route path="*"            element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
       </div>

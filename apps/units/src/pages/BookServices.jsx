@@ -102,7 +102,7 @@ export default function BookServices({ profile }) {
       const order = await res.json();
 
       const rzp = new window.Razorpay({
-        key:"rzp_live_YOUR_UNITS_KEY",
+        key:"OKbq5A210M1EEWP4Wl213DOU",
         amount: order.amount,
         currency:"INR",
         order_id: order.id,
