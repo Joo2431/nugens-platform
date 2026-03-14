@@ -753,7 +753,11 @@ export default function GenEChat() {
     setTimeout(() => send(tool.body, c.id, tool.mode, null), 80);
   };
 
-  const handleSignOut = async () => { await signOut(); nav("/auth"); };
+  const handleSignOut = async () => {
+    localStorage.removeItem("gene-mode-override");
+    await supabase.auth.signOut();
+    window.location.href = "https://nugens.in.net/auth";
+  };
 
   /* ─── Sidebar grouping ─── */
   const groupedChats = (() => {
