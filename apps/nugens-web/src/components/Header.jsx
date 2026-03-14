@@ -19,9 +19,9 @@ const PRODUCTS = [
 ];
 
 const COMPANY = [
-  { to:"/about",   label:"About NuGens",   sub:"Our story & mission"  },
+  { to:"/about",   label:"About Nugens",   sub:"Our story & mission"  },
   { to:"/careers", label:"Careers",         sub:"Join the team"         },
-  { to:"/blog",    label:"Blog & Insights", sub:"Latest from NuGens"   },
+  { to:"/blog",    label:"Blog & Insights", sub:"Latest from Nugens"   },
 ];
 
 const PLAN_COLOR = { free:"#6b7280", pro:"#7c3aed", team:"#0284c7", enterprise:"#d97706" };
@@ -228,7 +228,7 @@ export default function Header() {
 
           {/* Logo */}
           <Link to="/" style={{ display:"flex",alignItems:"center",gap:10,textDecoration:"none",flexShrink:0 }}>
-            <img src={NG_LOGO} alt="NuGens" style={{ width:36,height:36,borderRadius:8,objectFit:"cover" }} />
+            <img src={NG_LOGO} alt="Nugens" style={{ width:36,height:36,borderRadius:8,objectFit:"cover" }} />
             <span style={{ fontWeight:800,fontSize:17,color:"#0a0a0a",letterSpacing:"-0.025em" }}>Nugens</span>
           </Link>
 
@@ -247,12 +247,12 @@ export default function Header() {
 
             <NavLink to="/pricing" className={({isActive})=>`hdr-link${isActive?" active":""}`}>Pricing</NavLink>
             <NavLink to="/support" className={({isActive})=>`hdr-link${isActive?" active":""}`}>Support</NavLink>
-            <NavLink to="/gene"    className={({isActive})=>`hdr-link${isActive?" active":""}`}>
-              <span style={{ display:"flex",alignItems:"center",gap:5 }}>
-                <span style={{ width:6,height:6,borderRadius:"50%",background:"#7c3aed",display:"inline-block" }}/>
-                Gen-E AI
-              </span>
-            </NavLink>
+            <a href="https://gene.nugens.in.net" target="_blank" rel="noreferrer"
+              className="hdr-link"
+              style={{ display:"flex",alignItems:"center",gap:5 }}>
+              <span style={{ width:6,height:6,borderRadius:"50%",background:"#7c3aed",display:"inline-block" }}/>
+              Gen-E AI ↗
+            </a>
 
             {/* Auth area — hidden until auth resolves to avoid flash of Sign in */}
             {!authReady ? (
@@ -327,7 +327,7 @@ export default function Header() {
             <div style={{ borderTop:`1px solid ${B}`,padding:"11px 24px",maxWidth:1100,margin:"0 auto",
               display:"flex",alignItems:"center",justifyContent:"space-between" }}>
               <span style={{ fontSize:12,color:"#9ca3af",fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
-                One NuGens account — access all products
+                One Nugens account — access all products
               </span>
               <Link to="/pricing" onClick={() => setOpenMenu(null)}
                 style={{ fontSize:12,fontWeight:600,color:PINK,textDecoration:"none",
@@ -349,7 +349,7 @@ export default function Header() {
               padding:"18px 20px",borderBottom:`1px solid ${B}`,flexShrink:0 }}>
               <Link to="/" onClick={() => setMobileOpen(false)}
                 style={{ display:"flex",alignItems:"center",gap:9,textDecoration:"none" }}>
-                <img src={NG_LOGO} alt="NuGens" style={{ width:32,height:32,borderRadius:7,objectFit:"cover" }}/>
+                <img src={NG_LOGO} alt="Nugens" style={{ width:32,height:32,borderRadius:7,objectFit:"cover" }}/>
                 <span style={{ fontWeight:800,fontSize:16,color:"#0a0a0a",fontFamily:"'Plus Jakarta Sans',sans-serif" }}>Nugens</span>
               </Link>
               <button onClick={() => setMobileOpen(false)} aria-label="Close"

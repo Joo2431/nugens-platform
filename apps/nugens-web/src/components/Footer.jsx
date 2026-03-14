@@ -1,216 +1,166 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
-const PINK = "#E50063";
+const PINK = "#e8185d";
+const B    = "#1e1e1e";
+
+const PRODUCTS = [
+  { label: "Gen-E AI",  sub: "Career intelligence",   href: "https://gene.nugens.in.net",    dot: "#7c3aed" },
+  { label: "HyperX",   sub: "Learning platform",      href: "https://hyperx.nugens.in.net",  dot: PINK },
+  { label: "DigiHub",  sub: "Digital marketing",      href: "https://digihub.nugens.in.net", dot: "#0284c7" },
+  { label: "Units",    sub: "Event production",        href: "https://units.nugens.in.net",   dot: "#d97706" },
+];
+
+const COMPANY = [
+  { label: "About Us",    to: "/about"   },
+  { label: "Careers",     to: "/careers" },
+  { label: "Blog",        to: "/blog"    },
+  { label: "Contact Us",  to: "/contact" },
+];
+
+const RESOURCES = [
+  { label: "Pricing",         to: "/pricing"  },
+  { label: "Support & FAQ",   to: "/support"  },
+  { label: "Dashboard",       to: "/dashboard"},
+  { label: "Sign In",         to: "/auth"     },
+];
 
 export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer style={{ background: "#0a0a0a", color: "#fff", fontFamily: "'DM Sans', sans-serif" }}>
+    <footer style={{ background:"#0a0a0a", color:"#fff", fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
-        .footer-link {
-          color: #999;
-          text-decoration: none;
-          font-size: 13.5px;
-          transition: color 0.15s;
-          line-height: 2;
-          display: block;
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        .ft-link {
+          color:#666; text-decoration:none; font-size:13px;
+          transition:color 0.15s; line-height:2.1; display:block;
+          font-family:'Plus Jakarta Sans',sans-serif;
         }
-        .footer-link:hover { color: #fff; }
-        .footer-col-title {
-          font-family: 'Syne', sans-serif;
-          font-size: 12px;
-          font-weight: 700;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: #555;
-          margin-bottom: 16px;
+        .ft-link:hover { color:#fff; }
+        .ft-col-title {
+          font-size:10.5px; font-weight:700; letter-spacing:0.1em;
+          text-transform:uppercase; color:#444; margin-bottom:14px;
+          font-family:'Plus Jakarta Sans',sans-serif;
         }
-        .partner-badge {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 10px 14px;
-          border: 1px solid #1e1e1e;
-          border-radius: 10px;
-          background: #111;
-          margin-bottom: 8px;
-          transition: border-color 0.15s;
-          cursor: default;
+        .ft-social {
+          width:34px; height:34px; border:1px solid #222; border-radius:8px;
+          display:flex; align-items:center; justify-content:center;
+          color:#555; font-size:11px; font-weight:700; text-decoration:none;
+          transition:all 0.15s; font-family:'Plus Jakarta Sans',sans-serif;
         }
-        .partner-badge:hover { border-color: #333; }
-        .partner-dot {
-          width: 8px; height: 8px; border-radius: 50%;
-          flex-shrink: 0;
+        .ft-social:hover { border-color:${PINK}; color:${PINK}; background:rgba(232,24,93,0.06); }
+        .ft-bottom-link { color:#444; font-size:11.5px; text-decoration:none; transition:color 0.15s; }
+        .ft-bottom-link:hover { color:#888; }
+        .ft-prod-row {
+          display:flex; align-items:center; gap:10px; padding:9px 0;
+          text-decoration:none; border-bottom:1px solid #141414;
+          transition:opacity 0.15s;
         }
-        .partner-label {
-          font-size: 12px; color: #888; font-weight: 400;
-        }
-        .social-btn {
-          width: 36px; height: 36px;
-          border: 1px solid #222;
-          border-radius: 8px;
-          display: flex; align-items: center; justify-content: center;
-          color: #666; font-size: 12px; font-weight: 600;
-          text-decoration: none;
-          transition: all 0.15s;
-          font-family: 'Syne', sans-serif;
-        }
-        .social-btn:hover {
-          border-color: ${PINK};
-          color: ${PINK};
-          background: rgba(229,0,99,0.06);
-        }
-        .bottom-link {
-          color: #555; font-size: 12px; text-decoration: none; transition: color 0.15s;
-        }
-        .bottom-link:hover { color: #999; }
-        .security-badge {
-          display: inline-flex; align-items: center; gap: 6px;
-          padding: 6px 12px;
-          border: 1px solid #1e1e1e;
-          border-radius: 20px;
-          background: #111;
-          font-size: 11px; color: #555;
-        }
-        @media (max-width: 768px) {
-          .footer-grid { grid-template-columns: 1fr 1fr !important; }
-          .footer-brand { grid-column: span 2; }
-        }
-        @media (max-width: 480px) {
-          .footer-grid { grid-template-columns: 1fr !important; }
-          .footer-brand { grid-column: span 1; }
-        }
+        .ft-prod-row:hover { opacity:0.8; }
+        @media(max-width:768px) { .ft-grid { grid-template-columns:1fr 1fr !important; } .ft-brand { grid-column:span 2; } }
+        @media(max-width:480px) { .ft-grid { grid-template-columns:1fr !important; } .ft-brand { grid-column:span 1; } }
       `}</style>
 
-      {/* TOP DIVIDER */}
-      <div style={{ height: 1, background: "linear-gradient(90deg, transparent, #E50063 40%, #FF8ABF 60%, transparent)" }} />
+      {/* Pink top line */}
+      <div style={{ height:2, background:`linear-gradient(90deg, transparent, ${PINK} 30%, #ff8abf 70%, transparent)` }} />
 
-      {/* MAIN FOOTER BODY */}
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "52px 24px 40px" }}>
-        <div className="footer-grid" style={{
-          display: "grid",
-          gridTemplateColumns: "1.6fr 1fr 1fr 1.2fr",
-          gap: "40px 32px",
-          alignItems: "start"
-        }}>
+      <div style={{ maxWidth:1200, margin:"0 auto", padding:"52px 24px 44px" }}>
+        <div className="ft-grid" style={{ display:"grid", gridTemplateColumns:"1.8fr 1fr 1fr 1fr", gap:"40px 32px", alignItems:"start" }}>
 
-          {/* ── BRAND COLUMN ── */}
-          <div className="footer-brand">
-            {/* Logo wordmark */}
-            <div style={{ marginBottom: 16 }}>
+          {/* ── BRAND ── */}
+          <div className="ft-brand">
+            <div style={{ marginBottom:14 }}>
               <span style={{
-                fontFamily: "'Syne', sans-serif",
-                fontWeight: 800, fontSize: 22,
-                fontStyle: "italic",
-                background: `linear-gradient(90deg, ${PINK}, #FF8ABF)`,
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                letterSpacing: "-0.03em"
+                fontWeight:800, fontSize:22, fontStyle:"italic",
+                background:`linear-gradient(90deg, ${PINK}, #ff8abf)`,
+                WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
+                letterSpacing:"-0.03em", fontFamily:"'Plus Jakarta Sans',sans-serif",
               }}>NUGENS</span>
             </div>
-
-            <p style={{ fontSize: 13, color: "#666", lineHeight: 1.7, maxWidth: 240, marginBottom: 20 }}>
-              Exceptional visuals and AI-powered growth solutions — helping brands scale with clarity and speed.
+            <p style={{ fontSize:13, color:"#555", lineHeight:1.75, maxWidth:240, marginBottom:20 }}>
+              AI-powered career, learning, and business growth — all under one account.
             </p>
 
-            {/* Partner badges */}
-            <div style={{ marginBottom: 20 }}>
-              {[
-                { label: "Photography Partner", color: "#ec4899" },
-                { label: "AI Learning Partner",   color: "#8b5cf6" },
-                { label: "Digital Growth Partner",color: "#f59e0b" },
-              ].map(p => (
-                <div className="partner-badge" key={p.label}>
-                  <div className="partner-dot" style={{ background: p.color }} />
-                  <span className="partner-label">{p.label}</span>
-                </div>
+            {/* Products quick links */}
+            <div style={{ marginBottom:20 }}>
+              {PRODUCTS.map(p => (
+                <a key={p.label} href={p.href} target="_blank" rel="noreferrer" className="ft-prod-row">
+                  <div style={{ width:7, height:7, borderRadius:"50%", background:p.dot, flexShrink:0 }} />
+                  <div>
+                    <span style={{ fontSize:12.5, fontWeight:600, color:"#ccc", fontFamily:"'Plus Jakarta Sans',sans-serif" }}>{p.label}</span>
+                    <span style={{ fontSize:11, color:"#444", marginLeft:8 }}>{p.sub}</span>
+                  </div>
+                  <span style={{ marginLeft:"auto", fontSize:11, color:"#333" }}>↗</span>
+                </a>
               ))}
             </div>
 
-            {/* Social icons */}
-            <div style={{ display: "flex", gap: 8 }}>
+            {/* Socials */}
+            <div style={{ display:"flex", gap:7 }}>
               {[
-                { label: "f",  href: "#" },
-                { label: "𝕏",  href: "#" },
-                { label: "in", href: "#" },
-                { label: "IG", href: "#" },
+                { l:"𝕏",  h:"https://x.com/nugens"       },
+                { l:"in", h:"https://linkedin.com/company/nugens" },
+                { l:"IG", h:"https://instagram.com/nugens" },
+                { l:"YT", h:"https://youtube.com/@nugens" },
               ].map(s => (
-                <a key={s.label} href={s.href} className="social-btn"
-                  target="_blank" rel="noreferrer">{s.label}</a>
+                <a key={s.l} href={s.h} target="_blank" rel="noreferrer" className="ft-social">{s.l}</a>
               ))}
             </div>
           </div>
 
-          {/* ── PRODUCTS COLUMN ── */}
+          {/* ── COMPANY ── */}
           <div>
-            <div className="footer-col-title">Products</div>
-            {[
-              { label: "HyperX – Learning Platform",    to: "/hyperx",  internal: true },
-              { label: "Gen-E AI – Career Assistant",   to: "/gene",    internal: true },
-              { label: "DigiHub – Digital Marketing",   to: "/digihub", internal: true },
-              { label: "The Wedding Unit – Photography",to: "https://theweddingunit.in.net", internal: false },
-            ].map(item =>
-              item.internal
-                ? <Link key={item.label} to={item.to} className="footer-link">{item.label}</Link>
-                : <a key={item.label} href={item.to} className="footer-link" target="_blank" rel="noreferrer">{item.label}</a>
-            )}
-          </div>
-
-          {/* ── COMPANY COLUMN ── */}
-          <div>
-            <div className="footer-col-title">Company</div>
-            {[
-              { label: "About Us",   to: "/about"    },
-              { label: "Blog",       to: "/blog"     },
-              { label: "Events",     to: "/events"   },
-              { label: "Customers",  to: "/customers"},
-              { label: "Contact Us", to: "/contact"  },
-            ].map(item => (
-              <Link key={item.label} to={item.to} className="footer-link">{item.label}</Link>
+            <div className="ft-col-title">Company</div>
+            {COMPANY.map(item => (
+              <Link key={item.label} to={item.to} className="ft-link">{item.label}</Link>
             ))}
           </div>
 
-          {/* ── CONNECT COLUMN ── */}
+          {/* ── RESOURCES ── */}
           <div>
-            <div className="footer-col-title">Connect Us</div>
-            <a href="mailto:contact@nugens.in" className="footer-link" style={{ display: "flex", alignItems: "center", gap: 7 }}>
-              <span style={{ fontSize: 14 }}>✉</span> contact@nugens.in
+            <div className="ft-col-title">Resources</div>
+            {RESOURCES.map(item => (
+              <Link key={item.label} to={item.to} className="ft-link">{item.label}</Link>
+            ))}
+          </div>
+
+          {/* ── CONTACT ── */}
+          <div>
+            <div className="ft-col-title">Get in touch</div>
+            <a href="mailto:hello@nugens.in" className="ft-link" style={{ display:"flex", alignItems:"center", gap:7, color:"#888" }}>
+              <span style={{ fontSize:14 }}>✉</span> hello@nugens.in
+            </a>
+            <a href="mailto:support@nugens.in" className="ft-link" style={{ display:"flex", alignItems:"center", gap:7, marginTop:4 }}>
+              <span style={{ fontSize:14 }}>💬</span> support@nugens.in
+            </a>
+            <a href="mailto:careers@nugens.in" className="ft-link" style={{ display:"flex", alignItems:"center", gap:7, marginTop:4 }}>
+              <span style={{ fontSize:14 }}>🎯</span> careers@nugens.in
             </a>
 
-            <div className="footer-col-title" style={{ marginTop: 24 }}>Careers</div>
-            <a href="mailto:careers@nugens.in" className="footer-link" style={{ display: "flex", alignItems: "center", gap: 7 }}>
-              <span style={{ fontSize: 14 }}>✉</span> careers@nugens.in
-            </a>
-
-            {/* Security badge — text based, no broken image */}
-            <div style={{ marginTop: 24 }}>
-              <div className="security-badge">
-                <span style={{ fontSize: 14 }}>🔒</span>
-                <span>SSL Secured</span>
-              </div>
+            <div style={{ marginTop:22, display:"inline-flex", alignItems:"center", gap:7,
+              padding:"7px 12px", border:"1px solid #1e1e1e", borderRadius:20, background:"#111" }}>
+              <span style={{ fontSize:13 }}>🔒</span>
+              <span style={{ fontSize:11, color:"#555" }}>SSL Secured · Razorpay</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* BOTTOM BAR */}
-      <div style={{ borderTop: "1px solid #161616" }}>
-        <div style={{
-          maxWidth: 1200, margin: "0 auto",
-          padding: "16px 24px",
-          display: "flex", alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap", gap: 10
-        }}>
-          <p style={{ fontSize: 12, color: "#444" }}>
-            Copyright © Nugens {year}. All rights reserved.
+      {/* Bottom bar */}
+      <div style={{ borderTop:"1px solid #141414" }}>
+        <div style={{ maxWidth:1200, margin:"0 auto", padding:"16px 24px",
+          display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
+          <p style={{ fontSize:12, color:"#333", fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
+            © {year} Nugens. All rights reserved.
           </p>
-          <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-            {["CSR Policy", "Terms of Use", "Privacy Policy", "Cookie Policy"].map(lbl => (
-              <a key={lbl} href="#" className="bottom-link">{lbl}</a>
+          <div style={{ display:"flex", gap:18, flexWrap:"wrap" }}>
+            {[
+              { l:"Privacy Policy",  h:"#" },
+              { l:"Terms of Use",    h:"#" },
+              { l:"Cookie Policy",   h:"#" },
+            ].map(item => (
+              <a key={item.l} href={item.h} className="ft-bottom-link">{item.l}</a>
             ))}
           </div>
         </div>

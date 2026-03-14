@@ -20,7 +20,7 @@ const JOBS = [
   {
     id: 2, title: "Graphic Designer", type: "Full-time / Freelance",
     team: "Creative", color: PINK,
-    description: "Create visually compelling designs for brands, ads, and digital platforms across the NuGens ecosystem.",
+    description: "Create visually compelling designs for brands, ads, and digital platforms across the Nugens ecosystem.",
     responsibilities: [
       "Design social media creatives and marketing assets",
       "Build brand identity kits and visual systems",
@@ -44,7 +44,7 @@ const JOBS = [
   {
     id: 4, title: "Content & Social Media Associate", type: "Full-time",
     team: "Marketing", color: "#0284c7",
-    description: "Manage content strategy and social media presence for NuGens and its client brands under DigiHub.",
+    description: "Manage content strategy and social media presence for Nugens and its client brands under DigiHub.",
     responsibilities: [
       "Create ad creative and organic content briefs",
       "Manage social media accounts and community",
@@ -68,7 +68,7 @@ const JOBS = [
   {
     id: 6, title: "Office & Operations Associate", type: "Full-time",
     team: "Operations", color: "#6b7280",
-    description: "Handle internal operations, client coordination, and day-to-day office administration for NuGens.",
+    description: "Handle internal operations, client coordination, and day-to-day office administration for Nugens.",
     responsibilities: [
       "Client communication and scheduling",
       "Documentation, reports, and follow-ups",
@@ -146,7 +146,7 @@ export default function Careers() {
           <h1 style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontWeight:800,
             fontSize:"clamp(26px,3.5vw,44px)", letterSpacing:"-0.035em", color:"#0a0a0a",
             lineHeight:1.15, marginBottom:16 }}>
-            Build the future of careers<br /><span style={{ color:PINK }}>with NuGens</span>
+            Build the future of careers<br /><span style={{ color:PINK }}>with Nugens</span>
           </h1>
           <p style={{ fontSize:15.5, color:"#6b7280", lineHeight:1.72, maxWidth:460, margin:"0 auto 28px" }}>
             We're a small team building AI, education, marketing, and production products that genuinely help people. If you care about real work, this is for you.
@@ -169,7 +169,7 @@ export default function Careers() {
         <div style={{ maxWidth:1060, margin:"0 auto" }}>
           <span style={{ display:"inline-flex", padding:"4px 12px", borderRadius:6, border:`1px solid ${B}`,
             fontSize:11.5, fontWeight:500, color:"#6b7280", background:"#fff", marginBottom:14 }}>
-            Why NuGens
+            Why Nugens
           </span>
           <h2 style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontWeight:700,
             fontSize:"clamp(20px,2.8vw,28px)", letterSpacing:"-0.03em", color:"#0a0a0a",

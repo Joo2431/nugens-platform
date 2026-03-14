@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { supabase } from "../lib/supabase";
 import { Link } from "react-router-dom";
 
 const PINK = "#e8185d";
@@ -40,9 +41,31 @@ const CURRENCY_MAP = {
 };
 
 // Base prices in INR
+// Real prices in INR (paise for Razorpay = amount * 100)
 const BASE_PRICES = {
-  individual: { starter: 1, premium: 10, pro: 100 },
-  business:   { starter: 1, premium: 10, pro: 100 },
+  individual: { starter: 0,   premium: 99,  pro: 699  },   // monthly
+  business:   { starter: 499, premium: 999, pro: 1999 },
+};
+const YEARLY_PRICES = {
+  individual: { starter: 0,    premium: 799,  pro: 4999  },
+  business:   { starter: 3999, premium: 7999, pro: 14999 },
+};
+// Razorpay plan IDs — replace with your actual plan IDs from Razorpay dashboard
+const RAZORPAY_PLAN_IDS = {
+  individual: {
+    premium_monthly: "plan_individual_premium_mo",
+    premium_yearly:  "plan_individual_premium_yr",
+    pro_monthly:     "plan_individual_pro_mo",
+    pro_yearly:      "plan_individual_pro_yr",
+  },
+  business: {
+    starter_monthly: "plan_business_starter_mo",
+    starter_yearly:  "plan_business_starter_yr",
+    premium_monthly: "plan_business_premium_mo",
+    premium_yearly:  "plan_business_premium_yr",
+    pro_monthly:     "plan_business_pro_mo",
+    pro_yearly:      "plan_business_pro_yr",
+  },
 };
 
 function formatPrice(inrAmount, currency, isYearly) {
@@ -70,7 +93,7 @@ const INDIVIDUAL_PLANS = [
   {
     key: "starter",
     name: "Starter",
-    desc: "Perfect for exploring NuGens",
+    desc: "Perfect for exploring Nugens",
     color: "#6b7280",
     features: [
       "GEN-E AI — 20 free questions/month",
@@ -172,7 +195,7 @@ const BUSINESS_PLANS = [
   },
 ];
 
-function PlanCard({ plan, prices, currency, isYearly, type }) {
+function PlanCard({ plan, prices, currency, isYearly, type, user, onBuy }) {
   const [ref, v] = useInView();
   const price = prices[type][plan.key];
   return (
@@ -246,22 +269,75 @@ function PlanCard({ plan, prices, currency, isYearly, type }) {
       </div>
 
       {/* CTA */}
-      <Link to="/auth?mode=signup" style={{
-        display: "block", textAlign: "center", padding: "11px 0",
-        borderRadius: 8, fontSize: 13.5, fontWeight: 600,
-        textDecoration: "none",
-        background: plan.popular ? PINK : "#f3f4f6",
-        color: plan.popular ? "#fff" : "#0a0a0a",
-        transition: "opacity 0.14s, transform 0.12s",
-        boxShadow: plan.popular ? `0 2px 10px ${PINK}40` : "none",
-      }}
+      <button
+        onClick={() => onBuy(plan)}
+        style={{
+          display: "block", width: "100%", textAlign: "center", padding: "11px 0",
+          borderRadius: 8, fontSize: 13.5, fontWeight: 600,
+          border: "none", cursor: "pointer",
+          background: plan.popular ? PINK : "#f3f4f6",
+          color: plan.popular ? "#fff" : "#0a0a0a",
+          transition: "opacity 0.14s, transform 0.12s",
+          boxShadow: plan.popular ? `0 2px 10px ${PINK}40` : "none",
+          fontFamily: "'Plus Jakarta Sans',sans-serif",
+        }}
         onMouseOver={e => { e.currentTarget.style.opacity = "0.88"; e.currentTarget.style.transform = "translateY(-1px)"; }}
         onMouseOut={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "none"; }}
       >
-        {plan.cta}
-      </Link>
+        {plan.key === "pro" && type === "business" ? "Contact us →" : plan.key === "starter" ? (user ? "Current plan" : "Get started free") : plan.cta}
+      </button>
     </div>
   );
+}
+
+async function initiateRazorpay({ planKey, type, isYearly, amount, currency, user }) {
+  if (!user) { window.location.href = "/auth?mode=signup"; return; }
+  if (amount === 0) return; // free plan - just redirect to dashboard
+
+  try {
+    const { data:{ session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    const API = import.meta.env.VITE_GEN_E_API_URL || "https://nugens-platform.onrender.com";
+
+    const orderRes = await fetch(`${API}/api/subscription/create-order`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization:`Bearer ${token}` } : {}) },
+      body: JSON.stringify({
+        plan: `${type}_${planKey}_${isYearly ? "yearly" : "monthly"}`,
+        amount: amount * 100, // paise
+        currency: "INR",
+      }),
+    });
+    const order = await orderRes.json();
+    if (!order.id) throw new Error("Order creation failed");
+
+    const rzp = new window.Razorpay({
+      key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_live_YOUR_KEY",
+      order_id: order.id,
+      amount: order.amount,
+      currency: "INR",
+      name: "Nugens",
+      description: `${type.charAt(0).toUpperCase()+type.slice(1)} ${planKey} ${isYearly?"Yearly":"Monthly"}`,
+      prefill: { email: user.email, name: user.user_metadata?.full_name || "" },
+      theme: { color: "#e8185d" },
+      handler: async (response) => {
+        await fetch(`${API}/api/subscription/verify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...(token ? { Authorization:`Bearer ${token}` } : {}) },
+          body: JSON.stringify({
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_order_id:   response.razorpay_order_id,
+            razorpay_signature:  response.razorpay_signature,
+            plan: planKey, type,
+          }),
+        });
+        window.location.href = "/dashboard?subscribed=1";
+      },
+    });
+    rzp.open();
+  } catch (err) {
+    alert("Payment setup failed: " + err.message);
+  }
 }
 
 export default function PricingPage() {
@@ -269,15 +345,38 @@ export default function PricingPage() {
   const [isYearly, setIsYearly] = useState(false);
   const [currency, setCurrency] = useState(CURRENCY_MAP["IN"]);
   const [loadingCurrency, setLoadingCurrency] = useState(true);
+  const [user, setUser]       = useState(null);
+  const [profile, setProfile] = useState(null);
 
   useEffect(() => {
-    detectCurrency().then(c => {
-      setCurrency(c);
-      setLoadingCurrency(false);
+    detectCurrency().then(c => { setCurrency(c); setLoadingCurrency(false); });
+
+    // Load Razorpay script
+    if (!document.getElementById("razorpay-script")) {
+      const s = document.createElement("script");
+      s.id = "razorpay-script";
+      s.src = "https://checkout.razorpay.com/v1/checkout.js";
+      document.head.appendChild(s);
+    }
+
+    // Get user + auto-set tab based on their user_type
+    supabase.auth.getSession().then(({ data:{ session } }) => {
+      if (session?.user) {
+        setUser(session.user);
+        supabase.from("profiles").select("*").eq("id", session.user.id).single()
+          .then(({ data }) => {
+            if (data) {
+              setProfile(data);
+              // Auto-switch to business tab if they're a business user
+              if (data.user_type === "business") setTab("business");
+            }
+          });
+      }
     });
   }, []);
 
-  const plans = tab === "individual" ? INDIVIDUAL_PLANS : BUSINESS_PLANS;
+  const plans  = tab === "individual" ? INDIVIDUAL_PLANS : BUSINESS_PLANS;
+  const prices = isYearly ? YEARLY_PRICES : BASE_PRICES;
 
   return (
     <>
@@ -352,10 +451,23 @@ export default function PricingPage() {
               <PlanCard
                 key={plan.key}
                 plan={plan}
-                prices={BASE_PRICES}
+                prices={prices}
                 currency={currency}
                 isYearly={isYearly}
                 type={tab}
+                user={user}
+                onBuy={(plan) => {
+                  if (plan.key === "pro" && tab === "business") {
+                    window.location.href = "/contact";
+                    return;
+                  }
+                  if (plan.key === "starter") {
+                    window.location.href = user ? "/dashboard" : "/auth?mode=signup";
+                    return;
+                  }
+                  const amount = (isYearly ? YEARLY_PRICES : BASE_PRICES)[tab][plan.key];
+                  initiateRazorpay({ planKey: plan.key, type: tab, isYearly, amount, currency, user });
+                }}
               />
             ))}
           </div>
@@ -427,7 +539,7 @@ export default function PricingPage() {
             { q: "How does location-based pricing work?", a: "We detect your country and show prices in your local currency. All plans are the same quality worldwide — pricing adjusts to be fair for every market." },
             { q: "Can I switch plans anytime?", a: "Yes. Upgrade or downgrade at any time. Unused days are credited to your next billing cycle." },
             { q: "What payment methods do you accept?", a: "We accept all major cards, UPI, net banking (India), and international payment methods via Razorpay." },
-            { q: "Is there a team plan?", a: "Yes — switch to the Business tab above. Business plans include team seats and collaboration tools across all NuGens products." },
+            { q: "Is there a team plan?", a: "Yes — switch to the Business tab above. Business plans include team seats and collaboration tools across all Nugens products." },
           ].map(({ q, a }, i) => (
             <Reveal key={q} delay={i * 60}>
               <div style={{ padding: "20px 0", borderBottom: `1px solid ${B}` }}>

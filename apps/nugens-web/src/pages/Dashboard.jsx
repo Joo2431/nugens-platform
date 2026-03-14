@@ -71,7 +71,7 @@ export default function Dashboard() {
 
   if (loading) return (
     <div style={{minHeight:"100vh",background:"#09090a",display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <div style={{fontWeight:800,fontSize:22,color:PINK,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>NuGens</div>
+      <div style={{fontWeight:800,fontSize:22,color:PINK,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Nugens</div>
     </div>
   );
 
@@ -119,7 +119,7 @@ export default function Dashboard() {
         <div className="dsb" style={{width:220,minHeight:"100vh",background:"#0a0a0a",borderRight:`1px solid ${B}`,display:"flex",flexDirection:"column",padding:"20px 12px",position:"sticky",top:0,flexShrink:0}}>
           <div style={{display:"flex",alignItems:"center",gap:9,padding:"0 4px",marginBottom:24}}>
             <img src={NG_LOGO} style={{width:28,height:28,borderRadius:6,objectFit:"cover"}} alt="NG"/>
-            <span style={{fontWeight:800,fontSize:15,color:"#fff",letterSpacing:"-0.025em"}}>NuGens</span>
+            <span style={{fontWeight:800,fontSize:15,color:"#fff",letterSpacing:"-0.025em"}}>Nugens</span>
           </div>
 
           <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",color:"#333",padding:"0 10px",marginBottom:8}}>Workspace</div>
@@ -167,7 +167,7 @@ export default function Dashboard() {
               <div style={{fontSize:12,color:"#555",marginTop:1}}>
                 {profile?.onboarding_done
                   ? `${userType==="business"?"Business":"Personal"} workspace${goal?" · "+GOAL_LABEL[goal]:""}`
-                  : "Welcome to NuGens"}
+                  : "Welcome to Nugens"}
               </div>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -221,7 +221,7 @@ export default function Dashboard() {
                     <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:12,marginBottom:16}}>
                       <div>
                         <div style={{fontSize:15,fontWeight:800,color:"#fff",marginBottom:4}}>
-                          {userType==="business"?"Grow your team with NuGens Business":"Unlock your full potential"}
+                          {userType==="business"?"Grow your team with Nugens Business":"Unlock your full potential"}
                         </div>
                         <div style={{fontSize:13,color:"#555"}}>
                           {userType==="business"

@@ -48,7 +48,7 @@ const PRODUCTS = [
   { id: "hyperx",  title: "HyperX",           tag: "Learning Platform",   desc: "Professional experience as a subject. We teach what no YouTube or college covers: workplace culture, salary negotiation, interview mastery, and how to actually survive and grow at work.", features: ["Professional work culture & politics", "Salary negotiation strategies", "English fluency for the workplace", "Interview prep for any role"], color: PINK,      to: "/hyperx"  },
   { id: "gene",    title: "Gen-E AI",          tag: "Career Intelligence", desc: "Your AI career starting point. Resume analysis, job matching, skill gap detection, and a personalised 3-month action plan — built for freshers, career changers, and anyone stuck.", features: ["Resume analysis & ATS optimisation", "Relevant job matching to your profile", "Career path for freshers & changers", "3-month skill growth roadmap"],    color: "#7c3aed", to: "/gene"    },
   { id: "digi",    title: "DigiHub",           tag: "Agency + Community",  desc: "A digital marketing agency for brands and a community that connects trained talent to real opportunities. Brands, founders, and professionals help place career-ready graduates.", features: ["Brand strategy & performance marketing", "Social media, SEO & web development", "Community of founders & professionals", "Entry-level placements for trained talent"],       color: "#0284c7", to: "/digihub" },
-  { id: "wedding", title: "The Wedding Unit",  tag: "Production Studio",   desc: "A full-service wedding & event production house — cinematography, photography, editing, and brand content. The in-house studio powering HyperX's courses and DigiHub's content creation.", features: ["Wedding cinematography & photography", "Pre-wedding, events & brand shoots", "Post-production: films, edits & reels", "Content studio for DigiHub brands"],   color: "#d97706", to: "/units" },
+  { id: "wedding", title: "Units",  tag: "Production Studio",   desc: "A full-service wedding & event production house — cinematography, photography, editing, and brand content. The in-house studio powering HyperX's courses and DigiHub's content creation.", features: ["Wedding cinematography & photography", "Pre-wedding, events & brand shoots", "Post-production: films, edits & reels", "Content studio for DigiHub brands"],   color: "#d97706", to: "/units" },
 ];
 
 const TICKER = ["Career Clarity", "Resume Intelligence", "Skill Growth", "Job Placement", "Professional Training", "Interview Mastery", "Brand Strategy", "Digital Marketing", "Workplace Skills", "Career Ecosystem"];
@@ -356,7 +356,7 @@ export default function Home() {
             opacity: on ? 1 : 0, transform: on ? "none" : "translateY(8px)",
             transition: "all 0.46s ease 0.34s"
           }}>
-            <Link to="/gene"   className="btn-pink">Start with Gen-E AI →</Link>
+            <a href="https://gene.nugens.in.net" target="_blank" rel="noreferrer" className="btn-pink">Start with Gen-E AI →</a>
             <Link to="/about"  className="btn-ghost">How it works</Link>
           </div>
 
@@ -674,7 +674,7 @@ export default function Home() {
               Start with Gen-E for career clarity, or book a call to discuss how Nugens can help your brand.
             </p>
             <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
-              <Link to="/gene"    className="btn-pink">Try Gen-E AI →</Link>
+              <a href="https://gene.nugens.in.net" target="_blank" rel="noreferrer" className="btn-pink">Try Gen-E AI →</a>
               <Link to="/contact" className="btn-ghost">Talk to us</Link>
             </div>
           </Reveal>

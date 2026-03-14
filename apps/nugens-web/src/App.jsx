@@ -29,7 +29,7 @@ function Spinner() {
   return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"60vh" }}>
       <div style={{ fontWeight:800, fontSize:24, color:"#e8185d", letterSpacing:"-0.04em",
-        fontFamily:"'Plus Jakarta Sans',sans-serif" }}>NuGens</div>
+        fontFamily:"'Plus Jakarta Sans',sans-serif" }}>Nugens</div>
     </div>
   );
 }
@@ -71,7 +71,7 @@ export default function App() {
   if (!ready) return (
     <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"#fff" }}>
       <div style={{ fontWeight:800, fontSize:26, color:"#e8185d", letterSpacing:"-0.04em",
-        fontFamily:"'Plus Jakarta Sans',sans-serif" }}>NuGens</div>
+        fontFamily:"'Plus Jakarta Sans',sans-serif" }}>Nugens</div>
     </div>
   );
 
@@ -99,6 +99,9 @@ export default function App() {
             <Route path="/signup"   element={<Navigate to="/auth?mode=signup" replace />} />
             {/* protected */}
             <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+            {/* redirects for removed pages */}
+            <Route path="/events"    element={<Navigate to="/about" replace />} />
+            <Route path="/customers" element={<Navigate to="/about" replace />} />
             {/* fallback */}
             <Route path="*"         element={<Layout><Home /></Layout>} />
           </Routes>

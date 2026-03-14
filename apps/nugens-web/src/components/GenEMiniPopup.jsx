@@ -5,7 +5,7 @@ const BACKEND = "https://nugens-platform.onrender.com";
 
 // Per-product config
 const PRODUCT_CONFIG = {
-  nugens:  { color:"#e8185d", label:"NuGens",           icon:"✦", bg:"#09090a" },
+  nugens:  { color:"#e8185d", label:"Nugens",           icon:"✦", bg:"#09090a" },
   hyperx:  { color:"#e8185d", label:"HyperX",           icon:"⬡", bg:"#09090a" },
   digihub: { color:"#0284c7", label:"DigiHub",          icon:"◈", bg:"#06101a" },
   units:   { color:"#d4a843", label:"The Wedding Unit", icon:"◇", bg:"#0a0805" },
@@ -55,8 +55,8 @@ export default function GenEMiniPopup({ product = "nugens" }) {
           const name   = (data?.full_name || "").split(" ")[0] || "there";
           const uType  = data?.user_type || "individual";
           const greet  = uType === "business"
-            ? `Hi ${name}! I'm GEN-E Mini — your ${cfg.label} assistant. Ask me about ${product === "hyperx" ? "team training, courses and skills" : product === "digihub" ? "brand growth, marketing and talent" : product === "units" ? "event production and bookings" : "NuGens products and business tools"}.`
-            : `Hi ${name}! I'm GEN-E Mini — your ${cfg.label} assistant. Ask me about ${product === "hyperx" ? "courses, career skills and learning paths" : product === "digihub" ? "personal branding and career tools" : product === "units" ? "photography and production services" : "NuGens products and your career"}.`;
+            ? `Hi ${name}! I'm GEN-E Mini — your ${cfg.label} assistant. Ask me about ${product === "hyperx" ? "team training, courses and skills" : product === "digihub" ? "brand growth, marketing and talent" : product === "units" ? "event production and bookings" : "Nugens products and business tools"}.`
+            : `Hi ${name}! I'm GEN-E Mini — your ${cfg.label} assistant. Ask me about ${product === "hyperx" ? "courses, career skills and learning paths" : product === "digihub" ? "personal branding and career tools" : product === "units" ? "photography and production services" : "Nugens products and your career"}.`;
           setMessages([{ role:"assistant", content: greet }]);
         });
     });
@@ -132,7 +132,7 @@ export default function GenEMiniPopup({ product = "nugens" }) {
                     <span style={{fontSize:9.5,fontWeight:600,color:ACCENT,background:`${ACCENT}18`,padding:"1px 6px",borderRadius:4,marginLeft:5,verticalAlign:"middle"}}>{cfg.label}</span>
                   </div>
                   <div style={{fontSize:10,color:"#444",marginTop:1}}>
-                    {userType === "business" ? "Business AI · NuGens" : "Career AI · NuGens"}
+                    {userType === "business" ? "Business AI · Nugens" : "Career AI · Nugens"}
                   </div>
                 </div>
               </div>

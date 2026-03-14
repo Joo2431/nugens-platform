@@ -7,7 +7,7 @@ const B    = "#1e1e1e";
 const INDIVIDUAL_STEPS = [
   {
     key: "user_type",
-    title: "How are you using NuGens?",
+    title: "How are you using Nugens?",
     subtitle: "This helps us personalize your experience",
     type: "cards",
     options: [
@@ -53,7 +53,7 @@ const INDIVIDUAL_STEPS = [
 const BUSINESS_STEPS = [
   {
     key: "user_type",
-    title: "How are you using NuGens?",
+    title: "How are you using Nugens?",
     subtitle: "This helps us personalize your experience",
     type: "cards",
     options: [
@@ -76,7 +76,7 @@ const BUSINESS_STEPS = [
   {
     key: "business_need",
     title: "What do you need most?",
-    subtitle: "We'll surface the right NuGens products",
+    subtitle: "We'll surface the right Nugens products",
     type: "cards",
     options: [
       { value:"train_team",       icon:"📚", label:"Train My Team",        sub:"HyperX courses for employees" },

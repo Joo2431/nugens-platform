@@ -382,13 +382,13 @@ export default function Units() {
       <section style={{ padding: "72px 24px", background: "#fff", borderBottom: `1px solid ${B}` }}>
         <div style={{ maxWidth: 1060, margin: "0 auto" }}>
           <Reveal style={{ marginBottom: 36 }}>
-            <span className="u-chip" style={{ marginBottom: 10 }}>NuGens Ecosystem</span>
+            <span className="u-chip" style={{ marginBottom: 10 }}>Nugens Ecosystem</span>
             <h2 style={{
               fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700,
               fontSize: "clamp(20px,2.8vw,28px)", letterSpacing: "-0.03em",
               color: "#0a0a0a", marginTop: 10
             }}>
-              Units is powered by the full NuGens stack
+              Units is powered by the full Nugens stack
             </h2>
             <p style={{ fontSize: 14, color: "#9ca3af", lineHeight: 1.7, maxWidth: 440, marginTop: 8 }}>
               Your production experience is seamlessly connected to AI support, project tracking, and brand services across the platform.

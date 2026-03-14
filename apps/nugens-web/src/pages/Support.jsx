@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { supabase } from "../lib/supabase";
 
 const PINK = "#e8185d";
-const B = "#f0f0f0";
+const B    = "#f0f0f0";
 
 function useInView(t = 0.1) {
   const ref = useRef(null);
@@ -14,378 +15,341 @@ function useInView(t = 0.1) {
   }, [t]);
   return [ref, v];
 }
-
 function Reveal({ children, delay = 0, style = {} }) {
   const [ref, v] = useInView();
   return (
-    <div ref={ref} style={{
-      opacity: v ? 1 : 0,
-      transform: v ? "none" : "translateY(18px)",
-      transition: `opacity 0.5s ease ${delay}ms, transform 0.5s ease ${delay}ms`,
-      ...style
-    }}>{children}</div>
+    <div ref={ref} style={{ opacity:v?1:0, transform:v?"none":"translateY(16px)",
+      transition:`opacity 0.5s ease ${delay}ms, transform 0.5s ease ${delay}ms`, ...style }}>
+      {children}
+    </div>
   );
 }
 
-const PRODUCTS = [
+const FAQS = [
   {
-    id: "gene",
-    name: "Gen-E AI",
-    tag: "Career Intelligence",
-    color: "#7c3aed",
-    tagline: "The starting point",
-    desc: "Most people don't know what career they should pursue or why they're not getting hired. Gen-E AI analyses your resume, identifies skill gaps, matches you to relevant roles, and builds a clear roadmap — so you start with clarity instead of confusion.",
-    does: ["Resume analysis & ATS optimisation", "Relevant job matching to your background", "Skill gap identification & growth roadmap", "Career change guidance & fresher paths", "3-month focused action plans"],
-    link: "/gene"
+    cat: "Account & Login",
+    items: [
+      { q:"How do I sign in to Nugens?",
+        a:"Go to nugens.in.net/auth to sign in with Google or email. One account gives you access to all Nugens products — Gen-E AI, HyperX, DigiHub and Units." },
+      { q:"I forgot my password. How do I reset it?",
+        a:"On the sign-in page, click 'Forgot password?' and enter your email. You'll receive a reset link within 2 minutes. Check your spam folder if it doesn't arrive." },
+      { q:"Can I use one account across all products?",
+        a:"Yes — that's exactly how Nugens works. One login at nugens.in.net gives you access to every product. Your plan and subscription are shared across all apps." },
+      { q:"How do I change my email or profile details?",
+        a:"Go to your Dashboard at nugens.in.net/dashboard and click your profile. You can update your name and preferences there." },
+    ]
   },
   {
-    id: "hyperx",
-    name: "HyperX",
-    tag: "Learning Platform",
-    color: PINK,
-    tagline: "The builder",
-    desc: "Once you know what you need to learn, HyperX teaches you what no YouTube video covers: professional environment reality. Work culture, office politics, salary negotiation, English communication, interview mastery, and how to grow inside an organisation.",
-    does: ["Professional workflow & work culture", "Office politics navigation & mindset", "Salary negotiation strategies", "English fluency for the workplace", "Interview prep for any role, any industry"],
-    link: "/hyperx"
+    cat: "Billing & Subscriptions",
+    items: [
+      { q:"What payment methods do you accept?",
+        a:"We accept all major credit/debit cards, UPI, net banking, and wallets via Razorpay. International cards are supported." },
+      { q:"Will my subscription work across all Nugens products?",
+        a:"Yes. A subscription taken from Nugens is automatically active on Gen-E AI, HyperX, DigiHub and Units — no separate subscriptions needed." },
+      { q:"How do I cancel my subscription?",
+        a:"Go to Dashboard → Manage Plan → Cancel subscription. You'll keep access until the end of your billing period. No partial refunds for mid-cycle cancellations." },
+      { q:"I was charged but my plan didn't upgrade. What do I do?",
+        a:"This is rare but can happen. Email support@nugens.in with your payment ID from Razorpay and we'll resolve it within 24 hours." },
+      { q:"Do you offer refunds?",
+        a:"Yes — if you contact us within 7 days of a charge and haven't used the premium features, we'll issue a full refund. Contact support@nugens.in." },
+    ]
   },
   {
-    id: "digihub",
-    name: "DigiHub",
-    tag: "Agency + Community",
-    color: "#0284c7",
-    tagline: "The connector",
-    desc: "DigiHub is both a marketing agency for brands and a community that connects trained talent to real opportunities. Founders, professionals, and brands in our network create entry-level openings — so graduates don't just train, they get placed.",
-    does: ["Brand marketing & digital growth", "Community of brands, founders & professionals", "Career placements through real connections", "Entry-level roles to build experience", "A bridge from training to employment"],
-    link: "/digihub"
+    cat: "Gen-E AI",
+    items: [
+      { q:"Why can't I send more messages on the free plan?",
+        a:"Free accounts get 20 questions/month. Upgrade to Pro for unlimited questions. Your count resets on the 1st of every month." },
+      { q:"Can Gen-E AI generate and download my resume as PDF?",
+        a:"Yes — Pro and above users can download AI-generated resumes as PDF. Free users see the resume text but can't download." },
+      { q:"My chat history disappeared. What happened?",
+        a:"Chat sessions are saved to your account when you're signed in. If you were browsing in incognito or logged out, sessions aren't saved. Sign in to preserve your history." },
+    ]
   },
   {
-    id: "wedding",
-    name: "The Wedding Unit",
-    tag: "Production Studio",
-    color: "#d97706",
-    tagline: "The foundation",
-    desc: "The Wedding Unit is our photography and full-service wedding production studio. It also serves as the production backbone for HyperX's video learning content and DigiHub's content creation — providing the gear, team, and studio that makes everything visual across Nugens.",
-    does: ["Wedding photography & videography", "End-to-end event production & decor", "In-house production for HyperX courses", "Content studio for DigiHub's brands", "Podcast, reel, and video production"],
-    link: null, href: "https://theweddingunit.in"
+    cat: "HyperX",
+    items: [
+      { q:"How do I access courses?",
+        a:"Visit hyperx.nugens.in.net, sign in, and go to Courses. Free users get access to 3 free courses. Pro users unlock the full library." },
+      { q:"Why is the video not playing?",
+        a:"Try refreshing the page. If it persists, check your internet connection. Video issues are usually resolved within minutes — if not, contact support." },
+      { q:"How do I earn a certificate?",
+        a:"Complete all lessons in a course and pass the final quiz. Your certificate appears in your profile and can be downloaded as a PDF." },
+    ]
+  },
+  {
+    cat: "DigiHub & Units",
+    items: [
+      { q:"What services does DigiHub offer?",
+        a:"DigiHub offers brand tools, content planning, AI-generated marketing content, and a talent marketplace for businesses. Access it at digihub.nugens.in.net." },
+      { q:"How do I book a shoot or event with Units?",
+        a:"Visit units.nugens.in.net, browse our packages, and use the booking form. Our team will confirm within 24 hours." },
+      { q:"Can I get a custom quote for large events?",
+        a:"Yes — fill out the contact form on the Units page or email hello@nugens.in with details about your event for a custom quote." },
+    ]
   },
 ];
 
-export default function About() {
-  const [on, setOn] = useState(false);
-  const [active, setActive] = useState(0);
-  useEffect(() => { setTimeout(() => setOn(true), 50); }, []);
+const TOPICS = [
+  { icon:"🔑", label:"Account & Login",       id:"account"  },
+  { icon:"💳", label:"Billing & Plans",        id:"billing"  },
+  { icon:"🤖", label:"Gen-E AI",               id:"gene"     },
+  { icon:"📚", label:"HyperX Learning",        id:"hyperx"   },
+  { icon:"🎯", label:"DigiHub & Units",         id:"units"    },
+  { icon:"📝", label:"Submit a ticket",         id:"ticket"   },
+];
 
-  const P = PRODUCTS[active];
+function FAQItem({ q, a }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ borderBottom:`1px solid ${B}`, overflow:"hidden" }}>
+      <button onClick={() => setOpen(o => !o)} style={{
+        width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between",
+        padding:"16px 0", background:"none", border:"none", cursor:"pointer",
+        textAlign:"left", fontFamily:"'Plus Jakarta Sans',sans-serif",
+      }}>
+        <span style={{ fontSize:14, fontWeight:600, color:"#0a0a0a", paddingRight:16 }}>{q}</span>
+        <span style={{ fontSize:18, color:"#ccc", flexShrink:0, transition:"transform 0.2s",
+          transform:open?"rotate(45deg)":"none" }}>+</span>
+      </button>
+      <div style={{ maxHeight:open?300:0, overflow:"hidden", transition:"max-height 0.3s ease" }}>
+        <p style={{ fontSize:13.5, color:"#6b7280", lineHeight:1.75, paddingBottom:18 }}>{a}</p>
+      </div>
+    </div>
+  );
+}
+
+export default function Support() {
+  const [activeCat, setActiveCat]   = useState(0);
+  const [name,    setName]    = useState("");
+  const [email,   setEmail]   = useState("");
+  const [topic,   setTopic]   = useState("General");
+  const [msg,     setMsg]     = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent,    setSent]    = useState(false);
+  const [error,   setError]   = useState("");
+
+  // Pre-fill email if logged in
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data:{ session } }) => {
+      if (session?.user) {
+        setEmail(session.user.email || "");
+        setName(session.user.user_metadata?.full_name || "");
+      }
+    });
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!name.trim() || !email.trim() || !msg.trim()) { setError("Please fill in all required fields."); return; }
+    setSending(true); setError("");
+    try {
+      // Log to Supabase support_requests table (create if needed)
+      const { error: dbErr } = await supabase.from("support_requests").insert({
+        name: name.trim(), email: email.trim(),
+        topic, message: msg.trim(), status: "open",
+      });
+      if (dbErr) throw new Error(dbErr.message);
+      setSent(true);
+    } catch (err) {
+      // Fallback: mailto if DB not set up yet
+      window.location.href = `mailto:support@nugens.in?subject=Support: ${topic}&body=Name: ${name}%0AEmail: ${email}%0A%0A${msg}`;
+      setSent(true);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const inStyle = {
+    width:"100%", padding:"10px 14px", border:`1.5px solid ${B}`,
+    borderRadius:9, fontSize:13.5, outline:"none", fontFamily:"'Plus Jakarta Sans',sans-serif",
+    transition:"border-color 0.15s", background:"#fff", color:"#0a0a0a",
+  };
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-
-        .ab-chip {
-          display: inline-flex; align-items: center; gap: 6px;
-          padding: 4px 12px; border-radius: 6px; border: 1px solid ${B};
-          font-size: 11.5px; font-weight: 500; color: #6b7280; background: #fff;
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+        body { font-family:'Plus Jakarta Sans',sans-serif; background:#fff; color:#0a0a0a; -webkit-font-smoothing:antialiased; }
+        .sup-topic {
+          display:flex; flex-direction:column; align-items:center; gap:8px;
+          padding:18px 12px; border-radius:12px; border:1.5px solid ${B};
+          background:#fff; cursor:pointer; transition:all 0.15s; text-align:center;
+          font-family:'Plus Jakarta Sans',sans-serif;
         }
-        .ab-chip-pink { background: #fef2f5; border-color: #fcc8d6; color: ${PINK}; }
-
-        .ab-btn-pink {
-          display: inline-flex; align-items: center; gap: 7px;
-          padding: 11px 24px; border-radius: 8px; background: ${PINK};
-          color: #fff; font-size: 13.5px; font-weight: 600; border: none;
-          text-decoration: none; cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif;
-          transition: opacity 0.14s, transform 0.12s; letter-spacing: -0.01em;
-          box-shadow: 0 2px 10px rgba(232,24,93,0.25);
-        }
-        .ab-btn-pink:hover { opacity: 0.88; transform: translateY(-1px); }
-
-        .ab-btn-ghost {
-          display: inline-flex; align-items: center; gap: 7px;
-          padding: 11px 24px; border-radius: 8px; background: #fff;
-          color: #374151; font-size: 13.5px; font-weight: 500;
-          border: 1px solid ${B}; text-decoration: none; cursor: pointer;
-          font-family: 'Plus Jakarta Sans', sans-serif;
-          transition: border-color 0.14s, color 0.14s, transform 0.12s;
-        }
-        .ab-btn-ghost:hover { border-color: #9ca3af; color: #0a0a0a; transform: translateY(-1px); }
-
-        .prod-tab {
-          padding: 8px 16px; border-radius: 7px; font-size: 13px; font-weight: 500;
-          color: #6b7280; background: transparent; border: 1px solid transparent;
-          cursor: pointer; transition: all 0.13s; font-family: 'Plus Jakarta Sans', sans-serif;
-          white-space: nowrap;
-        }
-        .prod-tab.on { background: #fff; border-color: ${B}; color: #0a0a0a; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
-        .prod-tab:hover:not(.on) { color: #0a0a0a; }
-
-        .val-card {
-          padding: 22px; border-radius: 10px; border: 1px solid ${B}; background: #fff;
-          transition: border-color 0.18s, box-shadow 0.18s;
-        }
-        .val-card:hover { border-color: #fcc8d6; box-shadow: 0 2px 18px rgba(232,24,93,0.06); }
-
-        .feat-row {
-          display: flex; align-items: center; gap: 9px;
-          padding: 9px 0; border-bottom: 1px solid #f7f7f7; font-size: 13px; color: #4b5563;
-        }
-        .feat-row:last-child { border-bottom: none; }
-
-        .flow-arrow {
-          display: flex; align-items: center; justify-content: center;
-          color: #d1d5db; font-size: 20px; padding: 4px 0;
-        }
-
-        @media (max-width: 740px) {
-          .ab-two { grid-template-columns: 1fr !important; }
-          .ab-four { grid-template-columns: 1fr 1fr !important; }
-          .prod-panel { grid-template-columns: 1fr !important; }
-          .prod-right { border-left: none !important; border-top: 1px solid ${B}; padding-left: 0 !important; padding-top: 24px !important; }
-          .flow-row { flex-direction: column !important; }
-          .flow-arrow { transform: rotate(90deg); }
+        .sup-topic:hover { border-color:#fcc; background:#fff5f7; }
+        .sup-topic.active { border-color:${PINK}; background:#fff0f4; }
+        .chip { display:inline-flex; align-items:center; gap:6px; padding:4px 12px;
+          border-radius:6px; border:1px solid ${B}; font-size:11.5px; font-weight:500;
+          color:#6b7280; background:#fff; letter-spacing:0.01em; }
+        .chip-pink { background:#fef2f5; border-color:#fcc8d6; color:${PINK}; }
+        .cat-tab {
+          padding:8px 16px; border-radius:7px; font-size:13px; font-weight:600;
+          cursor:pointer; border:none; transition:all 0.15s; white-space:nowrap;
+          font-family:'Plus Jakarta Sans',sans-serif;
         }
       `}</style>
 
-      {/* ── HERO ── */}
-      <section style={{
-        padding: "88px 24px 72px", background: "#fff",
-        borderBottom: `1px solid ${B}`, position: "relative", overflow: "hidden"
-      }}>
-        <div style={{
-          position: "absolute", inset: 0, pointerEvents: "none",
-          backgroundImage: `linear-gradient(${B} 1px,transparent 1px),linear-gradient(90deg,${B} 1px,transparent 1px)`,
-          backgroundSize: "52px 52px", opacity: 0.4
-        }} />
-        <div style={{ position: "absolute", top: -100, right: -60, width: 420, height: 420,
-          borderRadius: "50%", background: PINK, filter: "blur(130px)", opacity: 0.055, pointerEvents: "none" }} />
-
-        <div style={{ maxWidth: 720, margin: "0 auto", textAlign: "center", position: "relative", zIndex: 2 }}>
-          <div style={{ opacity: on ? 1 : 0, transform: on ? "none" : "translateY(10px)", transition: "all 0.4s ease 0.04s", marginBottom: 22 }}>
-            <span className="ab-chip ab-chip-pink">
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: PINK, flexShrink: 0 }} />
-              Career Development Ecosystem
-            </span>
-          </div>
-
-          <h1 style={{
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 800,
-            lineHeight: 1.15, letterSpacing: "-0.035em", color: "#0a0a0a",
-            marginBottom: 20,
-            opacity: on ? 1 : 0, transform: on ? "none" : "translateY(14px)",
-            transition: "all 0.46s ease 0.14s"
-          }}>
-            We didn't build four products.<br />
-            <span style={{ color: PINK }}>We built one system.</span>
+      {/* Hero */}
+      <section style={{ padding:"72px 24px 56px", textAlign:"center", borderBottom:`1px solid ${B}` }}>
+        <Reveal>
+          <span className="chip chip-pink" style={{ marginBottom:16 }}>Support</span>
+          <h1 style={{ fontWeight:800, fontSize:"clamp(28px,4vw,46px)",
+            letterSpacing:"-0.035em", color:"#0a0a0a", marginTop:14, marginBottom:14, lineHeight:1.15 }}>
+            How can we help you?
           </h1>
-
-          <p style={{
-            fontSize: 16, color: "#6b7280", lineHeight: 1.72,
-            maxWidth: 520, margin: "0 auto 32px", fontWeight: 400,
-            opacity: on ? 1 : 0, transform: on ? "none" : "translateY(10px)",
-            transition: "all 0.46s ease 0.24s"
-          }}>
-            Nugens is a career development ecosystem built on a simple belief: knowing what to do, learning how to do it, and finding people who'll give you a chance — these three things have to work together.
+          <p style={{ fontSize:15, color:"#6b7280", maxWidth:440, margin:"0 auto 32px", lineHeight:1.7 }}>
+            Find answers in our FAQ or reach out directly. We typically respond within 24 hours.
           </p>
-        </div>
+
+          {/* Search bar (visual) */}
+          <div style={{ maxWidth:480, margin:"0 auto", position:"relative" }}>
+            <input placeholder="Search for help…" style={{
+              width:"100%", padding:"14px 20px 14px 48px", border:`1.5px solid ${B}`,
+              borderRadius:12, fontSize:14, outline:"none", background:"#fff",
+              fontFamily:"'Plus Jakarta Sans',sans-serif", color:"#0a0a0a",
+            }}
+            onFocus={e => e.target.style.borderColor = PINK}
+            onBlur={e => e.target.style.borderColor = B}
+            />
+            <span style={{ position:"absolute", left:16, top:"50%", transform:"translateY(-50%)", fontSize:18, color:"#ccc" }}>🔍</span>
+          </div>
+        </Reveal>
       </section>
 
-      {/* ── THE BIG PICTURE ── */}
-      <section style={{ padding: "72px 24px", background: "#fafafa", borderBottom: `1px solid ${B}` }}>
-        <div style={{ maxWidth: 1060, margin: "0 auto" }}>
-          <Reveal style={{ marginBottom: 44 }}>
-            <span className="ab-chip" style={{ marginBottom: 10 }}>The ecosystem</span>
-            <h2 style={{
-              fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700,
-              fontSize: "clamp(20px,2.8vw,28px)", letterSpacing: "-0.03em",
-              color: "#0a0a0a", marginTop: 10
-            }}>
-              Four products. All connected. All dependent.
-            </h2>
-            <p style={{ fontSize: 14.5, color: "#6b7280", lineHeight: 1.72, maxWidth: 560, marginTop: 10 }}>
-              Each product in Nugens feeds the next. They're not standalone tools — they're a sequence. You start at Gen-E, build at HyperX, connect at DigiHub, and the Wedding Unit powers the production infrastructure behind all of it.
-            </p>
-          </Reveal>
-
-          {/* flow diagram */}
-          <Reveal delay={80}>
-            <div className="flow-row" style={{ display: "flex", alignItems: "stretch", gap: 0, border: `1px solid ${B}`, borderRadius: 12, overflow: "hidden" }}>
-              {PRODUCTS.map((p, i) => (
-                <React.Fragment key={p.id}>
-                  <div style={{ flex: 1, padding: "28px 22px", background: i % 2 === 0 ? "#fff" : "#fafafa", minWidth: 0 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: p.color, marginBottom: 14 }} />
-                    <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: p.color, marginBottom: 6 }}>{p.tagline}</div>
-                    <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 15, color: "#0a0a0a", marginBottom: 6, letterSpacing: "-0.015em" }}>{p.name}</h3>
-                    <p style={{ fontSize: 12.5, color: "#9ca3af", lineHeight: 1.6 }}>{p.tag}</p>
-                  </div>
-                  {i < PRODUCTS.length - 1 && (
-                    <div className="flow-arrow" style={{ borderLeft: `1px solid ${B}`, borderRight: `1px solid ${B}`, padding: "0 10px", background: "#fff", color: "#e0e0e0", fontSize: 16, display: "flex", alignItems: "center" }}>→</div>
-                  )}
-                </React.Fragment>
+      {/* Topic shortcuts */}
+      <section style={{ padding:"48px 24px 40px", borderBottom:`1px solid ${B}` }}>
+        <div style={{ maxWidth:900, margin:"0 auto" }}>
+          <Reveal>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))", gap:12 }}>
+              {TOPICS.map((t, i) => (
+                <button key={t.id} className={`sup-topic${activeCat === i ? " active" : ""}`}
+                  onClick={() => { setActiveCat(i); if(t.id==="ticket") document.getElementById("ticket-form")?.scrollIntoView({behavior:"smooth"}); }}>
+                  <span style={{ fontSize:22 }}>{t.icon}</span>
+                  <span style={{ fontSize:12, fontWeight:600, color:"#374151" }}>{t.label}</span>
+                </button>
               ))}
             </div>
           </Reveal>
         </div>
       </section>
 
-      {/* ── PRODUCT DEEP DIVE ── */}
-      <section style={{ padding: "72px 24px", background: "#fff", borderBottom: `1px solid ${B}` }}>
-        <div style={{ maxWidth: 1060, margin: "0 auto" }}>
-          <Reveal style={{ marginBottom: 32 }}>
-            <span className="ab-chip" style={{ marginBottom: 10 }}>Products</span>
-            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginTop: 8 }}>
-              <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: "clamp(20px,2.8vw,28px)", letterSpacing: "-0.03em" }}>
-                Inside each product
-              </h2>
-              <div style={{ display: "flex", gap: 4, background: "#f0f0f0", padding: 3, borderRadius: 8 }}>
-                {PRODUCTS.map((p, i) => (
-                  <button key={p.id} className={`prod-tab ${active === i ? "on" : ""}`} onClick={() => setActive(i)}>{p.name}</button>
-                ))}
-              </div>
-            </div>
-          </Reveal>
-
-          <Reveal delay={60}>
-            <div className="prod-panel" style={{
-              display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0,
-              background: "#fff", border: `1px solid ${B}`, borderRadius: 12, overflow: "hidden"
-            }}>
-              {/* left */}
-              <div style={{ padding: "32px 32px 36px" }}>
-                <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: P.color, marginBottom: 8, display: "block" }}>{P.tagline}</span>
-                <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: "clamp(20px,2.5vw,26px)", letterSpacing: "-0.025em", marginBottom: 12, marginTop: 2 }}>{P.name}</h3>
-                <p style={{ fontSize: 14, color: "#6b7280", lineHeight: 1.72, marginBottom: 28, maxWidth: 360 }}>{P.desc}</p>
-                {P.link
-                  ? <Link to={P.link} style={{
-                      display: "inline-flex", alignItems: "center", gap: 7,
-                      padding: "10px 20px", borderRadius: 8, background: "#0a0a0a",
-                      color: "#fff", fontSize: 13.5, fontWeight: 600, textDecoration: "none",
-                      fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.01em"
-                    }}>Explore {P.name} →</Link>
-                  : <a href={P.href} target="_blank" rel="noreferrer" style={{
-                      display: "inline-flex", alignItems: "center", gap: 7,
-                      padding: "10px 20px", borderRadius: 8, background: "#0a0a0a",
-                      color: "#fff", fontSize: 13.5, fontWeight: 600, textDecoration: "none",
-                      fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.01em"
-                    }}>Visit site →</a>
-                }
-              </div>
-
-              {/* right */}
-              <div className="prod-right" style={{ padding: "32px 32px 36px", borderLeft: `1px solid ${B}`, background: "#fafafa" }}>
-                <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "#9ca3af", marginBottom: 16 }}>What it does</div>
-                {P.does.map(f => (
-                  <div key={f} className="feat-row">
-                    <div style={{ width: 17, height: 17, borderRadius: "50%", flexShrink: 0,
-                      background: `${P.color}18`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <svg width="8" height="7" viewBox="0 0 9 8" fill="none">
-                        <path d="M1.5 4L3.5 6L7.5 1.5" stroke={P.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-                    {f}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* ── MISSION + VISION ── */}
-      <section style={{ padding: "72px 24px", background: "#fafafa", borderBottom: `1px solid ${B}` }}>
-        <div style={{ maxWidth: 1060, margin: "0 auto" }}>
-          <div className="ab-two" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {[
-              {
-                label: "Mission",
-                text: "To close the gap between where people are and where they want to go — by giving them clarity on direction, skills that actually matter in the workplace, and a community that turns training into opportunity.",
-              },
-              {
-                label: "Vision",
-                text: "A future where no talented person misses their potential because they lacked access — to the right guidance, the right skills, or the right connections. One ecosystem. Infinite possibilities.",
-              }
-            ].map((m, i) => (
-              <Reveal key={m.label} delay={i * 80}>
-                <div className="val-card" style={{ padding: "32px 28px" }}>
-                  <span className="ab-chip ab-chip-pink" style={{ marginBottom: 16 }}>{m.label}</span>
-                  <p style={{ fontSize: 15, color: "#374151", lineHeight: 1.75, marginTop: 14 }}>{m.text}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── VALUES ── */}
-      <section style={{ padding: "72px 24px", background: "#fff", borderBottom: `1px solid ${B}` }}>
-        <div style={{ maxWidth: 1060, margin: "0 auto" }}>
-          <Reveal style={{ marginBottom: 36 }}>
-            <span className="ab-chip" style={{ marginBottom: 10 }}>What we stand for</span>
-            <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: "clamp(20px,2.8vw,28px)", letterSpacing: "-0.03em", color: "#0a0a0a", marginTop: 10 }}>
-              Built different by design
+      {/* FAQ */}
+      <section style={{ padding:"56px 24px 64px", background:"#fafafa", borderBottom:`1px solid ${B}` }}>
+        <div style={{ maxWidth:760, margin:"0 auto" }}>
+          <Reveal style={{ marginBottom:32, textAlign:"center" }}>
+            <span className="chip" style={{ marginBottom:12 }}>FAQ</span>
+            <h2 style={{ fontWeight:800, fontSize:"clamp(20px,3vw,30px)", letterSpacing:"-0.03em", marginTop:10 }}>
+              Frequently asked questions
             </h2>
           </Reveal>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(226px,1fr))", gap: 12 }}>
-            {[
-              { icon: "◎", t: "Clarity over confusion", d: "We believe every person deserves a clear career path — not generic advice, but specific direction based on who they are." },
-              { icon: "⬡", t: "Experience as education", d: "Real learning happens when you understand how the world works, not just what textbooks say." },
-              { icon: "◈", t: "Connected, not siloed", d: "Our products depend on each other because career growth is never just one thing — it's a sequence." },
-              { icon: "◇", t: "Access for everyone", d: "Talent doesn't care about geography. We build tools that make opportunity reach people, not the other way." },
-            ].map((c, i) => (
-              <Reveal key={c.t} delay={i * 60}>
-                <div className="val-card">
-                  <div style={{ fontSize: 18, color: PINK, marginBottom: 14, fontWeight: 300, lineHeight: 1 }}>{c.icon}</div>
-                  <h4 style={{ fontSize: 13.5, fontWeight: 600, color: "#0a0a0a", marginBottom: 7, letterSpacing: "-0.01em" }}>{c.t}</h4>
-                  <p style={{ fontSize: 13, color: "#9ca3af", lineHeight: 1.65 }}>{c.d}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
+          {/* Category tabs */}
+          <Reveal delay={80}>
+            <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:28, justifyContent:"center" }}>
+              {FAQS.map((cat, i) => (
+                <button key={cat.cat} className="cat-tab" onClick={() => setActiveCat(i)} style={{
+                  background: activeCat === i ? "#0a0a0a" : "#fff",
+                  color: activeCat === i ? "#fff" : "#6b7280",
+                  border: `1px solid ${activeCat === i ? "#0a0a0a" : B}`,
+                }}>
+                  {cat.cat}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ background:"#fff", borderRadius:14, border:`1px solid ${B}`, padding:"4px 24px" }}>
+              {FAQS[activeCat < FAQS.length ? activeCat : 0].items.map(item => (
+                <FAQItem key={item.q} q={item.q} a={item.a} />
+              ))}
+            </div>
+          </Reveal>
         </div>
       </section>
 
-      {/* ── STATS ── */}
-      <section style={{ padding: "72px 24px", background: "#0a0a0a", borderBottom: `1px solid #1f1f1f` }}>
-        <div className="ab-four" style={{ maxWidth: 1060, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 0 }}>
-          {[
-            { v: "160+", l: "Projects delivered", s: "Since 2021" },
-            { v: "30+",  l: "Brands working with us", s: "Active clients" },
-            { v: "200+", l: "Happy clients", s: "Across India" },
-            { v: "4",    l: "Products in the ecosystem", s: "& growing" },
-          ].map((item, i) => (
-            <Reveal key={item.l} delay={i * 60}>
-              <div style={{ padding: "32px 28px", borderRight: i < 3 ? "1px solid #1f1f1f" : "none", textAlign: "center" }}>
-                <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.04em", color: "#fff", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{item.v}</div>
-                <div style={{ fontSize: 13, fontWeight: 500, color: "#6b7280", marginTop: 6 }}>{item.l}</div>
-                <div style={{ fontSize: 11.5, color: "#374151", marginTop: 3 }}>{item.s}</div>
+      {/* Contact / Ticket form */}
+      <section id="ticket-form" style={{ padding:"64px 24px 80px", background:"#fff" }}>
+        <div style={{ maxWidth:640, margin:"0 auto" }}>
+          <Reveal style={{ marginBottom:36, textAlign:"center" }}>
+            <span className="chip" style={{ marginBottom:12 }}>Contact</span>
+            <h2 style={{ fontWeight:800, fontSize:"clamp(20px,3vw,30px)", letterSpacing:"-0.03em", marginTop:10 }}>
+              Still need help? Submit a ticket
+            </h2>
+            <p style={{ fontSize:14, color:"#6b7280", marginTop:10, lineHeight:1.7 }}>
+              Our support team responds within 24 hours on weekdays.
+            </p>
+          </Reveal>
+
+          {sent ? (
+            <Reveal>
+              <div style={{ textAlign:"center", padding:"48px 24px", background:"#f0fdf4",
+                border:"1px solid #86efac", borderRadius:16 }}>
+                <div style={{ fontSize:40, marginBottom:16 }}>✅</div>
+                <h3 style={{ fontSize:20, fontWeight:700, color:"#15803d", marginBottom:8 }}>Message sent!</h3>
+                <p style={{ fontSize:14, color:"#4b5563", lineHeight:1.7 }}>
+                  We've received your ticket and will reply to <strong>{email}</strong> within 24 hours.
+                </p>
+                <button onClick={() => { setSent(false); setMsg(""); }} style={{
+                  marginTop:20, padding:"10px 24px", borderRadius:8, background:PINK,
+                  color:"#fff", border:"none", fontWeight:600, fontSize:13, cursor:"pointer",
+                  fontFamily:"'Plus Jakarta Sans',sans-serif",
+                }}>Submit another →</button>
               </div>
             </Reveal>
-          ))}
-        </div>
-      </section>
+          ) : (
+            <Reveal delay={60}>
+              <form onSubmit={handleSubmit} style={{ display:"flex", flexDirection:"column", gap:14 }}>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+                  <div>
+                    <label style={{ fontSize:12, fontWeight:600, color:"#555", display:"block", marginBottom:5 }}>Name *</label>
+                    <input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" style={inStyle}
+                      onFocus={e => e.target.style.borderColor = PINK} onBlur={e => e.target.style.borderColor = B} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize:12, fontWeight:600, color:"#555", display:"block", marginBottom:5 }}>Email *</label>
+                    <input value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" type="email" style={inStyle}
+                      onFocus={e => e.target.style.borderColor = PINK} onBlur={e => e.target.style.borderColor = B} />
+                  </div>
+                </div>
 
-      {/* ── CTA ── */}
-      <section style={{ padding: "80px 24px", background: "#fff" }}>
-        <div style={{ maxWidth: 580, margin: "0 auto", textAlign: "center" }}>
-          <Reveal>
-            <span className="ab-chip ab-chip-pink" style={{ marginBottom: 18 }}>Start here</span>
-            <h2 style={{
-              fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700,
-              fontSize: "clamp(20px,3vw,32px)", letterSpacing: "-0.03em",
-              color: "#0a0a0a", marginTop: 14, marginBottom: 14, lineHeight: 1.25
-            }}>
-              Every career journey starts<br />with one conversation.
-            </h2>
-            <p style={{ fontSize: 14.5, color: "#9ca3af", lineHeight: 1.72, maxWidth: 380, margin: "0 auto 28px" }}>
-              Talk to Gen-E AI, explore HyperX, connect through DigiHub — or reach out to us directly.
-            </p>
-            <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
-              <Link to="/gene" className="ab-btn-pink">Start with Gen-E →</Link>
-              <Link to="/contact" className="ab-btn-ghost">Talk to us</Link>
-            </div>
-          </Reveal>
+                <div>
+                  <label style={{ fontSize:12, fontWeight:600, color:"#555", display:"block", marginBottom:5 }}>Topic</label>
+                  <select value={topic} onChange={e => setTopic(e.target.value)} style={{ ...inStyle }}>
+                    {["General","Account & Login","Billing & Subscription","Gen-E AI","HyperX","DigiHub","Units","Bug Report","Other"].map(t => (
+                      <option key={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize:12, fontWeight:600, color:"#555", display:"block", marginBottom:5 }}>Message *</label>
+                  <textarea value={msg} onChange={e => setMsg(e.target.value)} rows={5}
+                    placeholder="Describe your issue in detail — the more context you give, the faster we can help."
+                    style={{ ...inStyle, resize:"vertical", lineHeight:1.6 }}
+                    onFocus={e => e.target.style.borderColor = PINK} onBlur={e => e.target.style.borderColor = B} />
+                </div>
+
+                {error && (
+                  <div style={{ padding:"10px 14px", background:"#fff1f2", border:"1px solid #fecdd3",
+                    borderRadius:8, fontSize:13, color:"#be123c" }}>{error}</div>
+                )}
+
+                <button type="submit" disabled={sending} style={{
+                  padding:"13px 0", borderRadius:9, background:sending?"#f0f0f0":PINK,
+                  color:sending?"#aaa":"#fff", border:"none", fontWeight:700, fontSize:14,
+                  cursor:sending?"not-allowed":"pointer", fontFamily:"'Plus Jakarta Sans',sans-serif",
+                  transition:"all 0.15s", boxShadow:sending?"none":`0 2px 12px ${PINK}30`,
+                }}>
+                  {sending ? "Sending…" : "Send message →"}
+                </button>
+
+                <p style={{ fontSize:12, color:"#bbb", textAlign:"center" }}>
+                  Or email us directly at{" "}
+                  <a href="mailto:support@nugens.in" style={{ color:PINK, textDecoration:"none" }}>support@nugens.in</a>
+                </p>
+              </form>
+            </Reveal>
+          )}
         </div>
       </section>
     </>

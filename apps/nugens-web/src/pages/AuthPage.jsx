@@ -160,15 +160,15 @@ export default function AuthPage() {
           <div style={{ position:"absolute", bottom:-60, right:-60, width:260, height:260, borderRadius:"50%", background:"#7c3aed", filter:"blur(100px)", opacity:0.07, pointerEvents:"none" }} />
           <div style={{ position:"relative", zIndex:2, display:"flex", flexDirection:"column", height:"100%", padding:"48px 36px" }}>
             <Link to="/" style={{ display:"flex", alignItems:"center", gap:10, textDecoration:"none", marginBottom:"auto" }}>
-              <img src={NG_LOGO} alt="NuGens" style={{ width:38, height:38, borderRadius:9, objectFit:"cover" }} />
-              <span style={{ fontWeight:800, fontSize:18, color:"#fff", letterSpacing:"-0.025em" }}>NuGens</span>
+              <img src={NG_LOGO} alt="Nugens" style={{ width:38, height:38, borderRadius:9, objectFit:"cover" }} />
+              <span style={{ fontWeight:800, fontSize:18, color:"#fff", letterSpacing:"-0.025em" }}>Nugens</span>
             </Link>
             <div style={{ marginBottom:36 }} className="fu">
               <div style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"4px 10px", border:"1px solid rgba(232,24,93,0.3)", borderRadius:6, background:"rgba(232,24,93,0.08)", marginBottom:18 }}>
                 <span style={{ width:6, height:6, borderRadius:"50%", background:PINK }} />
                 <span style={{ fontSize:11, fontWeight:600, color:PINK, letterSpacing:"0.06em", textTransform:"uppercase" }}>One account · All products</span>
               </div>
-              <h1 style={{ fontSize:"clamp(22px,2.8vw,30px)", fontWeight:800, color:"#fff", lineHeight:1.2, letterSpacing:"-0.03em", marginBottom:12 }}>One login.<br />Every NuGens product.</h1>
+              <h1 style={{ fontSize:"clamp(22px,2.8vw,30px)", fontWeight:800, color:"#fff", lineHeight:1.2, letterSpacing:"-0.03em", marginBottom:12 }}>One login.<br />Every Nugens product.</h1>
               <p style={{ fontSize:13.5, color:"rgba(255,255,255,0.4)", lineHeight:1.72, maxWidth:280 }}>Sign in once — access Gen-E, HyperX, DigiHub and The Wedding Unit without logging in again.</p>
             </div>
             <div style={{ border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, overflow:"hidden", background:"rgba(255,255,255,0.02)", marginBottom:28 }} className="fu">
@@ -188,8 +188,8 @@ export default function AuthPage() {
           <div style={{ width:"100%", maxWidth:400 }} className="fu">
             <div style={{ marginBottom:28, textAlign:"center" }}>
               <Link to="/" style={{ display:"inline-flex", alignItems:"center", justifyContent:"center", gap:9, textDecoration:"none" }}>
-                <img src={NG_LOGO} alt="NuGens" style={{ width:34, height:34, borderRadius:8, objectFit:"cover" }} />
-                <span style={{ fontWeight:800, fontSize:17, color:"#0a0a0a", letterSpacing:"-0.025em" }}>NuGens</span>
+                <img src={NG_LOGO} alt="Nugens" style={{ width:34, height:34, borderRadius:8, objectFit:"cover" }} />
+                <span style={{ fontWeight:800, fontSize:17, color:"#0a0a0a", letterSpacing:"-0.025em" }}>Nugens</span>
               </Link>
               <div style={{ fontSize:13, color:"#9ca3af", marginTop:8 }}>{tab==="login"?"Welcome back":"Create your free account"}</div>
             </div>
@@ -219,7 +219,7 @@ export default function AuthPage() {
               </form>
               {tab==="login" && (
                 <div style={{ textAlign:"center", marginTop:14, fontSize:12.5, color:"#9ca3af" }}>
-                  New to NuGens?{" "}
+                  New to Nugens?{" "}
                   <button onClick={() => setTab("signup")} style={{ background:"none", border:"none", color:PINK, fontWeight:700, cursor:"pointer", fontSize:12.5, fontFamily:"'Plus Jakarta Sans',sans-serif" }}>Create a free account</button>
                 </div>
               )}

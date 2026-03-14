@@ -1,53 +1,78 @@
 import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { useProfile } from "../lib/useProfile";
 import { NG_LOGO } from "../lib/logo";
 
 const BLUE = "#0284c7";
 const B    = "#1a2030";
 
-const NAV = [
-  { to: "/",          icon: "◎", label: "Dashboard"      },
-  { to: "/tools",     icon: "⬡", label: "Brand Tools"    },
-  { to: "/planner",   icon: "◈", label: "Content Planner"},
-  { to: "/talent",    icon: "◇", label: "Talent Hub"     },
-  { to: "/analytics", icon: "⬟", label: "Analytics"      },
-  { to: "/projects",  icon: "◑", label: "Projects"       },
-  { to: "/assistant", icon: "✦", label: "AI Assistant"   },
+const INDIVIDUAL_NAV = [
+  { to:"/",          icon:"◎", label:"Dashboard"       },
+  { to:"/tools",     icon:"⬡", label:"Brand Tools"     },
+  { to:"/planner",   icon:"◈", label:"Content Planner" },
+  { to:"/analytics", icon:"⬟", label:"Analytics"       },
+  { to:"/projects",  icon:"◑", label:"My Projects"     },
+  { to:"/pricing",   icon:"↑", label:"Upgrade"         },
 ];
 
-export default function Sidebar() {
-  const { user, profile, signOut } = useProfile();
+const BUSINESS_NAV = [
+  { to:"/",          icon:"◎", label:"Dashboard"       },
+  { to:"/tools",     icon:"⬡", label:"Brand Tools"     },
+  { to:"/planner",   icon:"◈", label:"Content Planner" },
+  { to:"/talent",    icon:"◇", label:"Talent Hub"      },
+  { to:"/analytics", icon:"⬟", label:"Analytics"       },
+  { to:"/projects",  icon:"◑", label:"Projects"        },
+  { to:"/pricing",   icon:"↑", label:"Upgrade"         },
+];
+
+export default function Sidebar({ profile, onSignOut }) {
   const [collapsed, setCollapsed] = useState(false);
-  const firstName = (profile?.full_name || user?.user_metadata?.full_name || user?.email || "").split(" ")[0] || "User";
-  const initials  = firstName.slice(0,2).toUpperCase();
-  const plan      = profile?.plan || "free";
-  const avatar    = profile?.avatar_url || user?.user_metadata?.avatar_url || null;
+  const isBusiness = profile?.user_type === "business";
+  const nav        = isBusiness ? BUSINESS_NAV : INDIVIDUAL_NAV;
+  const firstName  = (profile?.full_name || "").split(" ")[0] || "User";
+  const initials   = firstName.slice(0,2).toUpperCase();
+  const plan       = profile?.plan || "free";
+  const avatar     = profile?.avatar_url || null;
 
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        .dh-nav { display:flex; align-items:center; gap:11px; padding:9px 14px; border-radius:9px; font-size:13.5px; font-weight:500; color:#6b7280; text-decoration:none; transition:all 0.15s; white-space:nowrap; overflow:hidden; }
-        .dh-nav:hover { background:#0d1624; color:#fff; }
+        .dh-nav { display:flex; align-items:center; gap:11px; padding:9px 14px; border-radius:9px; font-size:13px; font-weight:500; color:#556; text-decoration:none; transition:all 0.15s; white-space:nowrap; overflow:hidden; border:none; background:none; width:100%; cursor:pointer; text-align:left; font-family:'Plus Jakarta Sans',sans-serif; }
+        .dh-nav:hover { background:#0d1624; color:#aaa; }
         .dh-nav.active { background:#0d1624; color:#fff; }
         .dh-nav.active .dh-ico { color:${BLUE}; }
-        .dh-ico { font-size:16px; flex-shrink:0; width:20px; text-align:center; }
+        .dh-ico { font-size:14px; flex-shrink:0; width:18px; text-align:center; color:#334; }
+        .dh-signout { width:100%; padding:8px 12px; background:none; border:1px solid ${B}; border-radius:9px; cursor:pointer; font-size:12px; color:#445; font-family:'Plus Jakarta Sans',sans-serif; transition:all 0.13s; text-align:left; }
+        .dh-signout:hover { border-color:#0284c730; color:${BLUE}; }
       `}</style>
-      <div style={{ width:collapsed?64:224, minHeight:"100vh", background:"#080f1a", borderRight:`1px solid ${B}`, display:"flex", flexDirection:"column", padding:"20px 12px", transition:"width 0.2s ease", position:"sticky", top:0, flexShrink:0, fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
+      <div style={{ width:collapsed?60:220, minHeight:"100vh", background:"#080f1a", borderRight:`1px solid ${B}`, display:"flex", flexDirection:"column", padding:"20px 10px 24px", transition:"width 0.2s ease", position:"sticky", top:0, flexShrink:0, fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
 
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:28, paddingLeft:4 }}>
+        {/* Logo */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:22, paddingLeft:4 }}>
           {!collapsed && (
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
               <img src={NG_LOGO} style={{ width:26, height:26, borderRadius:6, objectFit:"cover" }} alt="NG" />
-              <span style={{ fontWeight:800, fontSize:16, color:"#fff", letterSpacing:"-0.03em" }}>Digi<span style={{ color:BLUE }}>Hub</span></span>
+              <span style={{ fontWeight:800, fontSize:15, color:"#fff", letterSpacing:"-0.03em" }}>Digi<span style={{ color:BLUE }}>Hub</span></span>
             </div>
           )}
-          <button onClick={() => setCollapsed(c=>!c)} style={{ background:"none", border:"none", cursor:"pointer", color:"#444", fontSize:15, padding:4, flexShrink:0 }}>{collapsed?"▶":"◀"}</button>
+          <button onClick={() => setCollapsed(c=>!c)} style={{ background:"none", border:"none", cursor:"pointer", color:"#334", fontSize:12, padding:4, flexShrink:0 }}>{collapsed?"▶":"◀"}</button>
         </div>
 
+        {/* Mode badge */}
+        {!collapsed && (
+          <div style={{ background:isBusiness?"#051018":"#06101a", border:`1px solid ${isBusiness?BLUE+"30":B}`, borderRadius:8, padding:"6px 10px", marginBottom:14 }}>
+            <div style={{ fontSize:9, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.1em", color:isBusiness?BLUE:"#334" }}>
+              {isBusiness?"🏢 Business":"👤 Individual"}
+            </div>
+            <div style={{ fontSize:9.5, color:"#334", marginTop:1 }}>
+              {isBusiness?"Talent, analytics & tools":"Brand tools & content"}
+            </div>
+          </div>
+        )}
+
+        {/* Nav */}
         <nav style={{ flex:1, display:"flex", flexDirection:"column", gap:2 }}>
-          {NAV.map(n => (
+          {nav.map(n => (
             <NavLink key={n.to} to={n.to} end={n.to==="/"} className={({isActive})=>`dh-nav${isActive?" active":""}`}>
               <span className="dh-ico">{n.icon}</span>
               {!collapsed && n.label}
@@ -55,6 +80,7 @@ export default function Sidebar() {
           ))}
         </nav>
 
+        {/* Plan */}
         {!collapsed && plan === "free" && (
           <div style={{ background:"#0d1624", border:`1px solid ${B}`, borderRadius:9, padding:"10px 12px", marginBottom:12 }}>
             <div style={{ fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", color:"#334", marginBottom:4 }}>Free Plan</div>
@@ -62,20 +88,10 @@ export default function Sidebar() {
           </div>
         )}
 
-        <div style={{ display:"flex", alignItems:"center", gap:9, padding:"10px 8px", borderTop:`1px solid ${B}`, marginTop:4 }}>
-          <div style={{ width:32, height:32, borderRadius:"50%", flexShrink:0, overflow:"hidden", background:`${BLUE}20`, border:`1.5px solid ${BLUE}40`, display:"flex", alignItems:"center", justifyContent:"center" }}>
-            {avatar
-              ? <img src={avatar} style={{ width:32, height:32, objectFit:"cover" }} alt={firstName} />
-              : <span style={{ fontSize:12, fontWeight:700, color:BLUE }}>{initials}</span>
-            }
-          </div>
-          {!collapsed && (
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:12.5, fontWeight:600, color:"#ccc", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{firstName}</div>
-              <button onClick={signOut} style={{ background:"none", border:"none", fontSize:11, color:"#555", cursor:"pointer", padding:0, fontFamily:"inherit" }}>Sign out</button>
-            </div>
-          )}
-        </div>
+        {/* Sign out */}
+        {!collapsed && (
+          <button className="dh-signout" onClick={onSignOut}>← Sign out</button>
+        )}
       </div>
     </>
   );

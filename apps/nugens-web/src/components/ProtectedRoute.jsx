@@ -25,7 +25,7 @@ export default function ProtectedRoute({ children }) {
 
   if (session === undefined) return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:"inherit" }}>
-      <div style={{ fontWeight:800, fontSize:22, color:"#e8185d", letterSpacing:"-0.04em", fontFamily:"'Plus Jakarta Sans',sans-serif" }}>NuGens</div>
+      <div style={{ fontWeight:800, fontSize:22, color:"#e8185d", letterSpacing:"-0.04em", fontFamily:"'Plus Jakarta Sans',sans-serif" }}>Nugens</div>
     </div>
   );
 
