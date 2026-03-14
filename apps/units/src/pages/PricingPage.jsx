@@ -1,164 +1,191 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
-const GOLD = "#d4a843";
-const PINK = "#e8185d";
-const B    = "#f0f0f0";
+const PINK  = "#e8185d";
+const TEXT  = "#111827";
+const MUTED = "#6b7280";
+const LIGHT = "#f8f9fb";
+const CARD  = "#ffffff";
+const BORDER= "#e8eaed";
+const API   = "https://nugens-platform.onrender.com";
 
-const INDIVIDUAL_PLANS = [
+const BIZ_SERVICES = [
+  { icon:"🎬", title:"Video Editing",    from:8000,  tag:"Most Popular" },
+  { icon:"📣", title:"Content Strategy", from:5000,  tag:"" },
+  { icon:"🎨", title:"Graphic Design",   from:6000,  tag:"" },
+  { icon:"🌐", title:"Website Building", from:12000, tag:"" },
+  { icon:"📊", title:"Marketing",        from:10000, tag:"" },
+  { icon:"✍️", title:"Scripting",        from:4000,  tag:"" },
+];
+
+const IND_PLANS = [
   {
-    key:"enquiry", name:"Enquiry", price:0,
-    desc:"Get a custom quote", color:"#9ca3af",
-    features:["Browse all packages","Free consultation call","Personalised quote","No commitment"],
-    cta:"Get a free quote", popular:false,
+    name:"Free",
+    price:0,
+    desc:"Everything to start your journey",
+    color:MUTED,
+    features:["Live brand experience sessions","Entrepreneur Guide (all 6 chapters)","Idea Validation (unlimited)","AI guidance & Q&A","Community access","Gen-E Mini support"],
+    cta:"Current Plan",
+    free:true,
   },
   {
-    key:"wedding", name:"Wedding", price:45000,
-    desc:"Photography or videography", color:GOLD,
-    features:["Ceremony coverage","Edited deliverables","Online gallery","Print-ready files","Follow-up edits included"],
-    cta:"Book this package", popular:true,
-  },
-  {
-    key:"full", name:"Full Package", price:95000,
-    desc:"Photography + Videography",
+    name:"Premium Consultation",
+    price:999,
+    desc:"One-on-one with our expert team",
     color:PINK,
-    features:["2-person crew","Full photo + film","Drone shots included","Premium album","Same-day edit teaser","Dedicated coordinator"],
-    cta:"Book full package", popular:false,
+    features:["Everything in Free","45-min 1-on-1 with senior mentor","Competitive analysis report","Business model refinement","GTM strategy walkthrough","Follow-up action plan","Email support for 7 days"],
+    cta:"Book Consultation",
+    free:false,
+    oneTime:true,
   },
 ];
-
-const BUSINESS_PLANS = [
-  {
-    key:"brand-video", name:"Brand Video", price:25000,
-    desc:"For product and brand launches", color:"#9ca3af",
-    features:["1-day shoot","Scripted or unscripted","3-min brand film","Social cuts (15s, 30s)","2 revision rounds"],
-    cta:"Book now", popular:false,
-  },
-  {
-    key:"campaign", name:"Campaign", price:60000,
-    desc:"Multi-day brand production", color:GOLD,
-    features:["2–3 day shoot","Full production crew","Multiple deliverables","Color grading included","BTS content","Priority editing (5 days)"],
-    cta:"Book campaign", popular:true,
-  },
-  {
-    key:"retainer", name:"Retainer", price:120000,
-    desc:"Monthly content partnership", color:PINK,
-    features:["4 shoot days/month","Unlimited content formats","Dedicated editor","DigiHub content strategy","Monthly performance report","Priority booking"],
-    cta:"Enquire now", popular:false,
-  },
-];
-
-function PlanCard({ plan, isYearly, onBuy }) {
-  const displayPrice = plan.price === 0 ? "Free" : `₹${plan.price.toLocaleString("en-IN")}`;
-  return (
-    <div style={{
-      position:"relative", borderRadius:16, padding:"28px 22px",
-      background:plan.popular?"#0a0805":"#fff",
-      border:`1.5px solid ${plan.popular?GOLD:B}`,
-      boxShadow:plan.popular?`0 8px 40px ${GOLD}20`:"none",
-      display:"flex", flexDirection:"column",
-      fontFamily:"'Plus Jakarta Sans',sans-serif",
-    }}>
-      {plan.popular && (
-        <div style={{ position:"absolute", top:-12, left:"50%", transform:"translateX(-50%)",
-          background:GOLD, color:"#0a0805", fontSize:10.5, fontWeight:800,
-          padding:"3px 14px", borderRadius:99, letterSpacing:"0.06em",
-          textTransform:"uppercase", whiteSpace:"nowrap" }}>Most Booked</div>
-      )}
-      <div style={{ marginBottom:18 }}>
-        <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", color:plan.color, marginBottom:8 }}>{plan.name}</div>
-        <div style={{ fontSize:30, fontWeight:800, letterSpacing:"-0.04em", color:plan.popular?"#e8d5a0":"#0a0a0a", lineHeight:1, marginBottom:4 }}>
-          {displayPrice}
-          {plan.price > 0 && <span style={{ fontSize:12, fontWeight:400, color:plan.popular?"#6a5a30":"#9ca3af" }}> onwards</span>}
-        </div>
-        <p style={{ fontSize:12.5, color:plan.popular?"#6a5a30":"#9ca3af", marginTop:6 }}>{plan.desc}</p>
-      </div>
-      <div style={{ flex:1, marginBottom:22 }}>
-        {plan.features.map(f => (
-          <div key={f} style={{ display:"flex", alignItems:"center", gap:9, padding:"6px 0",
-            borderBottom:`1px solid ${plan.popular?"#1c1a14":"#f7f7f7"}`,
-            fontSize:12.5, color:plan.popular?"#c8a870":"#4b5563" }}>
-            <div style={{ width:14, height:14, borderRadius:"50%", flexShrink:0,
-              background:`${plan.color}20`, display:"flex", alignItems:"center", justifyContent:"center" }}>
-              <svg width="7" height="6" viewBox="0 0 9 8" fill="none">
-                <path d="M1.5 4L3.5 6L7.5 1.5" stroke={plan.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            {f}
-          </div>
-        ))}
-      </div>
-      <button onClick={() => onBuy(plan)} style={{
-        width:"100%", padding:"12px 0", borderRadius:9, fontSize:13.5, fontWeight:700,
-        border:"none", cursor:"pointer", fontFamily:"'Plus Jakarta Sans',sans-serif",
-        background:plan.popular?GOLD:"#f3f4f6",
-        color:plan.popular?"#0a0805":"#0a0a0a",
-        transition:"opacity 0.15s",
-      }}
-        onMouseOver={e=>e.currentTarget.style.opacity="0.85"}
-        onMouseOut={e=>e.currentTarget.style.opacity="1"}
-      >{plan.cta}</button>
-    </div>
-  );
-}
 
 export default function PricingPage({ profile }) {
-  const [tab, setTab] = useState("individual");
-  useEffect(() => { if (profile?.user_type==="business") setTab("business"); }, [profile]);
-  const plans = tab === "individual" ? INDIVIDUAL_PLANS : BUSINESS_PLANS;
+  const [tab,     setTab]     = useState(profile?.user_type==="individual" ? "individual" : "business");
+  const [loading, setLoading] = useState(null);
+  const [success, setSuccess] = useState(false);
 
-  const handleBuy = (plan) => {
-    if (plan.price === 0) { window.location.href = "/book"; return; }
-    window.location.href = `/book`;
+  const pay = async (amount, label) => {
+    setLoading(label);
+    try {
+      const res = await fetch(`${API}/api/subscription/create-order`, {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ amount, currency:"INR", plan:`units_consult` })
+      });
+      const order = await res.json();
+      const rzp = new window.Razorpay({
+        key:"rzp_live_YOUR_UNITS_KEY",
+        amount:order.amount, currency:"INR", order_id:order.id,
+        name:"The Units — NuGens",
+        description:"Premium Consultation Session",
+        theme:{ color:PINK },
+        prefill:{ name:profile?.full_name||"", email:profile?.email||"" },
+        handler:async (r)=>{ await fetch(`${API}/api/subscription/verify`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...r,plan:"units_consult",userId:profile?.id})}); setSuccess(true); setLoading(null); },
+        modal:{ ondismiss:()=>setLoading(null) }
+      });
+      rzp.open();
+    } catch(e){ setLoading(null); }
+  };
+
+  const S = {
+    page: { minHeight:"100vh", background:LIGHT, padding:"48px 44px", fontFamily:"'Plus Jakarta Sans',sans-serif" },
+    card: { background:CARD, border:`1px solid ${BORDER}`, borderRadius:18, padding:32, boxShadow:"0 1px 3px rgba(0,0,0,0.04)", display:"flex", flexDirection:"column" },
+    btn: (c) => ({ width:"100%", padding:"13px 0", background:c, color:"#fff", border:"none", borderRadius:10, fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"inherit", marginTop:"auto" }),
+    check: { fontSize:13, color:MUTED, display:"flex", gap:8, marginBottom:9 },
   };
 
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
-        body { font-family:'Plus Jakarta Sans',sans-serif; background:#0a0805; }
-        .tab-pill { padding:7px 20px; border-radius:7px; font-size:13px; font-weight:600; cursor:pointer; border:none; transition:all 0.15s; font-family:'Plus Jakarta Sans',sans-serif; }
-        @media(max-width:760px) { .plans-g { grid-template-columns:1fr !important; } }
-      `}</style>
+    <div style={S.page}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');`}</style>
+      <script src="https://checkout.razorpay.com/v1/checkout.js" />
 
-      {/* Hero */}
-      <section style={{ padding:"64px 24px 48px", textAlign:"center", background:"#0a0805", borderBottom:"1px solid #1c1a14" }}>
-        <div style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"4px 12px",
-          borderRadius:6, border:"1px solid #1c1a14", fontSize:11.5, fontWeight:500, color:GOLD,
-          background:"#0f0c08", marginBottom:16 }}>✦ Units Packages</div>
-        <h1 style={{ fontWeight:800, fontSize:"clamp(26px,4vw,44px)", letterSpacing:"-0.035em",
-          margin:"14px 0", lineHeight:1.15, color:"#e8d5a0" }}>
-          Timeless visuals,<br /><span style={{ color:GOLD }}>honest pricing.</span>
-        </h1>
-        <p style={{ fontSize:15, color:"#6a5a30", maxWidth:400, margin:"0 auto 28px", lineHeight:1.7 }}>
-          Every project is different. These are our starting packages — contact us for a personalised quote.
-        </p>
+      <div style={{ textAlign:"center", marginBottom:40 }}>
+        <div style={{ fontSize:32, fontWeight:800, color:TEXT, letterSpacing:"-0.05em", marginBottom:8 }}>The Units — Pricing</div>
+        <div style={{ fontSize:14, color:MUTED }}>Individual features are free. Services are pay-per-project. Consultation is pay-per-session.</div>
+      </div>
 
-        <div style={{ display:"flex", justifyContent:"center" }}>
-          <div style={{ display:"flex", background:"#0f0c08", border:"1px solid #1c1a14", borderRadius:9, padding:3, gap:2 }}>
-            {["individual","business"].map(t => (
-              <button key={t} className="tab-pill" onClick={() => setTab(t)} style={{
-                background:tab===t?"#1c1a14":"transparent",
-                color:tab===t?GOLD:"#4a4030",
-              }}>
-                {t === "individual" ? "Weddings & Events" : "Brand & Business"}
-              </button>
+      {/* Tab */}
+      <div style={{ display:"flex", justifyContent:"center", marginBottom:40 }}>
+        <div style={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:12, padding:4, display:"flex", gap:4 }}>
+          {["business","individual"].map(t=>(
+            <button key={t} onClick={()=>setTab(t)} style={{ padding:"9px 28px", background:tab===t?PINK:"none", color:tab===t?"#fff":MUTED, border:"none", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>
+              {t==="business"?"🏢 Business":"👤 Individual"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Business services */}
+      {tab==="business" && (
+        <div>
+          <div style={{ textAlign:"center", marginBottom:32 }}>
+            <div style={{ fontSize:20, fontWeight:800, color:TEXT, marginBottom:8 }}>Pay-Per-Project Services</div>
+            <div style={{ fontSize:13, color:MUTED }}>No subscription. Book any service, pay once, get exceptional work delivered.</div>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, maxWidth:900, margin:"0 auto 48px" }}>
+            {BIZ_SERVICES.map(s=>(
+              <div key={s.title} style={{ ...S.card, padding:24 }}>
+                {s.tag && <div style={{ fontSize:9, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.08em", color:PINK, marginBottom:8 }}>{s.tag}</div>}
+                <div style={{ fontSize:28, marginBottom:10 }}>{s.icon}</div>
+                <div style={{ fontSize:15, fontWeight:700, color:TEXT, marginBottom:4 }}>{s.title}</div>
+                <div style={{ fontSize:20, fontWeight:800, color:PINK, marginBottom:16 }}>From ₹{s.from.toLocaleString()}</div>
+                <a href="/book" style={{ ...S.btn(PINK), textDecoration:"none", textAlign:"center", display:"block" }}>Book Now →</a>
+              </div>
             ))}
           </div>
-        </div>
-      </section>
 
-      <section style={{ padding:"48px 24px 72px", background:"#0d0a07" }}>
-        <div style={{ maxWidth:960, margin:"0 auto" }}>
-          <div className="plans-g" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, alignItems:"start" }}>
-            {plans.map(plan => <PlanCard key={plan.key} plan={plan} onBuy={handleBuy} />)}
-          </div>
-          <div style={{ textAlign:"center", marginTop:28, fontSize:13, color:"#4a4030" }}>
-            All prices are starting rates. Final pricing depends on location, duration, and requirements.{" "}
-            <a href="/book" style={{ color:GOLD, textDecoration:"none", fontWeight:600 }}>Get a custom quote →</a>
+          <div style={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:16, padding:32, maxWidth:700, margin:"0 auto", textAlign:"center" }}>
+            <div style={{ fontSize:18, fontWeight:800, color:TEXT, marginBottom:8 }}>Need a custom package?</div>
+            <div style={{ fontSize:13, color:MUTED, marginBottom:20 }}>For ongoing partnerships, retainer arrangements, or bundled services — talk to us. We customise to your needs and budget.</div>
+            <a href="mailto:hello@nugens.in" style={{ display:"inline-block", padding:"12px 28px", background:PINK, color:"#fff", borderRadius:10, textDecoration:"none", fontSize:14, fontWeight:700 }}>Contact Our Team →</a>
           </div>
         </div>
-      </section>
-    </>
+      )}
+
+      {/* Individual plans */}
+      {tab==="individual" && (
+        <div>
+          {success && (
+            <div style={{ background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:12, padding:"16px 24px", textAlign:"center", maxWidth:500, margin:"0 auto 28px", color:GREEN }}>
+              ✓ Consultation booked! Our team will be in touch within 24 hours.
+            </div>
+          )}
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:20, maxWidth:700, margin:"0 auto" }}>
+            {IND_PLANS.map(plan=>(
+              <div key={plan.name} style={{ ...S.card, border:plan.free?`1px solid ${BORDER}`:`1px solid ${PINK}30` }}>
+                <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", color:plan.color, marginBottom:8 }}>
+                  {plan.name}
+                </div>
+                <div style={{ fontSize:11, color:MUTED, marginBottom:16 }}>{plan.desc}</div>
+                <div style={{ fontSize:34, fontWeight:800, color:TEXT, letterSpacing:"-0.04em", marginBottom:4 }}>
+                  {plan.price===0 ? "Free" : `₹${plan.price}`}
+                </div>
+                {plan.oneTime && <div style={{ fontSize:11, color:MUTED, marginBottom:20 }}>one-time · per session</div>}
+                {plan.price===0 && <div style={{ marginBottom:20 }}/>}
+
+                <div style={{ flex:1, marginBottom:24 }}>
+                  {plan.features.map((f,i)=>(
+                    <div key={i} style={S.check}>
+                      <span style={{color:plan.color,flexShrink:0}}>✓</span>{f}
+                    </div>
+                  ))}
+                </div>
+
+                {plan.free ? (
+                  <div style={{ width:"100%", padding:"13px 0", background:"#f8f9fb", color:MUTED, borderRadius:10, fontSize:13, fontWeight:600, textAlign:"center", border:`1px solid ${BORDER}` }}>
+                    All features included
+                  </div>
+                ) : (
+                  <button onClick={()=>pay(plan.price,plan.name)} disabled={loading===plan.name} style={{ ...S.btn(PINK), opacity:loading===plan.name?0.6:1 }}>
+                    {loading===plan.name?"Processing...":plan.cta}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div style={{ textAlign:"center", marginTop:36, fontSize:13, color:MUTED }}>
+            All individual features are free. Premium consultation is only charged if you find it valuable.
+            <br/>Questions? <a href="mailto:hello@nugens.in" style={{color:PINK}}>hello@nugens.in</a>
+          </div>
+        </div>
+      )}
+
+      {/* FAQ */}
+      <div style={{ maxWidth:680, margin:"48px auto 0" }}>
+        <div style={{ fontSize:20, fontWeight:800, color:TEXT, textAlign:"center", marginBottom:24 }}>Questions</div>
+        {[
+          { q:"Are individual features really free?", a:"Yes, completely. Live Experience, Entrepreneur Guide, and Idea Validation are free forever. We only charge for premium 1-on-1 consultations." },
+          { q:"How does business service pricing work?", a:"Pay-per-project. No subscriptions. Choose a service, pick a package, pay, and our team delivers. Simple." },
+          { q:"What if I'm not happy with the work?", a:"We include revisions in all packages. If the work doesn't meet your brief, we revise until it does. Your satisfaction is our reputation." },
+          { q:"How quickly does the team respond?", a:"For consultations: within 24 hours on business days. For service bookings: within 2 hours. For AI guidance: instant." },
+        ].map((f,i)=>(
+          <div key={i} style={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:10, padding:"16px 20px", marginBottom:10 }}>
+            <div style={{ fontSize:13, fontWeight:700, color:TEXT, marginBottom:6 }}>{f.q}</div>
+            <div style={{ fontSize:13, color:MUTED, lineHeight:1.65 }}>{f.a}</div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
