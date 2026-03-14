@@ -40,7 +40,7 @@ function AppShell() {
           <Route path="/talent"    element={<ProtectedRoute><TalentHub /></ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
           <Route path="/projects"  element={<ProtectedRoute><Projects /></ProtectedRoute>} />
-          <Route path="/assistant" element={<ProtectedRoute><AIAssistant /></ProtectedRoute>} />
+          {/* Gen-E Mini popup replaces /assistant — see bottom-right button */}
           <Route path="*"          element={<Navigate to="/" replace />} />
         </Routes>
       </div>

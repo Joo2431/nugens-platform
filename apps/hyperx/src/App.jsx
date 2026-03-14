@@ -4,7 +4,6 @@ import { supabase } from "./lib/supabase";
 import Sidebar from "./components/Sidebar";
 import ProtectedRoute from "./components/ProtectedRoute";
 import GenEMiniPopup from "./components/GenEMiniPopup";
-import ChatWidget from "./components/ChatWidget";
 
 const Dashboard     = lazy(() => import("./pages/Dashboard"));
 const CoursesPage   = lazy(() => import("./pages/Courses"));
@@ -12,7 +11,6 @@ const CoursePlayer  = lazy(() => import("./pages/CoursePlayer"));
 const LearningPaths = lazy(() => import("./pages/LearningPaths"));
 const Certificates  = lazy(() => import("./pages/Certificates"));
 const Community     = lazy(() => import("./pages/Community"));
-const AIAssistant   = lazy(() => import("./pages/AIAssistant"));
 const Pricing       = lazy(() => import("./pages/Pricing"));
 const AdminPanel    = lazy(() => import("./pages/AdminPanel"));
 
@@ -74,14 +72,13 @@ function AppShell() {
             <Route path="/paths/:id"    element={<ProtectedRoute><LearningPaths profile={profile} /></ProtectedRoute>} />
             <Route path="/certificates" element={<ProtectedRoute><Certificates profile={profile} /></ProtectedRoute>} />
             <Route path="/community"    element={<ProtectedRoute><Community profile={profile} /></ProtectedRoute>} />
-            {/* Gen-E Mini is now a floating popup — accessible from every page */}
             <Route path="/pricing"      element={<ProtectedRoute><Pricing profile={profile} /></ProtectedRoute>} />
             <Route path="/admin"        element={<ProtectedRoute><AdminPanel profile={profile} /></ProtectedRoute>} />
             <Route path="*"             element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
       </div>
-      {user && <ChatWidget />}
+      {user && <GenEMiniPopup product="hyperx" />}
     </div>
   );
 }
