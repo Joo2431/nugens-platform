@@ -1,440 +1,175 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-const PINK   = "#e8185d";
-const PURPLE = "#6d28d9";
-const API_URL = import.meta.env.VITE_GEN_E_API_URL || "https://gene-backend-al5h.onrender.com";
 
-const PLANS = [
+const PINK   = "#e8185d";
+const B      = "#1e1e1e";
+const API    = import.meta.env.VITE_GEN_E_API_URL || "https://nugens-platform.onrender.com";
+
+const INDIVIDUAL_PLANS = [
   {
-    id: "free",
-    name: "Starter",
-    price: "₹0",
-    period: "free forever",
-    badge: null,
-    accentColor: "#999",
-    borderColor: "#e8e8e8",
-    bg: "#fafafa",
-    features: [
-      { text: "20 career questions total",   ok: true  },
-      { text: "Career guidance & roadmaps",  ok: true  },
-      { text: "Interview prep (in chat)",    ok: true  },
-      { text: "Career readiness scoring",    ok: true  },
-      { text: "Resume PDF download",         ok: false },
-      { text: "Unlimited questions",         ok: false },
-      { text: "ATS resume builder",          ok: false },
-      { text: "Resume review & feedback",    ok: false },
-      { text: "Job match analysis",          ok: false },
-    ],
-    razorpay_plan: null,
+    id:"free", name:"Starter", price:"₹0", period:"free forever", badge:null, color:"#555",
+    features:["20 career questions total","Career guidance & chat","Basic interview prep","Career readiness scoring"],
+    locked:["Unlimited questions","ATS Resume Builder","Resume PDF download","Skill Gap Analyzer","Career Simulator","Job matching"],
   },
   {
-    id: "monthly",
-    name: "Pro Monthly",
-    price: "₹99",
-    period: "per month",
-    badge: "Most Popular",
-    accentColor: PINK,
-    borderColor: PINK,
-    bg: "#fff",
-    features: [
-      { text: "Unlimited questions",         ok: true  },
-      { text: "Full career guidance",        ok: true  },
-      { text: "Advanced interview prep",     ok: true  },
-      { text: "Career readiness scoring",    ok: true  },
-      { text: "Resume PDF download",         ok: true  },
-      { text: "ATS resume builder",          ok: true  },
-      { text: "Resume review & feedback",    ok: true  },
-      { text: "Job match analysis",          ok: false, note: "Yearly plan only" },
-    ],
-    razorpay_plan: "monthly",
-    amount: 9900,
+    id:"monthly", name:"Pro Monthly", price:"₹99", period:"per month", badge:"Most Popular", color:PINK,
+    razorpay:"monthly", amount:9900,
+    features:["Unlimited AI questions","Full career guidance","ATS Resume Builder + PDF","Advanced interview prep","Career readiness scoring","Skill Gap Analyzer","Career Roadmap AI","Job Tracker"],
+    locked:["Career Simulator","Job match analysis (Yearly)"],
   },
   {
-    id: "yearly",
-    name: "Pro Yearly",
-    price: "₹699",
-    period: "per year",
-    badge: "Best Value",
-    accentColor: PURPLE,
-    borderColor: PURPLE,
-    bg: "#fff",
-    features: [
-      { text: "Unlimited questions",         ok: true },
-      { text: "Full career guidance",        ok: true },
-      { text: "Advanced interview prep",     ok: true },
-      { text: "Career readiness scoring",    ok: true },
-      { text: "Resume PDF download",         ok: true },
-      { text: "ATS resume builder",          ok: true },
-      { text: "Resume review & feedback",    ok: true },
-      { text: "Job match analysis",          ok: true },
-    ],
-    razorpay_plan: "yearly",
-    amount: 69900,
+    id:"yearly", name:"Pro Yearly", price:"₹699", period:"per year · save 41%", badge:"Best Value", color:"#7c3aed",
+    razorpay:"yearly", amount:69900,
+    features:["Everything in Monthly","Career Simulator","Job match analysis","Priority support","Early access to new features","Resume version history"],
+    locked:[],
+  },
+];
+
+const BUSINESS_PLANS = [
+  {
+    id:"biz_starter", name:"Business Starter", price:"₹499", period:"per month", badge:null, color:"#0284c7",
+    features:["JD Generator","Interview Questions AI","Hiring Intelligence","Salary Benchmark","5 team members","Basic workforce insights"],
+    locked:["Team Skill Mapping","Workforce Planner","Candidate Match (DigiHub)","Bulk exports"],
+  },
+  {
+    id:"biz_pro", name:"Business Pro", price:"₹1,499", period:"per month", badge:"Most Popular", color:PINK,
+    features:["Everything in Starter","Team Skill Mapping","Workforce Planning AI","Up to 25 team members","DigiHub candidate match","Priority support","Hiring roadmap export"],
+    locked:["Enterprise SSO","Custom AI training"],
+  },
+  {
+    id:"biz_enterprise", name:"Enterprise", price:"Custom", period:"contact us", badge:null, color:"#d97706",
+    features:["Unlimited team members","Custom AI workflows","White-label options","Dedicated account manager","API access","SLA guarantee","Custom integrations"],
+    locked:[],
   },
 ];
 
 export default function PricingPage() {
-  const navigate = useNavigate();
-  const [user,           setUser]           = useState(null);
-  const [profile,        setProfile]        = useState(null);
-  const [loadingPlan,    setLoadingPlan]    = useState(null);
-  const [error,          setError]          = useState("");
-  const [profileLoading, setProfileLoading] = useState(true);
-  const [successPlan,    setSuccessPlan]    = useState(null);
+  const navigate  = useNavigate();
+  const [tab,     setTab]     = useState("individual");
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(null);
+  const [error,   setError]   = useState("");
 
   useEffect(() => {
-    const load = async (session) => {
-      if (!session) { setProfileLoading(false); return; }
-      setUser(session.user);
-      const { data } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
-      if (data) setProfile(data);
-      setProfileLoading(false);
-    };
-
-    supabase.auth.getSession().then(({ data: { session } }) => load(session));
-
-    // Re-fetch on window focus (catches post-payment redirect)
-    const handler = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    supabase.auth.getSession().then(({ data:{ session } }) => {
       if (!session) return;
-      const { data } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
-      if (data) setProfile(data);
-      setProfileLoading(false);
-    };
-    window.addEventListener("focus", handler);
-    return () => window.removeEventListener("focus", handler);
+      supabase.from("profiles").select("*").eq("id", session.user.id).single().then(({ data }) => {
+        setProfile(data);
+        if (data?.user_type === "business") setTab("business");
+      });
+    });
   }, []);
 
-  const loadRazorpay = () => new Promise((resolve) => {
-    if (window.Razorpay) { resolve(true); return; }
-    const s = document.createElement("script");
-    s.src = "https://checkout.razorpay.com/v1/checkout.js";
-    s.onload  = () => resolve(true);
-    s.onerror = () => resolve(false);
-    document.body.appendChild(s);
-  });
-
-  const handleSubscribe = async (plan) => {
-    if (!user) { navigate("/auth"); return; }
-    if (!plan.razorpay_plan) return;
-    setLoadingPlan(plan.id);
-    setError("");
+  const handleUpgrade = async (plan) => {
+    if (!plan.razorpay) return;
+    if (!profile) { navigate("/auth"); return; }
+    setLoading(plan.id); setError("");
     try {
-      const loaded = await loadRazorpay();
-      if (!loaded) throw new Error("Razorpay SDK failed to load.");
-
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(`${API_URL}/api/subscription/create-order`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ plan: plan.razorpay_plan }),
+      const res = await fetch(`${API}/api/subscription/create-order`, {
+        method:"POST", headers:{ "Content-Type":"application/json", "Authorization":`Bearer ${session.access_token}` },
+        body: JSON.stringify({ plan: plan.razorpay }),
       });
-      const { order, error: orderError } = await res.json();
-      if (orderError) throw new Error(orderError);
-
-      const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-        amount: order.amount, currency: order.currency,
-        name: "GEN-E Career AI",
-        description: `${plan.name} Subscription`,
-        order_id: order.id,
-        prefill: { name: profile?.full_name || "", email: user.email || "" },
-        theme: { color: plan.accentColor },
+      const { order } = await res.json();
+      const rz = new window.Razorpay({
+        key: "rzp_live_YOUR_KEY",
+        order_id: order.id, amount: plan.amount, currency:"INR",
+        name:"GEN-E by NuGens", description: plan.name,
+        prefill:{ email: profile.email, name: profile.full_name },
+        theme:{ color: PINK },
         handler: async (response) => {
-          const verifyRes = await fetch(`${API_URL}/api/subscription/verify`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-            body: JSON.stringify({
-              razorpay_order_id:   response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature:  response.razorpay_signature,
-              plan: plan.razorpay_plan,
-            }),
+          await fetch(`${API}/api/subscription/verify`, {
+            method:"POST", headers:{ "Content-Type":"application/json", "Authorization":`Bearer ${session.access_token}` },
+            body: JSON.stringify({ ...response, plan: plan.razorpay }),
           });
-          const verifyData = await verifyRes.json();
-          if (verifyData.success) {
-            const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-            if (data) setProfile(data);
-            setSuccessPlan(plan.name);
-            setLoadingPlan(null);
-          } else {
-            setError("Payment verification failed. Please contact support.");
-            setLoadingPlan(null);
-          }
+          window.location.href = "/";
         },
-        modal: { ondismiss: () => setLoadingPlan(null) },
-      };
-      new window.Razorpay(options).open();
-    } catch (err) {
-      setError(err.message || "Payment failed. Please try again.");
-      setLoadingPlan(null);
-    }
+      });
+      rz.open();
+    } catch (e) { setError(e.message); }
+    setLoading(null);
   };
 
+  const plans = tab === "business" ? BUSINESS_PLANS : INDIVIDUAL_PLANS;
   const currentPlan = profile?.plan || "free";
 
-  const getCtaLabel = (plan) => {
-    if (loadingPlan === plan.id) return "Processing…";
-    if (plan.id === currentPlan)  return "✓ Current Plan";
-    if (plan.id === "free")       return "Free Plan";
-    if (plan.id === "monthly")    return "Get Pro Monthly";
-    return "Get Pro Yearly";
-  };
-
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { font-family: 'DM Sans', sans-serif; background: #fff; color: #111; }
+    <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",minHeight:"100vh",background:"#09090a",padding:"40px 24px 80px",color:"#e8e8e8"}}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap'); *{box-sizing:border-box}`}</style>
 
-        .pricing-card {
-          border-radius: 16px; padding: 28px 24px; position: relative;
-          transition: transform 0.18s, box-shadow 0.18s;
-        }
-        .pricing-card:not(.active-card):hover { transform: translateY(-5px); }
-
-        .plan-feature {
-          display: flex; align-items: flex-start; gap: 10px;
-          padding: 6px 0; font-size: 13px; color: #444;
-          border-bottom: 1px solid #f5f5f5;
-        }
-        .plan-feature:last-child { border-bottom: none; }
-
-        .plan-cta {
-          width: 100%; padding: 11px 0; border: none; border-radius: 9px;
-          font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 13px;
-          cursor: pointer; transition: opacity 0.15s, transform 0.1s; letter-spacing: 0.01em;
-        }
-        .plan-cta:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
-        .plan-cta:disabled { cursor: default; }
-
-        .feature-note {
-          font-size: 10px; color: #aaa; margin-left: auto; white-space: nowrap;
-          background: #f5f5f5; padding: 1px 6px; border-radius: 4px;
-        }
-
-        @media (max-width: 760px) {
-          .pricing-grid { grid-template-columns: 1fr !important; max-width: 400px !important; margin: 0 auto !important; }
-        }
-      `}</style>
-
-      <div style={{ minHeight: "100vh", background: "#fff" }}>
-
-        {/* ── Nav ── */}
-        <div style={{ maxWidth: 1000, margin: "0 auto", padding: "18px 24px",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          borderBottom: "1px solid #f2f2f2" }}>
-          <button onClick={() => navigate("/gen-e")}
-            style={{ background: "none", border: "none", cursor: "pointer",
-              fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 800,
-              fontSize: 15, color: PINK, letterSpacing: "-0.03em", display: "flex", alignItems: "center", gap: 6 }}>
-            ← GEN-E
-          </button>
-          {user && <span style={{ fontSize: 12, color: "#aaa" }}>{user.email}</span>}
+      {/* Header */}
+      <div style={{textAlign:"center",maxWidth:560,margin:"0 auto 36px"}}>
+        <div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"4px 12px",borderRadius:6,background:`${PINK}10`,border:`1px solid ${PINK}30`,marginBottom:16}}>
+          <span style={{fontSize:11,fontWeight:700,color:PINK,letterSpacing:"0.06em",textTransform:"uppercase"}}>GEN-E Pricing</span>
         </div>
+        <h1 style={{fontWeight:800,fontSize:"clamp(24px,3.5vw,36px)",color:"#fff",letterSpacing:"-0.04em",marginBottom:12}}>
+          {tab==="business"?"Workforce AI for Your Business":"Invest in Your Career"}
+        </h1>
+        <p style={{fontSize:14,color:"#555",lineHeight:1.7}}>
+          {tab==="business"?"Hire smarter, train better, plan ahead — with Gen-E Workforce Intelligence.":"Career AI, resume builder, skill analysis and job matching — all in one."}
+        </p>
+      </div>
 
-        {/* ── Header ── */}
-        <div style={{ textAlign: "center", padding: "44px 24px 32px", maxWidth: 520, margin: "0 auto" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 6,
-            background: "#fff5f8", border: "1px solid #ffd0de", borderRadius: 20,
-            padding: "3px 14px", fontSize: 11, fontWeight: 700, color: PINK,
-            letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 18 }}>
-            Simple Pricing
-          </div>
-          <h1 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 800,
-            fontSize: 28, color: "#0a0a0a", lineHeight: 1.25, letterSpacing: "-0.025em", marginBottom: 14 }}>
-            Start free. Upgrade when you're ready.
-          </h1>
-          <p style={{ fontSize: 14, color: "#888", lineHeight: 1.75, maxWidth: 420, margin: "0 auto" }}>
-            AI-powered career coaching, ATS resumes, and personalised roadmaps — built for freshers and professionals.
-          </p>
-        </div>
-
-        {/* ── Success banner ── */}
-        {successPlan && (
-          <div style={{ maxWidth: 1000, margin: "0 auto 16px", padding: "0 24px" }}>
-            <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10,
-              padding: "12px 16px", display: "flex", alignItems: "center", gap: 10,
-              fontSize: 13, color: "#15803d", fontWeight: 600 }}>
-              <span>🎉</span>
-              <span>Welcome to <strong>{successPlan}</strong>! All Pro features are now unlocked.</span>
-              <button onClick={() => navigate("/gen-e")}
-                style={{ marginLeft: "auto", background: "#15803d", color: "#fff", border: "none",
-                  borderRadius: 6, padding: "4px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
-                Start using →
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Current plan banner ── */}
-        {!profileLoading && !successPlan && currentPlan !== "free" && (
-          <div style={{ maxWidth: 1000, margin: "0 auto 16px", padding: "0 24px" }}>
-            <div style={{
-              background: currentPlan === "yearly" ? "#f5f3ff" : "#fff0f4",
-              border: `1px solid ${currentPlan === "yearly" ? "#ddd6fe" : "#ffd0de"}`,
-              borderRadius: 10, padding: "10px 16px",
-              display: "flex", alignItems: "center", gap: 8,
-              fontSize: 13, color: currentPlan === "yearly" ? PURPLE : PINK, fontWeight: 600 }}>
-              <span>✓</span>
-              <span>
-                You're on <strong>{currentPlan === "yearly" ? "Pro Yearly" : "Pro Monthly"}</strong>
-                {profile?.subscription_end && (
-                  <span style={{ fontWeight: 400, color: "#aaa", marginLeft: 8 }}>
-                    · Renews {new Date(profile.subscription_end).toLocaleDateString("en-IN",
-                      { day: "numeric", month: "long", year: "numeric" })}
-                  </span>
-                )}
-              </span>
-              <button onClick={() => navigate("/gen-e")}
-                style={{ marginLeft: "auto", background: "none", border: "none",
-                  color: currentPlan === "yearly" ? PURPLE : PINK,
-                  fontSize: 12, cursor: "pointer", fontWeight: 600, textDecoration: "underline" }}>
-                Back to chat →
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Error ── */}
-        {error && (
-          <div style={{ maxWidth: 440, margin: "0 auto 20px",
-            background: "#fff5f8", border: "1px solid #ffd0de",
-            borderRadius: 8, padding: "10px 14px", fontSize: 12.5, color: PINK, textAlign: "center" }}>
-            ⚠️ {error}
-          </div>
-        )}
-
-        {/* ── Plan cards ── */}
-        <div className="pricing-grid" style={{ maxWidth: 1000, margin: "0 auto",
-          padding: "0 24px 60px", display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)", gap: 18, alignItems: "start" }}>
-
-          {PLANS.map((plan) => {
-            const isActive  = currentPlan === plan.id;
-            const isLoading = loadingPlan === plan.id;
-
-            return (
-              <div key={plan.id}
-                className={`pricing-card ${isActive ? "active-card" : ""}`}
-                style={{
-                  background: isActive ? (plan.id === "free" ? "#fafafa" : plan.bg) : "#fff",
-                  border: isActive
-                    ? `2px solid ${plan.accentColor}`
-                    : `1.5px solid ${plan.id === "free" ? "#e8e8e8" : plan.borderColor}`,
-                  boxShadow: isActive
-                    ? `0 6px 28px ${plan.accentColor}20`
-                    : plan.id === "free" ? "none" : "0 2px 20px rgba(0,0,0,0.06)",
-                }}>
-
-                {/* Badge */}
-                {plan.badge && (
-                  <div style={{ position: "absolute", top: -12, left: "50%",
-                    transform: "translateX(-50%)",
-                    background: plan.accentColor, color: "#fff",
-                    fontSize: 10, fontWeight: 700, padding: "3px 12px",
-                    borderRadius: 20, letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
-                    {plan.badge}
-                  </div>
-                )}
-
-                {/* Active badge */}
-                {isActive && (
-                  <div style={{ position: "absolute", top: 12, right: 12,
-                    background: plan.accentColor, color: "#fff",
-                    fontSize: 9, fontWeight: 800, padding: "2px 8px",
-                    borderRadius: 20, letterSpacing: "0.08em" }}>
-                    ACTIVE
-                  </div>
-                )}
-
-                {/* Plan name */}
-                <div style={{ fontSize: 11, fontWeight: 700, color: plan.accentColor,
-                  letterSpacing: "0.09em", textTransform: "uppercase", marginBottom: 10 }}>
-                  {plan.name}
-                </div>
-
-                {/* Price */}
-                <div style={{ display: "flex", alignItems: "baseline", gap: 5, marginBottom: 4 }}>
-                  <span style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 800,
-                    fontSize: 30, color: "#0a0a0a", letterSpacing: "-0.02em" }}>
-                    {plan.price}
-                  </span>
-                  <span style={{ fontSize: 12, color: "#aaa" }}>{plan.period}</span>
-                </div>
-
-                {plan.id === "yearly" ? (
-                  <div style={{ fontSize: 11, color: PURPLE, fontWeight: 700, marginBottom: 16,
-                    background: "#f5f3ff", display: "inline-block", padding: "2px 8px", borderRadius: 5 }}>
-                    Save ₹489 vs monthly
-                  </div>
-                ) : (
-                  <div style={{ marginBottom: 16 }} />
-                )}
-
-                <div style={{ height: 1, background: "#f0f0f0", marginBottom: 16 }} />
-
-                {/* Features */}
-                <div style={{ marginBottom: 22 }}>
-                  {plan.features.map((f, i) => (
-                    <div key={i} className="plan-feature" style={{ color: f.ok ? "#333" : "#ccc" }}>
-                      <span style={{ width: 16, height: 16, borderRadius: "50%",
-                        background: f.ok ? `${plan.accentColor}18` : "#f5f5f5",
-                        color: f.ok ? plan.accentColor : "#ccc",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 8, fontWeight: 800, flexShrink: 0, marginTop: 1 }}>
-                        {f.ok ? "✓" : "✕"}
-                      </span>
-                      <span>{f.text}</span>
-                      {f.note && <span className="feature-note">{f.note}</span>}
-                    </div>
-                  ))}
-                </div>
-
-                {/* CTA */}
-                <button
-                  className="plan-cta"
-                  onClick={() => { if (plan.razorpay_plan && !isActive) handleSubscribe(plan); }}
-                  disabled={isActive || isLoading || !plan.razorpay_plan}
-                  style={{
-                    background: isActive
-                      ? `${plan.accentColor}15`
-                      : plan.razorpay_plan ? plan.accentColor : "#f0f0f0",
-                    color: isActive
-                      ? plan.accentColor
-                      : plan.razorpay_plan ? "#fff" : "#bbb",
-                    border: isActive ? `1.5px solid ${plan.accentColor}40` : "none",
-                  }}>
-                  {getCtaLabel(plan)}
-                </button>
-
-                {/* Upgrade nudge for active monthly */}
-                {isActive && plan.id === "monthly" && (
-                  <div style={{ textAlign: "center", marginTop: 10, fontSize: 11.5 }}>
-                    <button onClick={() => handleSubscribe(PLANS[2])}
-                      style={{ background: "none", border: "none", color: PURPLE,
-                        cursor: "pointer", fontSize: 11.5, fontWeight: 600, textDecoration: "underline" }}>
-                      ↑ Switch to Yearly & save ₹489
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* ── Footer trust ── */}
-        <div style={{ textAlign: "center", paddingBottom: 40, fontSize: 12, color: "#bbb",
-          display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span>🔒</span>
-            <span>Secure payments via Razorpay · Cancel anytime · No hidden charges</span>
-          </div>
-          <div style={{ fontSize: 11 }}>Questions? Email us at support@gene.ai</div>
+      {/* Tab toggle */}
+      <div style={{display:"flex",justifyContent:"center",marginBottom:36}}>
+        <div style={{display:"flex",background:"#111",border:`1px solid ${B}`,borderRadius:10,padding:3}}>
+          {[["individual","👤 Individual"],["business","🏢 Business"]].map(([id,lbl])=>(
+            <button key={id} onClick={()=>setTab(id)}
+              style={{padding:"8px 24px",borderRadius:8,border:"none",background:tab===id?PINK:"transparent",color:tab===id?"#fff":"#555",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit",transition:"all 0.14s"}}>
+              {lbl}
+            </button>
+          ))}
         </div>
       </div>
-    </>
+
+      {/* Plans */}
+      <div style={{display:"flex",gap:20,justifyContent:"center",flexWrap:"wrap",maxWidth:960,margin:"0 auto 40px"}}>
+        {plans.map(p=>{
+          const isCurrent = p.id===currentPlan || (p.id==="free"&&currentPlan==="free");
+          return (
+            <div key={p.id} style={{flex:1,minWidth:260,maxWidth:310,background:"#111",border:`1.5px solid ${p.badge?p.color:B}`,borderRadius:16,padding:"28px 24px",position:"relative"}}>
+              {p.badge && <div style={{position:"absolute",top:-12,left:"50%",transform:"translateX(-50%)",background:p.color,color:"#fff",fontSize:10.5,fontWeight:700,padding:"3px 14px",borderRadius:20,whiteSpace:"nowrap"}}>{p.badge}</div>}
+              <div style={{fontSize:14,fontWeight:700,color:"#e8e8e8",marginBottom:4}}>{p.name}</div>
+              <div style={{fontSize:30,fontWeight:800,color:p.color,letterSpacing:"-0.04em",lineHeight:1,marginBottom:4}}>{p.price}</div>
+              <div style={{fontSize:12,color:"#555",marginBottom:22}}>{p.period}</div>
+              
+              <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:24}}>
+                {p.features.map(f=>(
+                  <div key={f} style={{display:"flex",alignItems:"flex-start",gap:7}}>
+                    <span style={{color:PINK,fontSize:12,flexShrink:0,marginTop:1}}>✓</span>
+                    <span style={{fontSize:12.5,color:"#aaa"}}>{f}</span>
+                  </div>
+                ))}
+                {p.locked.map(f=>(
+                  <div key={f} style={{display:"flex",alignItems:"flex-start",gap:7,opacity:0.35}}>
+                    <span style={{color:"#555",fontSize:12,flexShrink:0,marginTop:1}}>✗</span>
+                    <span style={{fontSize:12.5,color:"#555"}}>{f}</span>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={()=>p.razorpay?handleUpgrade(p):p.price==="Custom"?window.location.href="mailto:contact@nugens.in":null}
+                disabled={isCurrent||loading===p.id}
+                style={{width:"100%",padding:"11px 0",borderRadius:10,border:"none",
+                  background:isCurrent?"#1a1a1a":p.badge?p.color:"#fff",
+                  color:isCurrent?"#444":p.badge?"#fff":"#0a0a0a",
+                  fontSize:13.5,fontWeight:700,cursor:isCurrent?"default":"pointer",fontFamily:"inherit"}}>
+                {isCurrent?"Current Plan":loading===p.id?"Processing…":p.price==="Custom"?"Contact Us →":"Get Started →"}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Compare */}
+      <div style={{textAlign:"center",maxWidth:560,margin:"0 auto"}}>
+        <div style={{fontSize:12.5,color:"#444"}}>
+          Prices in INR · Cancel anytime · Secure payments via Razorpay
+        </div>
+        {error && <div style={{color:"#f87171",marginTop:12,fontSize:13}}>{error}</div>}
+      </div>
+    </div>
   );
 }

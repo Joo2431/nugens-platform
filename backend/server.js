@@ -1276,3 +1276,161 @@ app.get("/health", (req, res) =>
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`✅ Gen-E V4 running on port ${PORT}`));
+/* ═══════════════════════════════════════════════════════════
+   GEN-E TOOL ENDPOINTS — Individual + Business
+   ═══════════════════════════════════════════════════════════ */
+
+/* POST /api/gene/tool — unified tool endpoint */
+app.post("/api/gene/tool", requireAuth, checkUsage, async (req, res) => {
+  const { tool, inputs, userType, profile: userProfile } = req.body;
+
+  const TOOL_PROMPTS = {
+    // ─── INDIVIDUAL TOOLS ───
+    skill_gap: (i) => `You are Gen-E Skill Gap Analyzer. The user's current role is "${i.currentRole}" and target role is "${i.targetRole}". Their current skills: ${i.currentSkills}. 
+Provide:
+## SKILL GAP ANALYSIS
+## CRITICAL MISSING SKILLS (top 5, each with priority level)
+## RECOMMENDED LEARNING PATH (step by step, with timeline)
+## HYPERX COURSES TO TAKE (suggest based on skill gaps)
+## 90-DAY ACTION PLAN
+Be specific, actionable, structured.`,
+
+    career_simulate: (i) => `You are Gen-E Career Simulator. Simulate the career transition from "${i.fromRole}" to "${i.toRole}".
+Provide:
+## TRANSITION FEASIBILITY SCORE (X/10 with reasoning)
+## SKILLS YOU ALREADY HAVE (transferable)
+## SKILLS YOU NEED TO ACQUIRE
+## SALARY IMPACT (current estimate vs target)
+## REALISTIC TIMELINE
+## STEP-BY-STEP TRANSITION ROADMAP
+## RISKS & HOW TO MITIGATE
+## VERDICT
+Make it feel like a real simulation with data.`,
+
+    career_roadmap: (i) => `You are Gen-E Career Advisor. Create a detailed career roadmap for: Goal: "${i.goal}", Current situation: "${i.current}", Timeline: "${i.timeline || '12 months'}".
+Provide:
+## YOUR CAREER ROADMAP
+## PHASE 1: FOUNDATION (Month 1-3)
+## PHASE 2: SKILL BUILD (Month 4-6)  
+## PHASE 3: LAUNCH (Month 7-9)
+## PHASE 4: GROWTH (Month 10-12)
+## KEY MILESTONES
+## RECOMMENDED RESOURCES
+## SUCCESS METRICS`,
+
+    job_match: (i) => `You are Gen-E Job Match AI. Based on: Skills: "${i.skills}", Experience: "${i.experience}", Target: "${i.target}".
+Provide:
+## TOP MATCHING JOB ROLES (5 roles with match %)
+## BEST FIT COMPANIES (types and names)
+## YOUR COMPETITIVE ADVANTAGES
+## PROFILE GAPS TO FIX
+## RESUME KEYWORDS TO ADD
+## APPLICATION STRATEGY`,
+
+    // ─── BUSINESS TOOLS ───
+    jd_generator: (i) => `You are Gen-E JD Generator for businesses. Generate a complete job description for: Role: "${i.role}", Company type: "${i.companyType || 'tech startup'}", Experience: "${i.experience || '2-4 years'}".
+Provide:
+## JOB TITLE
+## ABOUT THE ROLE (2 paragraphs)
+## KEY RESPONSIBILITIES (8-10 bullet points)
+## REQUIRED SKILLS & QUALIFICATIONS
+## NICE TO HAVE
+## WHAT WE OFFER
+## SALARY RANGE (Indian market)
+Also provide:
+## TOP 10 INTERVIEW QUESTIONS
+## EVALUATION CRITERIA`,
+
+    hiring_intelligence: (i) => `You are Gen-E Hiring Intelligence AI. The company wants to hire: "${i.role}". Industry: "${i.industry || 'technology'}".
+Provide:
+## HIRING STRATEGY REPORT
+## REQUIRED CORE SKILLS (with proficiency levels)
+## EXPERIENCE & BACKGROUND PROFILE
+## RED FLAGS TO WATCH
+## SALARY RANGE (India, by experience tier: 0-2yr, 2-5yr, 5+ yr)
+## WHERE TO FIND THIS TALENT
+## INTERVIEW PROCESS RECOMMENDATION
+## ONBOARDING CHECKLIST`,
+
+    team_skill_map: (i) => `You are Gen-E Workforce Intelligence AI. Analyze this team data: ${i.teamData}. Company goal: "${i.goal || 'scale the product'}".
+Provide:
+## TEAM SKILL ASSESSMENT
+## SKILL STRENGTHS (what the team does well)
+## CRITICAL SKILL GAPS
+## RISK AREAS (gaps that could hurt growth)
+## RECOMMENDED TRAINING PLAN (per role/person)
+## HYPERX COURSES TO ASSIGN
+## HIRING RECOMMENDATIONS (roles to fill)
+## 6-MONTH WORKFORCE ROADMAP`,
+
+    salary_benchmark: (i) => `You are Gen-E Salary Intelligence AI. Provide salary benchmarking for: Role: "${i.role}", Location: "${i.location || 'India'}", Industry: "${i.industry || 'technology'}".
+Provide:
+## SALARY BENCHMARK REPORT
+## FRESHER (0-1 yr): Range + median
+## JUNIOR (1-3 yr): Range + median  
+## MID-LEVEL (3-6 yr): Range + median
+## SENIOR (6-10 yr): Range + median
+## LEAD/MANAGER (10+ yr): Range + median
+## TOP COMPANIES PAYING ABOVE MARKET
+## FACTORS THAT INCREASE SALARY
+## NEGOTIATION TIPS
+## EQUITY/BENEFITS TO CONSIDER
+Data based on 2024-2025 Indian job market.`,
+
+    interview_questions: (i) => `You are Gen-E Interview AI. Generate interview questions for: Role: "${i.role}", Level: "${i.level || 'mid-level'}".
+Provide:
+## SCREENING QUESTIONS (5 - for HR round)
+## TECHNICAL QUESTIONS (8 - role-specific)
+## BEHAVIORAL QUESTIONS (5 - STAR method)
+## CULTURE FIT QUESTIONS (3)
+## CASE STUDY / SCENARIO (1 detailed case)
+## EVALUATION RUBRIC (what good answers look like)`,
+
+    workforce_planning: (i) => `You are Gen-E Workforce Planner. Company: "${i.companyStage || 'early-stage startup'}", Current team: "${i.currentTeam}", Goal: "${i.goal}".
+Provide:
+## WORKFORCE PLANNING REPORT
+## CURRENT STATE ANALYSIS
+## HIRING PRIORITY MATRIX (immediate/3mo/6mo/1yr)
+## RECOMMENDED ROLES TO HIRE (with rationale)
+## BUILD VS BUY ANALYSIS (hire vs train vs outsource)
+## BUDGET ESTIMATE (Indian market rates)
+## ORGANIZATIONAL STRUCTURE RECOMMENDATION
+## 12-MONTH HIRING ROADMAP`,
+  };
+
+  const promptFn = TOOL_PROMPTS[tool];
+  if (!promptFn) return res.status(400).json({ error: "Unknown tool: " + tool });
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+
+  const send = (obj) => {
+    try { res.write("data: " + JSON.stringify(obj) + "\n\n"); if (typeof res.flush === "function") res.flush(); } catch {}
+  };
+
+  try {
+    const systemPrompt = promptFn(inputs);
+    const stream = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "system", content: systemPrompt }, { role: "user", content: "Generate the analysis now." }],
+      max_tokens: 1200,
+      temperature: 0.7,
+      stream: true,
+    });
+
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content || "";
+      if (delta) send({ chunk: delta });
+    }
+
+    send({ done: true });
+    res.end();
+    if (req.user && req.profile?.plan === "free") incrementUsage(req.user.id);
+  } catch (err) {
+    console.error("Gene tool error:", err.message);
+    send({ error: "Something went wrong." });
+    res.end();
+  }
+});

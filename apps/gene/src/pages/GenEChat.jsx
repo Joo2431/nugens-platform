@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
-const API   = import.meta.env.VITE_GEN_E_API_URL || "https://gene-backend-al5h.onrender.com";
+const API   = import.meta.env.VITE_GEN_E_API_URL || "https://nugens-platform.onrender.com";
 const PINK  = "#e8185d";
 const LIMIT = 20;
 
