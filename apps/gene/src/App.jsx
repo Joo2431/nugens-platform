@@ -59,7 +59,15 @@ function AppShell() {
 
   const fetchProfile = async (uid) => {
     const { data } = await supabase.from("profiles").select("*").eq("id", uid).single();
-    if (data) setProfile(data);
+    if (!data) return;
+    setProfile(data);
+    // If DB says business but localStorage has stale individual override, clear it
+    const storedOverride = localStorage.getItem("gene-mode-override");
+    if (data.user_type === "business" && storedOverride === "individual") {
+      localStorage.removeItem("gene-mode-override");
+      localStorage.removeItem("gene-mode-override-ts");
+      setModeOverride(null);
+    }
   };
 
   useEffect(() => {
