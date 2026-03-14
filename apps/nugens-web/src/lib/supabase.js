@@ -1,9 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 
-const SUPA_URL = import.meta.env.VITE_SUPABASE_URL  || "https://qllvyqdzpxgubiuujhbm.supabase.co";
-const SUPA_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsbHZ5cWR6cHhndWJpdXVqaGJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzNTY4MjgsImV4cCI6MjA4NzkzMjgyOH0.OOP-s4eOl-oYdCrGFONIROv3_mx05d212ZyEfPmCHRg--";
+// Hardcoded — do NOT use env vars as they may be set incorrectly in Cloudflare
+const SUPA_URL = "https://qllvyqdzpxgubiuujhbm.supabase.co";
+const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsbHZ5cWR6cHhndWJpdXVqaGJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzNTY4MjgsImV4cCI6MjA4NzkzMjgyOH0.OOP-s4eOl-oYdCrGFONIROv3_mx05d212ZyEfPmCHRg--";
 
-// Share session across ALL *.nugens.in.net subdomains via cookie
 const cookieStorage = {
   getItem(key) {
     if (typeof document === "undefined") return null;
@@ -27,6 +27,6 @@ export const supabase = createClient(SUPA_URL, SUPA_KEY, {
     storageKey: "ng-auth",
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true,
+    detectSessionInUrl: false, // We handle hash manually in AuthPage
   },
 });
