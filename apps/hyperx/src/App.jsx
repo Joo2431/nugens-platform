@@ -24,11 +24,6 @@ function Spinner() {
   );
 }
 
-async function fetchProfile(userId) {
-  const { data } = await supabase.from("profiles").select("*").eq("id", userId).single();
-  return data || null;
-}
-
 function AppShell() {
   const location       = useLocation();
   const [user,    setUser]    = useState(null);
@@ -37,35 +32,93 @@ function AppShell() {
   const isCoursePlayer = location.pathname.match(/^\/courses\/.+/);
 
   useEffect(() => {
-    let finished = false;
+    let settled = false;
+
+    // Safety net: if nothing resolves in 6 seconds, force-show the app.
+    // This prevents an infinite spinner if getSession() hangs.
+    const timeout = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        console.warn("HyperX: auth timeout — forcing ready");
+        setReady(true);
+      }
+    }, 6000);
+
+    function finish(usr, prof) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      setUser(usr);
+      setProfile(prof);
+      setReady(true);
+    }
 
     async function init() {
-      // Wait for BOTH session AND profile before setting ready=true.
-      // This is the definitive fix for admin panel seeing profile=null.
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        const p = await fetchProfile(session.user.id);
-        if (!finished) setProfile(p);
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error("getSession error:", error.message);
+          finish(null, null);
+          return;
+        }
+
+        if (!session?.user) {
+          finish(null, null);
+          return;
+        }
+
+        // We have a session — now fetch the profile
+        try {
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", session.user.id)
+            .single();
+          finish(session.user, prof || null);
+        } catch (profileErr) {
+          console.warn("Profile fetch failed:", profileErr.message);
+          // Still finish — user is authenticated, profile just unavailable
+          finish(session.user, null);
+        }
+      } catch (err) {
+        console.error("Auth init error:", err.message);
+        finish(null, null);
       }
-      if (!finished) { finished = true; setReady(true); }
     }
+
+    // Also subscribe to auth state changes (handles token refresh, logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (session?.user) {
+          // Update profile on session change
+          try {
+            const { data: prof } = await supabase
+              .from("profiles")
+              .select("*")
+              .eq("id", session.user.id)
+              .single();
+            setUser(session.user);
+            setProfile(prof || null);
+          } catch {
+            setUser(session.user);
+          }
+          // If init() hasn't finished yet, this counts as finishing
+          if (!settled) finish(session.user, null);
+        } else {
+          setUser(null);
+          setProfile(null);
+          if (!settled) finish(null, null);
+        }
+      }
+    );
 
     init();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_e, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        const p = await fetchProfile(session.user.id);
-        setProfile(p);
-        if (!finished) { finished = true; setReady(true); }
-      } else {
-        setProfile(null);
-        if (!finished) { finished = true; setReady(true); }
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   if (!ready) return <Spinner />;
