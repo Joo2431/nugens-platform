@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
-import { useProfile } from "../lib/useProfile";
 
 const PINK   = "#e8185d";
 const TEXT   = "#111827";
@@ -18,13 +17,65 @@ const EMPTY_COURSE = { title:"", description:"", category:"Communication", cours
 const EMPTY_LESSON = { title:"", description:"", duration_mins:0, sort_order:0, is_free:false, video_url:"" };
 
 export default function AdminPanel({ profile: profileProp }) {
-  // Use useProfile directly so we have our own loading state
-  // This avoids the race condition where profile prop is null on first render
-  const { profile: ownProfile, ready } = useProfile();
-  // Use own profile if available, fall back to prop
-  const profile = ownProfile || profileProp;
+  // ─── ADMIN CHECK: query directly, never rely on prop timing ────────────────
+  // The profileProp can be null on first render due to async session fetch.
+  // We do our own direct Supabase query so we are never blocked by prop timing.
+  const [adminStatus, setAdminStatus] = useState("loading"); // "loading" | "allowed" | "denied"
+  const [authEmail,   setAuthEmail]   = useState("");
+  const [debugPlan,   setDebugPlan]   = useState("");
 
-  const [tab,       setTab]       = useState("courses");   // courses | lessons | offers | analytics
+  useEffect(() => {
+    async function checkAdmin() {
+      // Step 1: get the current auth session
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session?.user) {
+        setAdminStatus("denied");
+        setAuthEmail("No session found — not logged in");
+        return;
+      }
+
+      const userId = session.user.id;
+      const email  = session.user.email || "";
+      setAuthEmail(email);
+
+      // Step 2: query the profiles table directly for this user's plan
+      const { data: profileRow, error } = await supabase
+        .from("profiles")
+        .select("plan, email")
+        .eq("id", userId)
+        .single();
+
+      if (error || !profileRow) {
+        // No profile row exists — try to create one, then check again
+        setDebugPlan("NO ROW in profiles table");
+
+        // Attempt to upsert a basic profile row so the user exists
+        await supabase.from("profiles").upsert({
+          id: userId,
+          email: email,
+          full_name: session.user.user_metadata?.full_name || "",
+          plan: "free",
+        }, { onConflict: "id" });
+
+        setAdminStatus("denied");
+        return;
+      }
+
+      setDebugPlan(profileRow.plan || "null");
+
+      if (profileRow.plan === "admin") {
+        setAdminStatus("allowed");
+      } else {
+        setAdminStatus("denied");
+      }
+    }
+
+    checkAdmin();
+  }, []);
+
+  // ─── STATES ────────────────────────────────────────────────────────────────
+  const [tab,       setTab]       = useState("courses");
   const [courses,   setCourses]   = useState([]);
   const [selCourse, setSelCourse] = useState(null);
   const [lessons,   setLessons]   = useState([]);
@@ -41,10 +92,8 @@ export default function AdminPanel({ profile: profileProp }) {
   const videoRef = useRef();
 
   const notify = (text, type="success") => { setMsg({text,type}); setTimeout(()=>setMsg({text:"",type:""}),4000); };
-  // CRITICAL: Wait until profile is fully loaded before checking admin status.
-  // profile is null while Supabase fetches the session — don't gate on it immediately.
-  const isAdmin = profile?.plan === "admin";
-  const isLoading = !ready && !profile;
+  const isAdmin   = adminStatus === "allowed";
+  const isLoading = adminStatus === "loading";
 
   useEffect(() => {
     loadCourses();
@@ -166,49 +215,56 @@ export default function AdminPanel({ profile: profileProp }) {
     uploadBtn: { padding:"8px 16px", background:"#f3f4f6", border:`1px solid ${BORDER}`, borderRadius:8, fontSize:12, color:TEXT, cursor:"pointer", fontFamily:"inherit" },
   };
 
-  // Show spinner while profile is still loading — never block prematurely
+  // Show spinner while checking admin status
   if (isLoading) return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:LIGHT, fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
       <div style={{ textAlign:"center" }}>
         <div style={{ fontSize:28, color:PINK, marginBottom:12 }}>⚙</div>
-        <div style={{ fontSize:14, color:MUTED }}>Loading admin panel...</div>
+        <div style={{ fontSize:14, color:MUTED }}>Checking admin access...</div>
       </div>
     </div>
   );
 
   if (!isAdmin) return (
-    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:LIGHT, fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
-      <div style={{ textAlign:"center", maxWidth:520, padding:"0 24px" }}>
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"100vh", background:LIGHT, fontFamily:"'Plus Jakarta Sans',sans-serif", padding:24 }}>
+      <div style={{ textAlign:"center", maxWidth:540 }}>
         <div style={{ fontSize:40, marginBottom:16 }}>🔒</div>
-        <div style={{ fontSize:18, fontWeight:700, color:TEXT, marginBottom:8 }}>Admin Access Required</div>
+        <div style={{ fontSize:20, fontWeight:800, color:TEXT, marginBottom:8 }}>Admin Access Required</div>
 
-        {/* Debug box — shows current plan so you can spot the problem */}
-        <div style={{ background:"#f8f9fb", border:"1px solid #e8eaed", borderRadius:10, padding:"12px 16px", marginBottom:20, textAlign:"left" }}>
-          <div style={{ fontSize:11, fontWeight:700, color:MUTED, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:6 }}>Debug Info</div>
-          <div style={{ fontSize:12, color:TEXT, fontFamily:"monospace" }}>
-            profile loaded: {profile ? "yes" : "no"}<br/>
-            current plan: <strong style={{color:PINK}}>{profile?.plan || "null"}</strong><br/>
-            email: {profile?.email || "not loaded"}<br/>
-            ready: {ready ? "yes" : "no"}
+        {/* Debug box */}
+        <div style={{ background:"#f8f9fb", border:"1px solid #e8eaed", borderRadius:10, padding:"14px 18px", marginBottom:20, textAlign:"left" }}>
+          <div style={{ fontSize:11, fontWeight:700, color:MUTED, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:8 }}>Debug Info</div>
+          <div style={{ fontSize:12, color:TEXT, fontFamily:"monospace", lineHeight:1.9 }}>
+            email: <strong>{authEmail || "none"}</strong><br/>
+            current plan: <strong style={{color: debugPlan === "null" || debugPlan === "" || debugPlan === "NO ROW in profiles table" ? "#DC2626" : "#16A34A"}}>{debugPlan || "null"}</strong><br/>
+            need: <strong style={{color:"#16A34A"}}>admin</strong>
           </div>
         </div>
 
-        <div style={{ fontSize:13, color:MUTED, lineHeight:1.7, marginBottom:16 }}>
-          Your plan must be <strong>'admin'</strong> to access this page.<br/>
-          Run this in your Supabase SQL Editor:
+        <div style={{ fontSize:13, color:MUTED, lineHeight:1.75, marginBottom:16 }}>
+          {debugPlan === "NO ROW in profiles table"
+            ? "No profile row was found for your account. A blank row has been created. Now run the SQL below, then sign out and back in."
+            : `Your current plan is "${debugPlan || "null"}". Run the SQL below in Supabase, then sign out and sign back in.`}
         </div>
-        <div style={{ background:"#f3f4f6", border:"1px solid #e8eaed", borderRadius:8, padding:"12px 16px", fontFamily:"monospace", fontSize:12, color:TEXT, textAlign:"left", marginBottom:16 }}>
+
+        {/* SQL block with actual email filled in */}
+        <div style={{ background:"#f3f4f6", border:"1px solid #e8eaed", borderRadius:8, padding:"14px 18px", fontFamily:"monospace", fontSize:12, color:TEXT, textAlign:"left", marginBottom:16, lineHeight:2 }}>
           UPDATE profiles<br/>
           SET plan = 'admin'<br/>
-          WHERE email = '{profile?.email || "your@email.com"}';
+          WHERE email = '{authEmail || "your@email.com"}';
         </div>
-        <div style={{ fontSize:12, color:MUTED, lineHeight:1.65 }}>
-          After running the SQL: <strong>sign out completely</strong> and sign back in.<br/>
-          The profile is re-fetched on each login — the old plan value is cached in your session.
+
+        <div style={{ fontSize:12, color:MUTED, marginBottom:20, lineHeight:1.65 }}>
+          Go to <strong>supabase.com → SQL Editor → New Query</strong> → paste the above → click Run.<br/>
+          Then sign out and sign back in below.
         </div>
+
         <button
-          onClick={async () => { await supabase.auth.signOut(); window.location.href = "https://nugens.in.net/auth?redirect=https://hyperx.nugens.in.net/admin"; }}
-          style={{ marginTop:20, padding:"10px 24px", background:PINK, color:"#fff", border:"none", borderRadius:9, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}
+          onClick={async () => {
+            await supabase.auth.signOut();
+            window.location.href = "https://nugens.in.net/auth?redirect=https://hyperx.nugens.in.net/admin";
+          }}
+          style={{ padding:"12px 28px", background:PINK, color:"#fff", border:"none", borderRadius:9, fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}
         >
           Sign Out & Sign Back In →
         </button>
