@@ -256,7 +256,7 @@ function RenameModal({chat,onSave,onClose}){
 function FeatureCard({ f, plan, onTrigger }) {
   const isAdmin = plan === "admin";
   const locked  = !isAdmin && (
-    (f.pro    && plan === "free") ||
+    (f.pro    && plan === "free" && plan !== "admin") ||
     (f.yearly && plan !== "yearly")
   );
   return (
@@ -298,7 +298,6 @@ export default function GenEChat() {
   const [staged,     setStaged]     = useState(null);
   const [showAttach, setShowAttach] = useState(false);
   const [sidebarOpen,setSidebarOpen]= useState(false);
-  const [chatPickerOpen,setChatPickerOpen] = useState(false);
   const [searchQ,    setSearchQ]    = useState("");
   const [upgrade,    setUpgrade]    = useState(false);
   const [lang,       setLang]       = useState(()=>localStorage.getItem("gene-lang")||"en");
@@ -484,7 +483,7 @@ export default function GenEChat() {
 
   const stageFile = file => {
     if(!file) return; setShowAttach(false);
-    if((profile?.plan||"free")==="free"){setUpgrade("resume_review");return;}
+    if((profile?.plan||"free")==="free"&&profile?.plan!=="admin"){setUpgrade("resume_review");return;}
     const s={file,name:file.name,size:file.size,previewUrl:null};
     if(isImgExt(file.name)){const r=new FileReader();r.onload=e=>setStaged({...s,previewUrl:e.target.result});r.readAsDataURL(file);}
     else setStaged(s);
@@ -556,7 +555,7 @@ export default function GenEChat() {
       }
       if(wasGated) return;
       patch(chatId,c=>({...c,messages:c.messages.map(m=>m.streaming?{role:"assistant",text:fullText||"No response. Try again.",pdf:pdfLink,jobs:jobCards}:m),history:[...c.history,{role:"assistant",content:fullText}]}));
-      if(profile?.plan==="free") setProfile(p=>p?{...p,questions_used:(p.questions_used||0)+1}:p);
+      if(profile?.plan==="free"&&profile?.plan!=="admin") setProfile(p=>p?{...p,questions_used:(p.questions_used||0)+1}:p);
     } catch(err){
       patch(chatId,c=>({...c,messages:c.messages.filter(m=>!m.streaming).concat([{role:"assistant",text:"⚠️ Could not reach server. Please try again.\n\n*("+err.message+")*"}])}));
     } finally{setBusy(false);}
@@ -669,7 +668,7 @@ export default function GenEChat() {
             {icon:"📄",label:"Resume Vault",path:"/resumes",pro:true},
             {icon:"📊",label:"Job Tracker",path:"/jobs",pro:false},
           ].map(item=>{
-            const locked=item.pro&&(profile?.plan||"free")==="free";
+            const locked=item.pro&&(profile?.plan||"free")==="free"&&profile?.plan!=="admin";
             return (
               <button key={item.path} onClick={()=>locked?setUpgrade("resume_builder"):nav(item.path)}
                 style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:"none",border:"1.5px solid #edf0f3",borderRadius:9,cursor:"pointer",textAlign:"left",fontSize:12,color:locked?"#ccc":"#555",fontWeight:500,transition:"all 0.12s"}}
@@ -686,7 +685,7 @@ export default function GenEChat() {
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:5}}>
           {TOOLS.slice(0,6).map(t=>{
             const tp=profile?.plan||"free";
-            const locked=((t.mode==="RESUME"||t.mode==="INTERVIEW")&&tp==="free")||(t.label==="Job Match"&&tp!=="yearly");
+            const isAdm=tp==="admin"; const locked=!isAdm&&(((t.mode==="RESUME"||t.mode==="INTERVIEW")&&tp==="free")||(t.label==="Job Match"&&tp!=="yearly"));
             return (
               <button key={t.label} onClick={()=>sendTool(t)}
                 style={{padding:"7px 9px",borderRadius:8,border:"1.5px solid #edf0f3",background:"#fff",cursor:"pointer",textAlign:"left",fontSize:11.5,color:locked?"#ccc":"#555",fontWeight:500,transition:"all 0.12s"}}
@@ -789,15 +788,13 @@ export default function GenEChat() {
         .msg-wrap:hover .edit-btn{opacity:1!important}
         .edit-btn:hover{color:${PINK}!important}
 
-        /* GenEChat's own sidebar is hidden — App.jsx Sidebar handles navigation.
-           The mobile drawer (☰) still works for small screens. */
-        .desktop-sb{display:none!important}
+        .desktop-sb{display:flex}
         .mob-btn{display:none!important}
         .sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:199;backdrop-filter:blur(2px)}
         .sb-overlay.open{display:block}
         .sb-drawer{position:fixed;top:0;left:0;height:100%;width:252px;z-index:200;transform:translateX(-100%);transition:transform 0.22s ease;box-shadow:4px 0 32px rgba(0,0,0,0.1)}
         .sb-drawer.open{transform:translateX(0)}
-        @media(max-width:720px){.mob-btn{display:flex!important}}
+        @media(max-width:720px){.desktop-sb{display:none!important}.mob-btn{display:flex!important}}
       `}</style>
 
       {/* Modals & Toasts */}
@@ -827,77 +824,15 @@ export default function GenEChat() {
         <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minWidth:0}}>
 
           {/* Topbar */}
-          <div style={{display:"flex",alignItems:"center",gap:8,padding:"0 16px",height:54,borderBottom:"1px solid #f0f2f5",background:"rgba(255,255,255,0.95)",backdropFilter:"blur(8px)",flexShrink:0,position:"relative"}}>
-
-            {/* Mobile menu */}
+          <div style={{display:"flex",alignItems:"center",gap:10,padding:"0 20px",height:54,borderBottom:"1px solid #f0f2f5",background:"rgba(255,255,255,0.95)",backdropFilter:"blur(8px)",flexShrink:0}}>
             <button className="mob-btn" onClick={()=>setSidebarOpen(true)}
               style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#bbb",padding:"4px",display:"none",alignItems:"center"}}>☰</button>
-
-            {/* Chat history picker dropdown */}
-            <div style={{position:"relative",flexShrink:0}}>
-              <button
-                onClick={()=>setChatPickerOpen(o=>!o)}
-                title="Switch chat"
-                style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",background:"#f8fafb",border:"1.5px solid #edf0f3",borderRadius:9,cursor:"pointer",fontSize:12.5,color:"#555",fontWeight:500,maxWidth:190,transition:"all 0.13s"}}
-                onMouseEnter={e=>{e.currentTarget.style.borderColor=PINK+"60";e.currentTarget.style.color=PINK;}}
-                onMouseLeave={e=>{e.currentTarget.style.borderColor="#edf0f3";e.currentTarget.style.color="#555";}}>
-                <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:130}}>{active?.title||"New Chat"}</span>
-                <span style={{fontSize:8,color:"#ccc",flexShrink:0}}>{chatPickerOpen?"▲":"▼"}</span>
-              </button>
-
-              {chatPickerOpen && (
-                <>
-                  <div onClick={()=>{setChatPickerOpen(false);setSearchQ("");}} style={{position:"fixed",inset:0,zIndex:300}}/>
-                  <div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:301,background:"#fff",border:"1px solid #f0f0f0",borderRadius:12,boxShadow:"0 8px 32px rgba(0,0,0,0.1)",width:268,overflow:"hidden"}}>
-                    <div style={{padding:"10px 12px 6px"}}>
-                      <input value={searchQ} onChange={e=>setSearchQ(e.target.value)}
-                        placeholder="Search chats…" autoFocus
-                        style={{width:"100%",padding:"7px 11px",background:"#f8fafb",border:"1px solid #edf0f3",borderRadius:8,fontSize:12,color:"#555",outline:"none",boxSizing:"border-box"}}/>
-                    </div>
-                    <div style={{maxHeight:260,overflowY:"auto",padding:"4px 8px 6px"}} className="sb-scroll">
-                      {Object.entries(groupedChats).map(([grp,list])=>{
-                        if(!list.length) return null;
-                        return (
-                          <div key={grp}>
-                            <div style={{padding:"5px 6px 2px",fontSize:9,fontWeight:700,color:"#d0d5dd",letterSpacing:"0.06em",textTransform:"uppercase"}}>{grp}</div>
-                            {list.map(chat=>{
-                              const isAct=chat.id===activeId;
-                              return (
-                                <div key={chat.id}
-                                  onClick={()=>{setActiveId(chat.id);setChatPickerOpen(false);setSearchQ("");}}
-                                  style={{padding:"7px 8px",borderRadius:8,cursor:"pointer",marginBottom:1,background:isAct?`${PINK}08`:"transparent",transition:"background 0.1s",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontSize:12.5,color:isAct?PINK:"#555",fontWeight:isAct?600:400}}
-                                  onMouseEnter={e=>{if(!isAct)e.currentTarget.style.background="#f8fafb";}}
-                                  onMouseLeave={e=>{if(!isAct)e.currentTarget.style.background="transparent";}}>
-                                  {chat.title}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        );
-                      })}
-                      {!Object.values(groupedChats).some(g=>g.length) && (
-                        <div style={{padding:"20px 12px",textAlign:"center",color:"#ddd",fontSize:12}}>No chats yet</div>
-                      )}
-                    </div>
-                    <div style={{padding:"8px 12px",borderTop:"1px solid #f5f7fa"}}>
-                      <button onClick={()=>{newChat();setChatPickerOpen(false);}}
-                        style={{width:"100%",padding:"8px",background:`${PINK}08`,border:`1px solid ${PINK}20`,borderRadius:8,fontSize:12,color:PINK,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                        + New Chat
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
+            <div style={{display:"flex",alignItems:"center",gap:8,flex:1,minWidth:0}}>
+              <span style={{fontSize:12,fontWeight:700,color:PINK,background:`${PINK}0c`,padding:"3px 10px",borderRadius:20,border:`1px solid ${PINK}20`,flexShrink:0,letterSpacing:"0.01em"}}>
+                {curMode?.long}
+              </span>
+              <span style={{fontSize:13,color:"#c0c6d0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{active?.title||"New Chat"}</span>
             </div>
-
-            {/* Current mode badge */}
-            <span style={{fontSize:12,fontWeight:700,color:PINK,background:`${PINK}0c`,padding:"3px 10px",borderRadius:20,border:`1px solid ${PINK}20`,flexShrink:0,letterSpacing:"0.01em"}}>
-              {curMode?.long}
-            </span>
-
-            <div style={{flex:1}}/>
-
-            {/* Right controls */}
             <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
               {profile?.plan==="free"?(
                 <button onClick={()=>nav("/pricing")} style={{padding:"4px 11px",background:`${PINK}0c`,border:`1px solid ${PINK}20`,borderRadius:20,fontSize:11,color:PINK,cursor:"pointer",fontWeight:700}}>
@@ -943,7 +878,7 @@ export default function GenEChat() {
                 {MODES.map(m=>(
                   <button key={m.id}
                     onClick={()=>{
-                      if((m.id==="RESUME"||m.id==="INTERVIEW")&&(profile?.plan||"free")==="free"){
+                      if((m.id==="RESUME"||m.id==="INTERVIEW")&&(profile?.plan||"free")==="free"&&profile?.plan!=="admin"){
                         setUpgrade(m.id==="RESUME"?"resume_builder":"interview_advanced");
                       } else setMode(m.id);
                     }}
@@ -952,7 +887,7 @@ export default function GenEChat() {
                       background:mode===m.id?`${PINK}0c`:"#fff",
                       color:mode===m.id?PINK:"#c0c6d0",
                       transition:"all 0.13s"}}>
-                    {m.icon} {m.long}{(m.id==="RESUME"||m.id==="INTERVIEW")&&(profile?.plan||"free")==="free"?" 🔒":""}
+                    {m.icon} {m.long}{(m.id==="RESUME"||m.id==="INTERVIEW")&&(profile?.plan||"free")==="free"&&profile?.plan!=="admin"?" 🔒":""}
                   </button>
                 ))}
               </div>
@@ -1140,7 +1075,7 @@ export default function GenEChat() {
                   {MODES.map(m=>(
                     <button key={m.id}
                       onClick={()=>{
-                        if((m.id==="RESUME"||m.id==="INTERVIEW")&&(profile?.plan||"free")==="free"){setUpgrade(m.id==="RESUME"?"resume_builder":"interview_advanced");}
+                        if((m.id==="RESUME"||m.id==="INTERVIEW")&&(profile?.plan||"free")==="free"&&profile?.plan!=="admin"){setUpgrade(m.id==="RESUME"?"resume_builder":"interview_advanced");}
                         else setMode(m.id);
                       }}
                       style={{padding:"3px 11px",borderRadius:20,cursor:"pointer",fontSize:11.5,fontWeight:600,

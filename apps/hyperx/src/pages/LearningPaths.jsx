@@ -108,7 +108,7 @@ export default function LearningPaths({ profile }) {
                 <div style={{ width: 24, height: 24, borderRadius: "50%", background: selected.color + "18", border: `1px solid ${selected.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700, color: selected.color, flexShrink: 0 }}>{i + 1}</div>
                 <div style={{ flex: 1 }}>{mod}</div>
                 {i === 0 && selected.enrolled && <span style={{ fontSize: 10, color: "#16a34a", fontWeight: 600 }}>In progress</span>}
-                {plan === "free" && i > 1 && <span style={{ fontSize: 10, color: "#333" }}>🔒</span>}
+                {plan === "free" && plan !== "admin" && i > 1 && <span style={{ fontSize: 10, color: "#333" }}>🔒</span>}
               </div>
             ))}
           </div>

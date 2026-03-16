@@ -128,6 +128,9 @@ async function checkUsage(req, res, next) {
     return next();
   }
 
+  // Admin bypasses all usage limits
+  if (profile.plan === "admin") { req.profile = profile; return next(); }
+
   if (profile.plan === "free" && (profile.questions_used || 0) >= FREE_LIMIT) {
     return res.status(403).json({
       error: "limit_reached",
@@ -447,8 +450,8 @@ app.post("/api/chat", requireAuth, checkUsage, async (req, res) => {
 
   /* ══ FEATURE GATES ══ */
 
-  // ATS Resume Builder → Pro only (monthly + yearly)
-  if (mode === "RESUME" && plan === "free") {
+  // ATS Resume Builder → Pro only (monthly + yearly) — admin has full access
+  if (mode === "RESUME" && plan === "free" && plan !== "admin") {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     const send = (obj) => res.write("data: " + JSON.stringify(obj) + "\n\n");
@@ -458,8 +461,8 @@ app.post("/api/chat", requireAuth, checkUsage, async (req, res) => {
     return;
   }
 
-  // Advanced Interview Prep → Pro only (monthly + yearly)
-  if (mode === "INTERVIEW" && plan === "free") {
+  // Advanced Interview Prep → Pro only (monthly + yearly) — admin has full access
+  if (mode === "INTERVIEW" && plan === "free" && plan !== "admin") {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     const send = (obj) => res.write("data: " + JSON.stringify(obj) + "\n\n");
@@ -471,7 +474,7 @@ app.post("/api/chat", requireAuth, checkUsage, async (req, res) => {
 
   // Job Match Analysis → Yearly only
   const isJobQuery = detectJobIntent(clean);
-  if (isJobQuery && plan !== "yearly") {
+  if (isJobQuery && plan !== "yearly" && plan !== "admin") {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     const sendG = (obj) => res.write("data: " + JSON.stringify(obj) + "\n\n");
@@ -518,7 +521,7 @@ app.post("/api/chat", requireAuth, checkUsage, async (req, res) => {
     }
 
     let pdfPath = null;
-    if (mode === "RESUME" && fullText.length > 500 && fullText.includes("##") && req.profile?.plan !== "free") {
+    if (mode === "RESUME" && fullText.length > 500 && fullText.includes("##") && !["free"].includes(req.profile?.plan)) {
       try { pdfPath = "/download/" + generateResumePDF(fullText); } catch {}
     }
     /* Send live job cards — await parallel job fetch, then send as SSE event */
@@ -531,7 +534,7 @@ app.post("/api/chat", requireAuth, checkUsage, async (req, res) => {
     res.end();
 
     logChat({ userId: req.user?.id, sessionId: session_id, role: "assistant", message: fullText, mode });
-    if (req.user && req.profile?.plan === "free") incrementUsage(req.user.id);
+    if (req.user && req.profile?.plan === "free") incrementUsage(req.user.id); // admin: not counted
 
   } catch (err) {
     console.error("Chat stream error:", err.message);
@@ -557,6 +560,7 @@ app.post("/api/upload", optionalAuth, (req, res, next) => {
       reply: "Resume review & feedback is a **Pro feature**. Upgrade to Pro to upload and analyze your resume.",
     });
   }
+  // Admin always allowed
 
   const ext      = path.extname(req.file.originalname || "").toLowerCase();
   const isImage  = [".png", ".jpg", ".jpeg", ".webp", ".gif"].includes(ext);
@@ -938,6 +942,7 @@ app.post("/api/resumes", requireAuth, checkUsage, async (req, res) => {
   if (req.profile?.plan === "free") {
     return res.status(403).json({ error: "pro_required", message: "Resume saving is a Pro feature. Upgrade to keep your resumes forever." });
   }
+  // Admin: allowed
   const { title, content_md, target_role, target_company } = req.body;
   if (!content_md || content_md.length < 50) return res.status(400).json({ error: "Invalid resume content" });
 
