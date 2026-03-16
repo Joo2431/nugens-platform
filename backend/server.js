@@ -166,7 +166,7 @@ const PLAN_CONFIG = {
   // ── Individual plans (nugens-web pricing page) ────────────────────
   individual_premium_monthly: { amount: 9900,   currency: "INR", label: "Individual Premium Monthly", durationDays: 30,  profilePlan: "monthly" },
   individual_premium_yearly:  { amount: 79900,  currency: "INR", label: "Individual Premium Yearly",  durationDays: 365, profilePlan: "yearly"  },
-  individual_pro_monthly:     { amount: 69900,  currency: "INR", label: "Individual Pro Monthly",     durationDays: 30,  profilePlan: "yearly"  },
+  individual_pro_monthly:     { amount: 100,  currency: "INR", label: "Individual Pro Monthly",     durationDays: 30,  profilePlan: "yearly"  },
   individual_pro_yearly:      { amount: 499900, currency: "INR", label: "Individual Pro Yearly",      durationDays: 365, profilePlan: "yearly"  },
 
   // ── Business plans (nugens-web pricing page) ──────────────────────
