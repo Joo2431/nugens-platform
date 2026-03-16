@@ -303,16 +303,17 @@ async function initiateRazorpay({ planKey, type, isYearly, amount, currency, use
       method: "POST",
       headers: { "Content-Type": "application/json", ...(token ? { Authorization:`Bearer ${token}` } : {}) },
       body: JSON.stringify({
+        // Must match a key in server.js PLAN_CONFIG exactly
         plan: `${type}_${planKey}_${isYearly ? "yearly" : "monthly"}`,
-        amount: amount * 100, // paise
-        currency: "INR",
       }),
     });
-    const order = await orderRes.json();
-    if (!order.id) throw new Error("Order creation failed");
+    const resp = await orderRes.json();
+    // Backend wraps in { order: {...} }
+    const order = resp.order || resp;
+    if (!order?.id) throw new Error(resp.error || resp.details || "Order creation failed");
 
     const rzp = new window.Razorpay({
-      key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_live_YOUR_KEY",
+      key: import.meta.env.VITE_RAZORPAY_KEY_ID,
       order_id: order.id,
       amount: order.amount,
       currency: "INR",
@@ -328,7 +329,8 @@ async function initiateRazorpay({ planKey, type, isYearly, amount, currency, use
             razorpay_payment_id: response.razorpay_payment_id,
             razorpay_order_id:   response.razorpay_order_id,
             razorpay_signature:  response.razorpay_signature,
-            plan: planKey, type,
+            // Full plan key so backend can look up PLAN_CONFIG and get profilePlan
+            plan: `${type}_${planKey}_${isYearly ? "yearly" : "monthly"}`,
           }),
         });
         window.location.href = "/dashboard?subscribed=1";
@@ -336,7 +338,7 @@ async function initiateRazorpay({ planKey, type, isYearly, amount, currency, use
     });
     rzp.open();
   } catch (err) {
-    alert("Payment setup failed: " + err.message);
+    alert("Payment setup failed: " + (err.message || "Unknown error. Please try again."));
   }
 }
 
@@ -356,6 +358,7 @@ export default function PricingPage() {
       const s = document.createElement("script");
       s.id = "razorpay-script";
       s.src = "https://checkout.razorpay.com/v1/checkout.js";
+      s.onerror = () => console.error("Failed to load Razorpay script");
       document.head.appendChild(s);
     }
 

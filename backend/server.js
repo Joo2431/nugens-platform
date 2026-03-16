@@ -156,9 +156,35 @@ async function logChat({ userId, sessionId, role, message, mode }) {
 }
 
 /* ── PLAN CONFIG ── */
+// Covers all plans from all platforms (NuGens Web, Gen-E, HyperX, DigiHub, Units)
+// amount = paise (INR × 100). profilePlan = value written to profiles.plan column.
 const PLAN_CONFIG = {
-  monthly: { amount: 9900,  currency: "INR", label: "GEN-E Pro Monthly", durationDays: 30  },
-  yearly:  { amount: 69900, currency: "INR", label: "GEN-E Pro Yearly",  durationDays: 365 },
+  // ── Gen-E legacy keys (keep for backward compat) ─────────────────
+  monthly: { amount: 9900,   currency: "INR", label: "Gen-E Pro Monthly",    durationDays: 30,  profilePlan: "monthly" },
+  yearly:  { amount: 69900,  currency: "INR", label: "Gen-E Pro Yearly",     durationDays: 365, profilePlan: "yearly"  },
+
+  // ── Individual plans (nugens-web pricing page) ────────────────────
+  individual_premium_monthly: { amount: 9900,   currency: "INR", label: "Individual Premium Monthly", durationDays: 30,  profilePlan: "monthly" },
+  individual_premium_yearly:  { amount: 79900,  currency: "INR", label: "Individual Premium Yearly",  durationDays: 365, profilePlan: "yearly"  },
+  individual_pro_monthly:     { amount: 69900,  currency: "INR", label: "Individual Pro Monthly",     durationDays: 30,  profilePlan: "yearly"  },
+  individual_pro_yearly:      { amount: 499900, currency: "INR", label: "Individual Pro Yearly",      durationDays: 365, profilePlan: "yearly"  },
+
+  // ── Business plans (nugens-web pricing page) ──────────────────────
+  business_starter_monthly: { amount: 49900,  currency: "INR", label: "Business Starter Monthly", durationDays: 30,  profilePlan: "monthly" },
+  business_starter_yearly:  { amount: 399900, currency: "INR", label: "Business Starter Yearly",  durationDays: 365, profilePlan: "yearly"  },
+  business_premium_monthly: { amount: 99900,  currency: "INR", label: "Business Premium Monthly", durationDays: 30,  profilePlan: "monthly" },
+  business_premium_yearly:  { amount: 799900, currency: "INR", label: "Business Premium Yearly",  durationDays: 365, profilePlan: "yearly"  },
+  business_pro_monthly:     { amount: 199900, currency: "INR", label: "Business Pro Monthly",     durationDays: 30,  profilePlan: "yearly"  },
+  business_pro_yearly:      { amount: 1499900,currency: "INR", label: "Business Pro Yearly",      durationDays: 365, profilePlan: "yearly"  },
+
+  // ── HyperX plans ─────────────────────────────────────────────────
+  hx_ind_premium_monthly: { amount: 29900,  currency: "INR", label: "HyperX Individual Premium Monthly", durationDays: 30,  profilePlan: "hx_ind_premium" },
+  hx_ind_pro_monthly:     { amount: 129900, currency: "INR", label: "HyperX Individual Pro Monthly",     durationDays: 30,  profilePlan: "hx_ind_pro"     },
+  hx_ind_yearly:          { amount: 299900, currency: "INR", label: "HyperX Individual Yearly",          durationDays: 365, profilePlan: "hx_ind_yearly"  },
+  hx_biz_starter_monthly: { amount: 29900,  currency: "INR", label: "HyperX Business Starter Monthly",  durationDays: 30,  profilePlan: "hx_biz_starter" },
+  hx_biz_premium_monthly: { amount: 69900,  currency: "INR", label: "HyperX Business Premium Monthly",  durationDays: 30,  profilePlan: "hx_biz_premium" },
+  hx_biz_pro_monthly:     { amount: 159900, currency: "INR", label: "HyperX Business Pro Monthly",      durationDays: 30,  profilePlan: "hx_biz_pro"     },
+  hx_biz_yearly:          { amount: 349900, currency: "INR", label: "HyperX Business Yearly Pro",       durationDays: 365, profilePlan: "hx_biz_yearly"  },
 };
 
 /* ── SYSTEM PROMPT ── */
@@ -450,8 +476,8 @@ app.post("/api/chat", requireAuth, checkUsage, async (req, res) => {
 
   /* ══ FEATURE GATES ══ */
 
-  // ATS Resume Builder → Pro only (monthly + yearly) — admin has full access
-  if (mode === "RESUME" && plan === "free" && plan !== "admin") {
+  // ATS Resume Builder → Pro only (monthly + yearly)
+  if (mode === "RESUME" && plan === "free") {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     const send = (obj) => res.write("data: " + JSON.stringify(obj) + "\n\n");
@@ -461,8 +487,8 @@ app.post("/api/chat", requireAuth, checkUsage, async (req, res) => {
     return;
   }
 
-  // Advanced Interview Prep → Pro only (monthly + yearly) — admin has full access
-  if (mode === "INTERVIEW" && plan === "free" && plan !== "admin") {
+  // Advanced Interview Prep → Pro only (monthly + yearly)
+  if (mode === "INTERVIEW" && plan === "free") {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     const send = (obj) => res.write("data: " + JSON.stringify(obj) + "\n\n");
@@ -474,7 +500,7 @@ app.post("/api/chat", requireAuth, checkUsage, async (req, res) => {
 
   // Job Match Analysis → Yearly only
   const isJobQuery = detectJobIntent(clean);
-  if (isJobQuery && plan !== "yearly" && plan !== "admin") {
+  if (isJobQuery && plan !== "yearly") {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     const sendG = (obj) => res.write("data: " + JSON.stringify(obj) + "\n\n");
@@ -521,7 +547,7 @@ app.post("/api/chat", requireAuth, checkUsage, async (req, res) => {
     }
 
     let pdfPath = null;
-    if (mode === "RESUME" && fullText.length > 500 && fullText.includes("##") && !["free"].includes(req.profile?.plan)) {
+    if (mode === "RESUME" && fullText.length > 500 && fullText.includes("##") && req.profile?.plan !== "free") {
       try { pdfPath = "/download/" + generateResumePDF(fullText); } catch {}
     }
     /* Send live job cards — await parallel job fetch, then send as SSE event */
@@ -534,7 +560,7 @@ app.post("/api/chat", requireAuth, checkUsage, async (req, res) => {
     res.end();
 
     logChat({ userId: req.user?.id, sessionId: session_id, role: "assistant", message: fullText, mode });
-    if (req.user && req.profile?.plan === "free") incrementUsage(req.user.id); // admin: not counted
+    if (req.user && req.profile?.plan === "free") incrementUsage(req.user.id);
 
   } catch (err) {
     console.error("Chat stream error:", err.message);
@@ -560,7 +586,6 @@ app.post("/api/upload", optionalAuth, (req, res, next) => {
       reply: "Resume review & feedback is a **Pro feature**. Upgrade to Pro to upload and analyze your resume.",
     });
   }
-  // Admin always allowed
 
   const ext      = path.extname(req.file.originalname || "").toLowerCase();
   const isImage  = [".png", ".jpg", ".jpeg", ".webp", ".gif"].includes(ext);
@@ -680,20 +705,32 @@ app.post("/api/upload", optionalAuth, (req, res, next) => {
 
 /* ── POST /api/subscription/create-order ── */
 app.post("/api/subscription/create-order", requireAuth, async (req, res) => {
-  const { plan } = req.body;
+  const { plan, amount: clientAmount, currency: clientCurrency } = req.body;
   const planConfig = PLAN_CONFIG[plan];
-  if (!planConfig) return res.status(400).json({ error: "Invalid plan. Choose 'monthly' or 'yearly'." });
+  if (!planConfig) {
+    return res.status(400).json({
+      error: `Unknown plan: "${plan}". Check PLAN_CONFIG in server.js.`
+    });
+  }
+
+  // Use server-side amount from PLAN_CONFIG — never trust client-sent amount
+  const finalAmount   = planConfig.amount;
+  const finalCurrency = planConfig.currency || "INR";
 
   try {
     const order = await razorpay.orders.create({
-      amount: planConfig.amount, currency: planConfig.currency,
-      receipt: `gene-${plan}-${req.user.id.slice(0,8)}-${Date.now()}`,
-      notes: { user_id: req.user.id, user_email: req.user.email, plan },
+      amount:   finalAmount,
+      currency: finalCurrency,
+      receipt:  `ng-${plan}-${req.user.id.slice(0,8)}-${Date.now()}`,
+      notes:    { user_id: req.user.id, user_email: req.user.email, plan },
     });
     res.json({ order });
   } catch (err) {
-    console.error("Razorpay order error:", err);
-    res.status(500).json({ error: "Failed to create payment order." });
+    console.error("Razorpay order error:", err.message, err?.error);
+    res.status(500).json({
+      error:   "Failed to create payment order.",
+      details: err?.error?.description || err.message,
+    });
   }
 });
 
@@ -714,8 +751,12 @@ app.post("/api/subscription/verify", requireAuth, async (req, res) => {
   const now = new Date();
   const subscriptionEnd = new Date(now.getTime() + planConfig.durationDays * 24 * 60 * 60 * 1000);
 
+  // Write the profilePlan value (e.g. "monthly", "yearly", "hx_ind_pro")
+  // not the full plan key (e.g. "individual_premium_monthly")
+  const profilePlanValue = planConfig.profilePlan || plan;
+
   const { error } = await supabase.from("profiles").update({
-    plan,
+    plan: profilePlanValue,
     subscription_id: razorpay_payment_id,
     subscription_start: now.toISOString(),
     subscription_end: subscriptionEnd.toISOString(),
@@ -942,7 +983,6 @@ app.post("/api/resumes", requireAuth, checkUsage, async (req, res) => {
   if (req.profile?.plan === "free") {
     return res.status(403).json({ error: "pro_required", message: "Resume saving is a Pro feature. Upgrade to keep your resumes forever." });
   }
-  // Admin: allowed
   const { title, content_md, target_role, target_company } = req.body;
   if (!content_md || content_md.length < 50) return res.status(400).json({ error: "Invalid resume content" });
 
