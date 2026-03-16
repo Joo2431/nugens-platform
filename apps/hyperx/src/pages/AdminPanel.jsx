@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
+import { useProfile } from "../lib/useProfile";
 
 const PINK   = "#e8185d";
 const TEXT   = "#111827";
@@ -16,7 +17,13 @@ const LEVELS   = ["Beginner","Intermediate","Advanced"];
 const EMPTY_COURSE = { title:"", description:"", category:"Communication", course_type:"individual", level:"Beginner", is_free:false, price:0, offer_percent:0, is_published:false, is_exclusive:false, total_lessons:0, duration_mins:0, thumbnail_url:"" };
 const EMPTY_LESSON = { title:"", description:"", duration_mins:0, sort_order:0, is_free:false, video_url:"" };
 
-export default function AdminPanel({ profile }) {
+export default function AdminPanel({ profile: profileProp }) {
+  // Use useProfile directly so we have our own loading state
+  // This avoids the race condition where profile prop is null on first render
+  const { profile: ownProfile, ready } = useProfile();
+  // Use own profile if available, fall back to prop
+  const profile = ownProfile || profileProp;
+
   const [tab,       setTab]       = useState("courses");   // courses | lessons | offers | analytics
   const [courses,   setCourses]   = useState([]);
   const [selCourse, setSelCourse] = useState(null);
@@ -34,7 +41,10 @@ export default function AdminPanel({ profile }) {
   const videoRef = useRef();
 
   const notify = (text, type="success") => { setMsg({text,type}); setTimeout(()=>setMsg({text:"",type:""}),4000); };
+  // CRITICAL: Wait until profile is fully loaded before checking admin status.
+  // profile is null while Supabase fetches the session — don't gate on it immediately.
   const isAdmin = profile?.plan === "admin";
+  const isLoading = !ready && !profile;
 
   useEffect(() => {
     loadCourses();
@@ -156,12 +166,52 @@ export default function AdminPanel({ profile }) {
     uploadBtn: { padding:"8px 16px", background:"#f3f4f6", border:`1px solid ${BORDER}`, borderRadius:8, fontSize:12, color:TEXT, cursor:"pointer", fontFamily:"inherit" },
   };
 
-  if (!isAdmin) return (
-    <div style={{ ...S.page, alignItems:"center", justifyContent:"center" }}>
+  // Show spinner while profile is still loading — never block prematurely
+  if (isLoading) return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:LIGHT, fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
       <div style={{ textAlign:"center" }}>
-        <div style={{ fontSize:32, marginBottom:12 }}>🔒</div>
-        <div style={{ fontSize:16, fontWeight:700, color:TEXT }}>Admin Access Required</div>
-        <div style={{ fontSize:13, color:MUTED, marginTop:4 }}>Run: <code>UPDATE profiles SET plan='admin' WHERE email='your@email.com'</code></div>
+        <div style={{ fontSize:28, color:PINK, marginBottom:12 }}>⚙</div>
+        <div style={{ fontSize:14, color:MUTED }}>Loading admin panel...</div>
+      </div>
+    </div>
+  );
+
+  if (!isAdmin) return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:LIGHT, fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
+      <div style={{ textAlign:"center", maxWidth:520, padding:"0 24px" }}>
+        <div style={{ fontSize:40, marginBottom:16 }}>🔒</div>
+        <div style={{ fontSize:18, fontWeight:700, color:TEXT, marginBottom:8 }}>Admin Access Required</div>
+
+        {/* Debug box — shows current plan so you can spot the problem */}
+        <div style={{ background:"#f8f9fb", border:"1px solid #e8eaed", borderRadius:10, padding:"12px 16px", marginBottom:20, textAlign:"left" }}>
+          <div style={{ fontSize:11, fontWeight:700, color:MUTED, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:6 }}>Debug Info</div>
+          <div style={{ fontSize:12, color:TEXT, fontFamily:"monospace" }}>
+            profile loaded: {profile ? "yes" : "no"}<br/>
+            current plan: <strong style={{color:PINK}}>{profile?.plan || "null"}</strong><br/>
+            email: {profile?.email || "not loaded"}<br/>
+            ready: {ready ? "yes" : "no"}
+          </div>
+        </div>
+
+        <div style={{ fontSize:13, color:MUTED, lineHeight:1.7, marginBottom:16 }}>
+          Your plan must be <strong>'admin'</strong> to access this page.<br/>
+          Run this in your Supabase SQL Editor:
+        </div>
+        <div style={{ background:"#f3f4f6", border:"1px solid #e8eaed", borderRadius:8, padding:"12px 16px", fontFamily:"monospace", fontSize:12, color:TEXT, textAlign:"left", marginBottom:16 }}>
+          UPDATE profiles<br/>
+          SET plan = 'admin'<br/>
+          WHERE email = '{profile?.email || "your@email.com"}';
+        </div>
+        <div style={{ fontSize:12, color:MUTED, lineHeight:1.65 }}>
+          After running the SQL: <strong>sign out completely</strong> and sign back in.<br/>
+          The profile is re-fetched on each login — the old plan value is cached in your session.
+        </div>
+        <button
+          onClick={async () => { await supabase.auth.signOut(); window.location.href = "https://nugens.in.net/auth?redirect=https://hyperx.nugens.in.net/admin"; }}
+          style={{ marginTop:20, padding:"10px 24px", background:PINK, color:"#fff", border:"none", borderRadius:9, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}
+        >
+          Sign Out & Sign Back In →
+        </button>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { NG_LOGO } from "../lib/logo";
 import { supabase } from "../lib/supabase";
+import { useProfile } from "../lib/useProfile";
 
 const PINK   = "#e8185d";
 const BORDER = "#e8eaed";
@@ -35,7 +36,11 @@ const PLAN_LABELS = {
   admin:"Admin",
 };
 
-export default function Sidebar({ profile }) {
+export default function Sidebar({ profile: profileProp }) {
+  // Fetch profile independently — don't rely on prop timing for admin check
+  const { profile: ownProfile } = useProfile();
+  const profile = ownProfile || profileProp;
+
   const [collapsed, setCollapsed] = useState(false);
 
   const isBiz     = profile?.user_type === "business";
