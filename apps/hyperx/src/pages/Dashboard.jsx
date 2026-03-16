@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
 const PINK   = "#e8185d";
-const TEXT   = "#111827";
+const TEXT   = "#fdfdff";
 const MUTED  = "#6b7280";
 const LIGHT  = "#f8f9fb";
 const CARD   = "#ffffff";
