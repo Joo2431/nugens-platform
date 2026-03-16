@@ -705,11 +705,19 @@ app.post("/api/upload", optionalAuth, (req, res, next) => {
 
 /* ── POST /api/subscription/create-order ── */
 app.post("/api/subscription/create-order", requireAuth, async (req, res) => {
-  const { plan, amount: clientAmount, currency: clientCurrency } = req.body;
+  const { plan } = req.body;
   const planConfig = PLAN_CONFIG[plan];
   if (!planConfig) {
     return res.status(400).json({
       error: `Unknown plan: "${plan}". Check PLAN_CONFIG in server.js.`
+    });
+  }
+
+  // Guard: Razorpay not initialised — env vars missing on server
+  if (!razorpay) {
+    return res.status(503).json({
+      error: "Payment service unavailable.",
+      details: "RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET not set in server environment variables."
     });
   }
 
@@ -721,15 +729,17 @@ app.post("/api/subscription/create-order", requireAuth, async (req, res) => {
     const order = await razorpay.orders.create({
       amount:   finalAmount,
       currency: finalCurrency,
-      receipt:  `ng-${plan}-${req.user.id.slice(0,8)}-${Date.now()}`,
+      // Razorpay receipt max 40 chars — keep it short
+      receipt:  `ng-${req.user.id.slice(0,8)}-${Date.now().toString().slice(-8)}`,
       notes:    { user_id: req.user.id, user_email: req.user.email, plan },
     });
     res.json({ order });
   } catch (err) {
-    console.error("Razorpay order error:", err.message, err?.error);
+    // Log full error so it appears in Render logs
+    console.error("Razorpay order error:", JSON.stringify(err?.error || err?.message || err));
     res.status(500).json({
       error:   "Failed to create payment order.",
-      details: err?.error?.description || err.message,
+      details: err?.error?.description || err?.error?.reason || err.message,
     });
   }
 });
