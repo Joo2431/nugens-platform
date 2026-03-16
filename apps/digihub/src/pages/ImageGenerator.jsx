@@ -1,18 +1,25 @@
 import React, { useState } from "react";
+import { generateImage, miniChat } from "../lib/apiClient";
 
-const BLUE = "#0284c7";
-const BG   = "#06101a";
-const CARD = "#0a1628";
-const B    = "#1a2030";
-const API  = "https://nugens-platform.onrender.com";
+const PINK   = "#e8185d";
+const TEXT   = "#111827";
+const MUTED  = "#6b7280";
+const LIGHT  = "#f8f9fb";
+const CARD   = "#ffffff";
+const BORDER = "#e8eaed";
 
-const SIZES    = ["1:1 Square (1024×1024)","16:9 Landscape (1792×1024)","9:16 Portrait (1024×1792)","4:3 Standard (1344×1024)","3:4 Portrait (1024×1344)"];
-const STYLES   = ["Photorealistic","Digital Art","3D Render","Flat Illustration","Watercolor","Minimal & Clean","Dark & Dramatic","Cyberpunk/Neon","Vintage/Retro","Corporate Professional"];
-const PURPOSES = ["Social Media Post","Marketing Poster","Product Showcase","Brand Banner","Event Promo","Job Hiring Post","Business Offer","Store Announcement"];
+const SIZES    = [
+  { label:"1:1 Square",        w:1024, h:1024 },
+  { label:"16:9 Landscape",    w:1792, h:1024 },
+  { label:"9:16 Portrait",     w:1024, h:1792 },
+  { label:"4:3 Standard",      w:1344, h:1024 },
+];
+const STYLES   = ["Photorealistic","Digital Art","3D Render","Flat Illustration","Watercolor","Minimal & Clean","Dark & Dramatic","Retro/Vintage","Corporate Professional"];
+const PURPOSES = ["Social Media Post","Marketing Poster","Product Showcase","Brand Banner","Event Promo","Hiring Post","Business Offer","Store Announcement"];
 
 export default function ImageGenerator({ profile }) {
   const [prompt,    setPrompt]    = useState("");
-  const [size,      setSize]      = useState("1:1 Square (1024×1024)");
+  const [sizeIdx,   setSizeIdx]   = useState(0);
   const [style,     setStyle]     = useState("Digital Art");
   const [purpose,   setPurpose]   = useState("Social Media Post");
   const [loading,   setLoading]   = useState(false);
@@ -20,29 +27,24 @@ export default function ImageGenerator({ profile }) {
   const [error,     setError]     = useState("");
   const [history,   setHistory]   = useState([]);
   const [enhancing, setEnhancing] = useState(false);
-  const [enhanced,  setEnhanced]  = useState("");
 
-  const plan  = profile?.plan || "free";
-  const canGen = plan !== "free" || history.length < 3;
+  const plan     = profile?.plan || "free";
+  const freeLeft = Math.max(0, 3 - history.length);
+  const canGen   = plan !== "free" || freeLeft > 0;
+  const size     = SIZES[sizeIdx];
 
-  const enhancePrompt = async () => {
+  const enhance = async () => {
     if (!prompt.trim()) return;
     setEnhancing(true);
     try {
-      const res = await fetch(`${API}/api/mini-chat`, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({
-          message:`Enhance this image generation prompt for an AI image generator. Make it detailed and visual: "${prompt}". Style: ${style}. Purpose: ${purpose}. Return ONLY the enhanced prompt, nothing else.`,
-          userType: profile?.user_type || "individual",
-          product:"digihub"
-        })
-      });
-      const d = await res.json();
-      const txt = d?.reply || d?.message || prompt;
-      setEnhanced(txt);
-      setPrompt(txt);
-    } catch(e){}
+      const data = await miniChat(
+        `Enhance this image generation prompt to be highly detailed and effective for AI image generators. Purpose: ${purpose}. Style: ${style}. Original: "${prompt}". Return ONLY the enhanced prompt, no explanations.`,
+        "digihub",
+        profile?.user_type || "business"
+      );
+      const enhanced = data?.reply || data?.message || prompt;
+      setPrompt(enhanced.trim());
+    } catch {}
     setEnhancing(false);
   };
 
@@ -52,94 +54,75 @@ export default function ImageGenerator({ profile }) {
     setError("");
     setImgUrl(null);
     try {
-      const res = await fetch(`${API}/api/digihub/generate-image`, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ prompt: `${style} style. ${purpose}. ${prompt}`, size, style })
-      });
-      if (!res.ok) throw new Error("Generation failed");
-      const d = await res.json();
-      const url = d?.url || d?.image_url;
-      if (!url) throw new Error("No image returned");
+      const fullPrompt = `${style} style. ${purpose}. ${prompt}`;
+      const url = await generateImage(fullPrompt, { width: size.w, height: size.h });
       setImgUrl(url);
-      setHistory(h => [{ url, prompt: prompt.slice(0,60), style, time: new Date().toLocaleTimeString() }, ...h.slice(0,7)]);
-    } catch(e) {
-      setError("Image generation is available on Pro plan. Upgrade to access DALL-E poster generation.");
+      setHistory(h => [{ url, prompt: prompt.slice(0, 55), style, time: new Date().toLocaleTimeString() }, ...h.slice(0, 7)]);
+    } catch (e) {
+      setError(e.message?.includes("401")
+        ? "Session expired — please refresh the page."
+        : "Image generation failed. Please try again or use a different prompt."
+      );
     }
     setLoading(false);
   };
 
   const S = {
-    page: { minHeight:"100vh", background:BG, padding:"32px 40px", fontFamily:"'Plus Jakarta Sans',sans-serif" },
-    h1: { fontSize:26, fontWeight:800, color:"#fff", letterSpacing:"-0.04em", marginBottom:4 },
-    sub: { fontSize:13, color:"#445", marginBottom:32 },
-    grid: { display:"grid", gridTemplateColumns:"360px 1fr", gap:28 },
-    card: { background:CARD, border:`1px solid ${B}`, borderRadius:14, padding:24 },
-    label: { fontSize:11, fontWeight:700, color:"#445", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6, display:"block" },
-    sel: { width:"100%", background:"#0d1624", border:`1px solid ${B}`, borderRadius:8, padding:"9px 12px", color:"#ccc", fontSize:13, marginBottom:16, fontFamily:"inherit", outline:"none", boxSizing:"border-box" },
-    textarea: { width:"100%", background:"#0d1624", border:`1px solid ${B}`, borderRadius:8, padding:"10px 12px", color:"#ccc", fontSize:13, marginBottom:12, fontFamily:"inherit", outline:"none", resize:"vertical", minHeight:100, boxSizing:"border-box" },
-    btn: { padding:"11px 24px", background:BLUE, color:"#fff", border:"none", borderRadius:9, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" },
-    btnSm: { padding:"7px 14px", background:"none", color:BLUE, border:`1px solid ${BLUE}30`, borderRadius:7, fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" },
-    canvas: { background:"#0d1624", border:`1px solid ${B}`, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", minHeight:400 },
-    histThumb: { width:72, height:72, borderRadius:8, objectFit:"cover", border:`1px solid ${B}`, cursor:"pointer" },
+    page: { minHeight:"100vh", background:LIGHT, padding:"32px 40px", fontFamily:"'Plus Jakarta Sans',sans-serif" },
+    card: { background:CARD, border:`1px solid ${BORDER}`, borderRadius:14, padding:24, boxShadow:"0 1px 3px rgba(0,0,0,0.04)" },
+    label:{ fontSize:11, fontWeight:700, color:MUTED, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6, display:"block" },
+    sel:  { width:"100%", background:"#fafafa", border:`1px solid ${BORDER}`, borderRadius:8, padding:"9px 12px", color:TEXT, fontSize:13, marginBottom:16, fontFamily:"inherit", outline:"none", boxSizing:"border-box" },
+    ta:   { width:"100%", background:"#fafafa", border:`1px solid ${BORDER}`, borderRadius:8, padding:"10px 12px", color:TEXT, fontSize:13, marginBottom:12, fontFamily:"inherit", outline:"none", resize:"vertical", minHeight:100, boxSizing:"border-box" },
+    btn:  { padding:"11px 24px", background:PINK, color:"#fff", border:"none", borderRadius:9, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" },
+    btnSm:{ padding:"7px 14px", background:"none", color:PINK, border:`1px solid ${PINK}30`, borderRadius:7, fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" },
+    canvas:{ background:"#f3f4f6", border:`1px solid ${BORDER}`, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", minHeight:400, overflow:"hidden" },
+    histThumb:{ width:68, height:68, borderRadius:8, objectFit:"cover", border:`1px solid ${BORDER}`, cursor:"pointer" },
   };
 
   return (
     <div style={S.page}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');`}</style>
-      <div style={S.h1}>⬡ AI Image Generator</div>
-      <div style={S.sub}>Generate stunning posters, banners, and social media images with AI</div>
 
-      {/* Usage bar for free plan */}
+      <div style={{ fontSize:22, fontWeight:800, color:TEXT, letterSpacing:"-0.04em", marginBottom:4 }}>⬡ AI Image Generator</div>
+      <div style={{ fontSize:13, color:MUTED, marginBottom:24 }}>Generate stunning posters, banners, and social media images with AI — powered by Pollinations.ai (free)</div>
+
       {plan === "free" && (
-        <div style={{ background:CARD, border:`1px solid ${BLUE}20`, borderRadius:10, padding:"12px 18px", marginBottom:24, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-          <div>
-            <span style={{ fontSize:12, color:"#ccc" }}>Free plan: </span>
-            <span style={{ fontSize:12, color:BLUE, fontWeight:700 }}>{Math.max(0,3-history.length)} generations remaining</span>
-          </div>
-          <a href="/pricing" style={{ fontSize:12, color:"#e8185d", fontWeight:700, textDecoration:"none" }}>Upgrade for unlimited →</a>
+        <div style={{ background:CARD, border:`1px solid ${PINK}20`, borderRadius:10, padding:"12px 18px", marginBottom:20, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <span style={{ fontSize:12, color:TEXT }}>Free plan: <strong style={{color:PINK}}>{freeLeft} generation{freeLeft!==1?"s":""} remaining</strong></span>
+          <a href="/pricing" style={{ fontSize:12, color:PINK, fontWeight:700, textDecoration:"none" }}>Upgrade for unlimited →</a>
         </div>
       )}
 
-      <div style={S.grid}>
+      <div style={{ display:"grid", gridTemplateColumns:"340px 1fr", gap:24 }}>
         {/* Controls */}
         <div style={S.card}>
-          <div style={{ fontSize:14, fontWeight:700, color:"#fff", marginBottom:18 }}>Image Settings</div>
-
+          <div style={{ fontSize:14, fontWeight:700, color:TEXT, marginBottom:18 }}>Settings</div>
           <label style={S.label}>Purpose</label>
           <select value={purpose} onChange={e=>setPurpose(e.target.value)} style={S.sel}>
             {PURPOSES.map(p=><option key={p}>{p}</option>)}
           </select>
-
           <label style={S.label}>Art Style</label>
           <select value={style} onChange={e=>setStyle(e.target.value)} style={S.sel}>
             {STYLES.map(s=><option key={s}>{s}</option>)}
           </select>
-
           <label style={S.label}>Output Size</label>
-          <select value={size} onChange={e=>setSize(e.target.value)} style={S.sel}>
-            {SIZES.map(s=><option key={s}>{s}</option>)}
+          <select value={sizeIdx} onChange={e=>setSizeIdx(Number(e.target.value))} style={S.sel}>
+            {SIZES.map((s,i)=><option key={i} value={i}>{s.label} ({s.w}×{s.h})</option>)}
           </select>
-
           <label style={S.label}>Describe your image *</label>
-          <textarea value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="e.g. A summer sale poster for a clothing brand with vibrant orange and yellow colors, floating clothes items, bold 50% OFF text..." style={S.textarea} />
-
-          <div style={{ display:"flex", gap:8, marginBottom:16 }}>
-            <button onClick={enhancePrompt} disabled={enhancing||!prompt.trim()} style={{ ...S.btnSm, flex:1, opacity:(enhancing||!prompt.trim())?0.5:1 }}>
-              {enhancing?"Enhancing...":"✦ Enhance Prompt"}
-            </button>
-          </div>
-
-          <button onClick={generate} disabled={loading || !prompt.trim() || !canGen} style={{ ...S.btn, width:"100%", opacity:(loading||!prompt.trim()||!canGen)?0.5:1 }}>
-            {loading ? "⬡ Generating..." : canGen ? "⬡ Generate Image" : "Upgrade to Generate"}
+          <textarea value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="e.g. A summer sale poster for a fashion brand, vibrant orange and yellow tones, bold 50% OFF text..." style={S.ta} />
+          <button onClick={enhance} disabled={enhancing||!prompt.trim()} style={{ ...S.btnSm, width:"100%", marginBottom:12, opacity:(enhancing||!prompt.trim())?0.5:1 }}>
+            {enhancing?"Enhancing prompt...":"✦ Enhance with AI"}
+          </button>
+          <button onClick={generate} disabled={loading||!prompt.trim()||!canGen} style={{ ...S.btn, width:"100%", opacity:(loading||!prompt.trim()||!canGen)?0.5:1 }}>
+            {loading ? "⬡ Generating..." : !canGen ? "Upgrade to Generate" : "⬡ Generate Image"}
           </button>
 
-          {/* History */}
           {history.length > 0 && (
             <div style={{ marginTop:20 }}>
-              <div style={{ fontSize:11, fontWeight:700, color:"#334", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:10 }}>Recent Generations</div>
+              <div style={{ fontSize:11, fontWeight:700, color:MUTED, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:10 }}>Recent</div>
               <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
-                {history.map((h,i) => (
+                {history.map((h,i)=>(
                   <img key={i} src={h.url} alt={h.prompt} style={S.histThumb} onClick={()=>setImgUrl(h.url)} title={h.prompt} />
                 ))}
               </div>
@@ -152,53 +135,46 @@ export default function ImageGenerator({ profile }) {
           <div style={S.canvas}>
             {loading ? (
               <div style={{ textAlign:"center" }}>
-                <div style={{ fontSize:32, marginBottom:12, animation:"spin 1.5s linear infinite" }}>⬡</div>
-                <div style={{ fontSize:13, color:"#445" }}>Generating your image...</div>
-                <div style={{ fontSize:11, color:"#334", marginTop:4 }}>This may take 10-20 seconds</div>
+                <div style={{ fontSize:36, marginBottom:12, color:PINK }}>⬡</div>
+                <div style={{ fontSize:14, fontWeight:600, color:TEXT, marginBottom:4 }}>Generating your image...</div>
+                <div style={{ fontSize:12, color:MUTED }}>Powered by Pollinations.ai · Usually takes 5–15 seconds</div>
               </div>
             ) : imgUrl ? (
               <div style={{ width:"100%", position:"relative" }}>
-                <img src={imgUrl} alt="Generated" style={{ width:"100%", borderRadius:12, display:"block" }} />
+                <img src={imgUrl} alt="Generated" style={{ width:"100%", borderRadius:12, display:"block" }} onError={()=>setError("Image failed to load — try regenerating")} />
                 <div style={{ position:"absolute", top:12, right:12, display:"flex", gap:8 }}>
-                  <a href={imgUrl} download="digihub-poster.png" style={{ ...S.btnSm, textDecoration:"none" }}>⬇ Download</a>
+                  <a href={imgUrl} download="digihub-image.png" target="_blank" rel="noreferrer" style={{ padding:"7px 14px", background:CARD, border:`1px solid ${BORDER}`, borderRadius:7, textDecoration:"none", fontSize:11, color:TEXT, fontWeight:600 }}>⬇ Download</a>
+                  <button onClick={()=>navigator.clipboard.writeText(imgUrl)} style={{ padding:"7px 14px", background:CARD, border:`1px solid ${BORDER}`, borderRadius:7, fontSize:11, color:TEXT, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>⊕ Copy URL</button>
                 </div>
               </div>
             ) : error ? (
               <div style={{ textAlign:"center", padding:32 }}>
-                <div style={{ fontSize:28, marginBottom:12 }}>⬡</div>
-                <div style={{ fontSize:13, color:"#556", marginBottom:16 }}>{error}</div>
-                <a href="/pricing" style={{ ...S.btn, textDecoration:"none" }}>View Plans →</a>
+                <div style={{ fontSize:28, marginBottom:12, opacity:0.3 }}>⬡</div>
+                <div style={{ fontSize:13, color:"#dc2626", marginBottom:16 }}>{error}</div>
+                <button onClick={()=>setError("")} style={S.btn}>Try Again</button>
               </div>
             ) : (
               <div style={{ textAlign:"center", padding:40 }}>
-                <div style={{ fontSize:48, marginBottom:16, opacity:0.2 }}>⬡</div>
-                <div style={{ fontSize:14, color:"#334", fontWeight:500 }}>Your generated poster will appear here</div>
-                <div style={{ fontSize:12, color:"#334", marginTop:6 }}>Fill in the settings and click Generate</div>
+                <div style={{ fontSize:48, marginBottom:16, opacity:0.15 }}>⬡</div>
+                <div style={{ fontSize:14, color:MUTED, fontWeight:500 }}>Your generated image will appear here</div>
+                <div style={{ fontSize:12, color:"#d1d5db", marginTop:6 }}>Fill in the settings and click Generate</div>
               </div>
             )}
           </div>
 
           {/* Tips */}
-          <div style={{ ...S.card, marginTop:20 }}>
-            <div style={{ fontSize:12, fontWeight:700, color:"#445", marginBottom:12 }}>💡 Pro Tips for Better Results</div>
+          <div style={{ ...S.card, marginTop:16 }}>
+            <div style={{ fontSize:12, fontWeight:700, color:MUTED, marginBottom:12 }}>💡 Tips for better results</div>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-              {[
-                "Include brand colors in hex format",
-                "Mention specific fonts or typography style",
-                "Describe the mood/emotion you want",
-                "Specify text to include on the poster",
-                "Add lighting details (golden hour, neon)",
-                "Mention the target audience"
-              ].map((t,i) => (
-                <div key={i} style={{ fontSize:12, color:"#445", display:"flex", gap:6 }}>
-                  <span style={{ color:BLUE, flexShrink:0 }}>→</span>{t}
+              {["Include brand colours (hex codes work great)","Specify typography style (bold, minimal, elegant)","Describe the mood — warm, energetic, luxury","Mention text to include on the design","Add lighting details (golden hour, studio, neon)","Reference a visual style (Bauhaus, Apple, Canva)"].map((t,i)=>(
+                <div key={i} style={{ fontSize:12, color:MUTED, display:"flex", gap:6 }}>
+                  <span style={{color:PINK,flexShrink:0}}>→</span>{t}
                 </div>
               ))}
             </div>
           </div>
         </div>
       </div>
-      <style>{`@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }`}</style>
     </div>
   );
 }

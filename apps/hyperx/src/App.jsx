@@ -25,11 +25,7 @@ function Spinner() {
 }
 
 async function fetchProfile(userId) {
-  const { data } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", userId)
-    .single();
+  const { data } = await supabase.from("profiles").select("*").eq("id", userId).single();
   return data || null;
 }
 
@@ -44,39 +40,30 @@ function AppShell() {
     let finished = false;
 
     async function init() {
-      // KEY FIX: wait for BOTH session AND profile before setting ready=true.
-      // The old code did setReady(true) immediately after getSession(), before
-      // the profile query finished. So AdminPanel always got profile=null.
+      // Wait for BOTH session AND profile before setting ready=true.
+      // This is the definitive fix for admin panel seeing profile=null.
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
-
       if (session?.user) {
         const p = await fetchProfile(session.user.id);
         if (!finished) setProfile(p);
       }
-
-      if (!finished) {
-        finished = true;
-        setReady(true);
-      }
+      if (!finished) { finished = true; setReady(true); }
     }
 
     init();
 
-    // Also subscribe so logout/token-refresh updates state
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          const p = await fetchProfile(session.user.id);
-          setProfile(p);
-          if (!finished) { finished = true; setReady(true); }
-        } else {
-          setProfile(null);
-          if (!finished) { finished = true; setReady(true); }
-        }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_e, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        const p = await fetchProfile(session.user.id);
+        setProfile(p);
+        if (!finished) { finished = true; setReady(true); }
+      } else {
+        setProfile(null);
+        if (!finished) { finished = true; setReady(true); }
       }
-    );
+    });
 
     return () => subscription.unsubscribe();
   }, []);
