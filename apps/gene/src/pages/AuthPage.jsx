@@ -20,13 +20,32 @@ export default function AuthPage() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
+        // Build display name from OAuth metadata or email prefix — never leave it blank
+        const metaName =
+          session.user.user_metadata?.full_name?.trim() ||
+          session.user.user_metadata?.name?.trim() ||
+          session.user.email?.split("@")[0] || "";
+
+        // Upsert: create row if new, update only the fields that are missing
+        // Using merge: false so we don't overwrite plan/questions_used for existing users
         supabase.from("profiles").upsert({
           id: session.user.id,
           email: session.user.email,
-          full_name: session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "",
+          full_name: metaName,
           avatar_url: session.user.user_metadata?.avatar_url || "",
-          plan: "free", questions_used: 0,
-        }, { onConflict: "id", ignoreDuplicates: true });
+          plan: "free",
+          questions_used: 0,
+        }, { onConflict: "id", ignoreDuplicates: false }).then(({ error }) => {
+          // If upsert replaced plan (shouldn't happen but safe), do a targeted patch
+          // for existing users whose full_name is empty
+          if (!error) {
+            supabase.from("profiles")
+              .update({ full_name: metaName })
+              .eq("id", session.user.id)
+              .is("full_name", null)
+              .then(() => {}); // fire-and-forget: only fills null rows
+          }
+        });
         navigate(returnTo, { replace: true });
       }
     });

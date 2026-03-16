@@ -4,211 +4,187 @@ import { supabase } from "./lib/supabase";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Sidebar from "./components/Sidebar";
 
-/* ── Lazy pages ─────────────────────────────────────────────── */
-const AuthPage          = lazy(() => import("./pages/AuthPage"));
 const GenEChat          = lazy(() => import("./pages/GenEChat"));
 const ResumesPage       = lazy(() => import("./pages/ResumesPage"));
 const JobTrackerPage    = lazy(() => import("./pages/JobTrackerPage"));
 const PricingPage       = lazy(() => import("./pages/PricingPage"));
 const BusinessDashboard = lazy(() => import("./pages/BusinessDashboard"));
+const AuthPage          = lazy(() => import("./pages/AuthPage"));
 
 const PINK = "#e8185d";
 
-/* ── Loading spinner ─────────────────────────────────────────── */
 function Spinner() {
   return (
-    <div style={{
-      display: "flex", alignItems: "center", justifyContent: "center",
-      height: "100vh", background: "#fff",
-    }}>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:"#fff" }}>
+      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:12 }}>
         <div style={{
-          width: 42, height: 42, borderRadius: 13,
-          background: `linear-gradient(135deg,${PINK},#c4134e)`,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontWeight: 900, fontSize: 13, color: "#fff", letterSpacing: "-0.03em",
-          boxShadow: `0 8px 24px ${PINK}40`,
-          fontFamily: "'Plus Jakarta Sans',sans-serif",
+          width:42, height:42, borderRadius:13,
+          background:`linear-gradient(135deg,${PINK},#c4134e)`,
+          display:"flex", alignItems:"center", justifyContent:"center",
+          fontWeight:900, fontSize:13, color:"#fff", letterSpacing:"-0.03em",
+          boxShadow:`0 8px 24px ${PINK}40`,
+          fontFamily:"'Plus Jakarta Sans',sans-serif",
         }}>GE</div>
-        <div style={{ color: "#d0d0d0", fontSize: 13, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
-          Loading…
-        </div>
+        <div style={{ color:"#d0d0d0", fontSize:13, fontFamily:"'Plus Jakarta Sans',sans-serif" }}>Loading…</div>
       </div>
     </div>
   );
 }
 
-/* ── Main shell ──────────────────────────────────────────────── */
 function AppShell() {
   const location = useLocation();
 
-  const [user,         setUser]         = useState(null);
-  const [profile,      setProfile]      = useState(null);
-  const [ready,        setReady]        = useState(false);
-  const [modeOverride, setModeOverride] = useState(null);
+  const [user,          setUser]         = useState(null);
+  const [profile,       setProfile]      = useState(null);
+  const [ready,         setReady]        = useState(false);
+  const [modeOverride,  setModeOverride] = useState(null);
 
-  /* Pages that render full-screen without the sidebar */
-  const isFullscreen = ["/pricing", "/auth"].some(p =>
-    location.pathname.startsWith(p)
-  );
+  // Pages that take the full viewport — no sidebar
+  const isFullscreen = ["/pricing", "/auth"].some(p => location.pathname.startsWith(p));
 
-  /* ── Profile fetch ── */
   const fetchProfile = async (uid) => {
     try {
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", uid)
-        .single();
+      const { data } = await supabase.from("profiles").select("*").eq("id", uid).single();
       if (data) setProfile(data);
-    } catch {}
+    } catch (e) {
+      console.warn("fetchProfile error:", e.message);
+    }
   };
 
-  /* ── Auth initialisation ── */
+  // ── Auth initialisation ──────────────────────────────────────────────────
   useEffect(() => {
-    // Clear any leftover mode overrides from previous sessions
-    localStorage.removeItem("gene-mode-override");
+    let settled = false;
+
+    // Safety timeout — if Supabase hangs for 6 s, show the app anyway
+    const timeout = setTimeout(() => {
+      if (!settled) { settled = true; setReady(true); }
+    }, 6000);
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
       setUser(session?.user ?? null);
       setReady(true);
       if (session?.user) fetchProfile(session.user.id);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_e, session) => {
-        setUser(session?.user ?? null);
-        if (session?.user) fetchProfile(session.user.id);
-        else { setProfile(null); setModeOverride(null); }
-      }
-    );
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) fetchProfile(session.user.id);
+      else { setProfile(null); setModeOverride(null); }
+    });
 
-    return () => subscription.unsubscribe();
+    return () => { subscription.unsubscribe(); clearTimeout(timeout); };
   }, []);
 
-  /* Refresh profile when tab regains focus — picks up plan upgrades */
+  // Re-fetch profile when tab regains focus (keeps plan/subscription fresh)
   useEffect(() => {
-    const handler = async () => {
+    const onFocus = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) fetchProfile(session.user.id);
     };
-    window.addEventListener("focus", handler);
-    return () => window.removeEventListener("focus", handler);
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, []);
 
-  /* ── Don't render until auth state is known ── */
   if (!ready) return <Spinner />;
 
-  /* ── Sign out ── */
+  // ── Handlers ─────────────────────────────────────────────────────────────
   const signOut = async () => {
     setModeOverride(null);
+    setProfile(null);
     await supabase.auth.signOut();
     window.location.href = "https://nugens.in.net/auth";
   };
 
-  /* ── Mode resolution ── */
   const dbUserType = profile?.user_type || "individual";
   const userType   = modeOverride ?? dbUserType;
 
   const handleSwitchMode = (newMode) => setModeOverride(newMode);
 
-  /* ─────────────────────────────────────────────────────────────
-     FULL-SCREEN ROUTES  (no sidebar)
-  ───────────────────────────────────────────────────────────── */
+  // ── Fullscreen pages (no sidebar) ────────────────────────────────────────
   if (isFullscreen) {
     return (
       <Suspense fallback={<Spinner />}>
         <Routes>
           <Route path="/auth"    element={<AuthPage />} />
           <Route path="/pricing" element={<PricingPage />} />
-          <Route path="*"        element={<Navigate to="/" replace />} />
+          <Route path="*"        element={<Navigate to={user ? "/chat" : "/auth"} replace />} />
         </Routes>
       </Suspense>
     );
   }
 
-  /* ─────────────────────────────────────────────────────────────
-     MAIN APP  (with sidebar)
-  ───────────────────────────────────────────────────────────── */
+  // ── Main app shell ────────────────────────────────────────────────────────
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#f7f7f8" }}>
+    <div style={{ display:"flex", minHeight:"100vh", background:"#f7f7f8" }}>
 
+      {/* Sidebar — only shown when logged in */}
       {user && (
         <Sidebar
           userType={userType}
           dbUserType={dbUserType}
           profile={profile}
+          user={user}
           onSignOut={signOut}
           onSwitchMode={handleSwitchMode}
         />
       )}
 
-      <div style={{ flex: 1, minWidth: 0, overflowX: "hidden" }}>
+      <div style={{ flex:1, minWidth:0, overflowX:"hidden" }}>
         <Suspense fallback={<Spinner />}>
           <Routes>
 
-            {/* ROOT — redirect based on user type */}
+            {/* ── ROOT — redirect based on user type ── */}
             <Route
               path="/"
               element={
                 <ProtectedRoute>
-                  <Navigate
-                    to={userType === "business" ? "/business" : "/chat"}
-                    replace
-                  />
+                  {userType === "business"
+                    ? <Navigate to="/business" replace />
+                    : <Navigate to="/chat" replace />}
                 </ProtectedRoute>
               }
             />
 
-            {/* MAIN CHAT — all AI features */}
-            <Route
-              path="/chat"
-              element={<ProtectedRoute><GenEChat /></ProtectedRoute>}
-            />
+            {/* ── AUTH ── */}
+            <Route path="/auth" element={<AuthPage />} />
 
-            {/* DATA PAGES */}
-            <Route
-              path="/resumes"
-              element={<ProtectedRoute><ResumesPage /></ProtectedRoute>}
-            />
-            <Route
-              path="/jobs"
-              element={<ProtectedRoute><JobTrackerPage /></ProtectedRoute>}
-            />
+            {/* ── MAIN CHAT ── */}
+            <Route path="/chat"     element={<ProtectedRoute><GenEChat profile={profile} /></ProtectedRoute>} />
 
-            {/* BUSINESS DASHBOARD */}
-            <Route
-              path="/business"
-              element={
-                <ProtectedRoute>
-                  <BusinessDashboard profile={profile} />
-                </ProtectedRoute>
-              }
-            />
+            {/* ── DATA PAGES ── */}
+            <Route path="/resumes"  element={<ProtectedRoute><ResumesPage profile={profile} /></ProtectedRoute>} />
+            <Route path="/jobs"     element={<ProtectedRoute><JobTrackerPage profile={profile} /></ProtectedRoute>} />
 
-            {/* TOOL DEEP-LINKS → chat with auto-trigger */}
+            {/* ── BUSINESS DASHBOARD ── */}
+            <Route path="/business" element={<ProtectedRoute><BusinessDashboard profile={profile} /></ProtectedRoute>} />
+
+            {/* ── PRICING (accessible without login) ── */}
+            <Route path="/pricing"  element={<PricingPage />} />
+
+            {/* ── TOOL SHORTCUTS — all redirect into /chat?t=xxx ── */}
             <Route path="/skill-gap"          element={<Navigate to="/chat?t=skill_gap"  replace />} />
             <Route path="/simulate"           element={<Navigate to="/chat?t=simulate"   replace />} />
             <Route path="/roadmap"            element={<Navigate to="/chat?t=roadmap"    replace />} />
+            <Route path="/interview"          element={<Navigate to="/chat?t=interview"  replace />} />
+            <Route path="/score"              element={<Navigate to="/chat?t=score"      replace />} />
+            <Route path="/job-match"          element={<Navigate to="/chat?t=job_match"  replace />} />
+
+            {/* ── BUSINESS TOOL SHORTCUTS ── */}
             <Route path="/business/jd"        element={<Navigate to="/chat?t=jd"         replace />} />
-            <Route path="/business/hiring"    element={<Navigate to="/chat?t=hiring"     replace />} />
-            <Route path="/business/team"      element={<Navigate to="/chat?t=team"       replace />} />
-            <Route path="/business/workforce" element={<Navigate to="/chat?t=workforce"  replace />} />
-            <Route path="/business/salary"    element={<Navigate to="/chat?t=salary"     replace />} />
-            <Route path="/business/interview" element={<Navigate to="/chat?t=interview"  replace />} />
+            <Route path="/business/hiring"    element={<Navigate to="/chat?t=hiring"      replace />} />
+            <Route path="/business/team"      element={<Navigate to="/chat?t=team"        replace />} />
+            <Route path="/business/workforce" element={<Navigate to="/chat?t=workforce"   replace />} />
+            <Route path="/business/salary"    element={<Navigate to="/chat?t=salary"      replace />} />
+            <Route path="/business/interview" element={<Navigate to="/chat?t=interview"   replace />} />
 
-            {/* SHARED — accessible while logged in */}
-            <Route path="/pricing" element={<PricingPage />} />
-            <Route path="/auth"    element={<AuthPage />} />
-
-            {/* 404 FALLBACK */}
+            {/* ── 404 CATCH-ALL ── */}
             <Route
               path="*"
               element={
-                <Navigate
-                  to={userType === "business" ? "/business" : "/chat"}
-                  replace
-                />
+                <Navigate to={userType === "business" ? "/business" : "/chat"} replace />
               }
             />
 
