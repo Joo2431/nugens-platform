@@ -1,9 +1,9 @@
 import React, { Suspense, lazy, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { supabase } from "./lib/supabase";
-import Sidebar       from "./components/Sidebar";
-import ProtectedRoute from "./components/ProtectedRoute";
-import GenEMiniPopup  from "./components/GenEMiniPopup";
+import { supabase }      from "./lib/supabase";
+import Sidebar           from "./components/Sidebar";
+import ProtectedRoute    from "./components/ProtectedRoute";
+import GenEMiniPopup     from "./components/GenEMiniPopup";
 
 const Dashboard    = lazy(() => import("./pages/Dashboard"));
 const CoursesPage  = lazy(() => import("./pages/Courses"));
@@ -24,29 +24,60 @@ function Spinner() {
   );
 }
 
+async function fetchProfile(userId) {
+  const { data } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .single();
+  return data || null;
+}
+
 function AppShell() {
-  const location = useLocation();
+  const location       = useLocation();
   const [user,    setUser]    = useState(null);
   const [profile, setProfile] = useState(null);
   const [ready,   setReady]   = useState(false);
   const isCoursePlayer = location.pathname.match(/^\/courses\/.+/);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    let finished = false;
+
+    async function init() {
+      // KEY FIX: wait for BOTH session AND profile before setting ready=true.
+      // The old code did setReady(true) immediately after getSession(), before
+      // the profile query finished. So AdminPanel always got profile=null.
+      const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
-      setReady(true);
+
       if (session?.user) {
-        supabase.from("profiles").select("*").eq("id", session.user.id).single()
-          .then(({ data }) => setProfile(data));
+        const p = await fetchProfile(session.user.id);
+        if (!finished) setProfile(p);
       }
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        supabase.from("profiles").select("*").eq("id", session.user.id).single()
-          .then(({ data }) => setProfile(data));
-      } else setProfile(null);
-    });
+
+      if (!finished) {
+        finished = true;
+        setReady(true);
+      }
+    }
+
+    init();
+
+    // Also subscribe so logout/token-refresh updates state
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          const p = await fetchProfile(session.user.id);
+          setProfile(p);
+          if (!finished) { finished = true; setReady(true); }
+        } else {
+          setProfile(null);
+          if (!finished) { finished = true; setReady(true); }
+        }
+      }
+    );
+
     return () => subscription.unsubscribe();
   }, []);
 
@@ -66,12 +97,12 @@ function AppShell() {
       <div style={{ flex:1, minWidth:0, overflowX:"hidden" }}>
         <Suspense fallback={<Spinner />}>
           <Routes>
-            <Route path="/"            element={<ProtectedRoute><Dashboard   profile={profile} /></ProtectedRoute>} />
-            <Route path="/courses"     element={<ProtectedRoute><CoursesPage profile={profile} /></ProtectedRoute>} />
-            <Route path="/certs"       element={<ProtectedRoute><Certificates profile={profile} /></ProtectedRoute>} />
-            <Route path="/pricing"     element={<Pricing profile={profile} />} />
-            <Route path="/admin"       element={<ProtectedRoute><AdminPanel   profile={profile} /></ProtectedRoute>} />
-            <Route path="*"            element={<Navigate to="/" replace />} />
+            <Route path="/"        element={<ProtectedRoute><Dashboard    profile={profile} /></ProtectedRoute>} />
+            <Route path="/courses" element={<ProtectedRoute><CoursesPage  profile={profile} /></ProtectedRoute>} />
+            <Route path="/certs"   element={<ProtectedRoute><Certificates profile={profile} /></ProtectedRoute>} />
+            <Route path="/pricing" element={<Pricing profile={profile} />} />
+            <Route path="/admin"   element={<ProtectedRoute><AdminPanel   profile={profile} /></ProtectedRoute>} />
+            <Route path="*"        element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
       </div>
