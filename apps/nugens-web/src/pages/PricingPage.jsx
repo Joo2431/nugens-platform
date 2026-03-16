@@ -43,8 +43,8 @@ const CURRENCY_MAP = {
 // Base prices in INR
 // Real prices in INR (paise for Razorpay = amount * 100)
 const BASE_PRICES = {
-  individual: { starter: 0,   premium: 99,  pro: 699  },   // monthly
-  business:   { starter: 499, premium: 999, pro: 1999 },
+  individual: { starter: 0,   premium: 99,  pro: 1 },   // monthly699 
+  business:   { starter: 499, premium: 999, pro: 1 }, //1999
 };
 const YEARLY_PRICES = {
   individual: { starter: 0,    premium: 799,  pro: 4999  },
