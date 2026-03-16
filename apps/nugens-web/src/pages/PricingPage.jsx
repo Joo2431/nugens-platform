@@ -43,8 +43,8 @@ const CURRENCY_MAP = {
 // Base prices in INR
 // Real prices in INR (paise for Razorpay = amount * 100)
 const BASE_PRICES = {
-  individual: { starter: 0,   premium: 99,  pro:  1 },   // monthly699
-  business:   { starter: 499, premium: 999, pro: 1 }, //1999
+  individual: { starter: 0,   premium: 99,  pro: 699  },   // monthly
+  business:   { starter: 499, premium: 999, pro: 1999 },
 };
 const YEARLY_PRICES = {
   individual: { starter: 0,    premium: 799,  pro: 4999  },
@@ -326,17 +326,27 @@ async function initiateRazorpay({ planKey, type, isYearly, amount, currency, use
       prefill: { email: user.email, name: user.user_metadata?.full_name || "" },
       theme: { color: "#e8185d" },
       handler: async (response) => {
-        await fetch(`${API}/api/subscription/verify`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...(token ? { Authorization:`Bearer ${token}` } : {}) },
-          body: JSON.stringify({
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_order_id:   response.razorpay_order_id,
-            razorpay_signature:  response.razorpay_signature,
-            // Full plan key so backend can look up PLAN_CONFIG and get profilePlan
-            plan: `${type}_${planKey}_${isYearly ? "yearly" : "monthly"}`,
-          }),
-        });
+        try {
+          const verifyRes = await fetch(`${API}/api/subscription/verify`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...(token ? { Authorization:`Bearer ${token}` } : {}) },
+            body: JSON.stringify({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id:   response.razorpay_order_id,
+              razorpay_signature:  response.razorpay_signature,
+              plan: `${type}_${planKey}_${isYearly ? "yearly" : "monthly"}`,
+            }),
+          });
+          const vData = await verifyRes.json();
+          if (!vData.success) {
+            alert("Payment received but activation failed. Contact support with your payment ID: " + response.razorpay_payment_id);
+            return;
+          }
+        } catch (e) {
+          // If verify fails due to network, still redirect — backend may have processed it
+          console.warn("Verify call failed:", e.message);
+        }
+        // Redirect to dashboard — the ?subscribed=1 flag triggers a profile re-fetch
         window.location.href = "/dashboard?subscribed=1";
       },
     });

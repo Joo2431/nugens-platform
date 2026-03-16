@@ -44,20 +44,47 @@ export default function Dashboard() {
   const [activeTab,      setActiveTab]      = useState("overview");
   const [checkedTasks,   setCheckedTasks]   = useState({});
 
+  // Plans that are considered "paid" — show no upgrade prompts
+  const PAID_PLANS = new Set([
+    "monthly", "yearly", "admin",
+    "hx_ind_starter", "hx_ind_premium", "hx_ind_pro", "hx_ind_yearly",
+    "hx_biz_starter", "hx_biz_premium", "hx_biz_pro", "hx_biz_yearly",
+  ]);
+
+  const fetchProfile = async (uid) => {
+    const { data } = await supabase.from("profiles").select("*").eq("id", uid).single();
+    if (data) {
+      setProfile(data);
+      if (!data.onboarding_done) setShowOnboarding(true);
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data:{ session } }) => {
       if (!session) return;
       setUser(session.user);
-      supabase.from("profiles").select("*").eq("id", session.user.id).single()
-        .then(({ data }) => {
-          setProfile(data);
-          setLoading(false);
-          if (data && !data.onboarding_done) setShowOnboarding(true);
-        });
+      fetchProfile(session.user.id);
     });
+
     const { data:{ subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null);
+      // Re-fetch profile on auth change (catches post-payment session refresh)
+      if (session?.user) fetchProfile(session.user.id);
     });
+
+    // If redirected back after payment (?subscribed=1), force a fresh profile fetch
+    // then clean up the URL so refresh doesn't re-trigger
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("subscribed") === "1") {
+      window.history.replaceState({}, "", window.location.pathname);
+      // Small delay to let backend finish writing to Supabase
+      setTimeout(async () => {
+        const { data:{ session } } = await supabase.auth.getSession();
+        if (session?.user) await fetchProfile(session.user.id);
+      }, 1500);
+    }
+
     return () => subscription.unsubscribe();
   }, []);
 
@@ -175,7 +202,7 @@ export default function Dashboard() {
               <span style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em",padding:"3px 10px",borderRadius:5,background:userType==="business"?"#0c2a3d":"#1a0810",color:userType==="business"?"#0ea5e9":PINK,border:`1px solid ${userType==="business"?"#0c3a5d":"#4d1029"}`}}>
                 {userType==="business"?"Business":"Individual"}
               </span>
-              {plan==="free" && (
+              {!PAID_PLANS.has(plan) && (
                 <Link to="/pricing" style={{fontSize:12,fontWeight:700,color:PINK,textDecoration:"none",padding:"5px 12px",border:`1px solid ${PINK}40`,borderRadius:7,background:`${PINK}10`}}>Upgrade ↑</Link>
               )}
             </div>
@@ -203,7 +230,16 @@ export default function Dashboard() {
                 <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:28}}>
                   {[
                     {label:"Products",     val:"4",   sub:"accessible",  color:"#7c3aed"},
-                    {label:"Plan",         val:plan.charAt(0).toUpperCase()+plan.slice(1), sub:"current tier", color:PINK},
+                    {label:"Plan", val: (() => {
+      const labels = {
+        free:"Free", monthly:"Pro", yearly:"Pro Yearly", admin:"Admin",
+        hx_ind_starter:"HyperX Starter", hx_ind_premium:"HyperX Premium",
+        hx_ind_pro:"HyperX Pro", hx_ind_yearly:"HyperX Yearly",
+        hx_biz_starter:"Biz Starter", hx_biz_premium:"Biz Premium",
+        hx_biz_pro:"Biz Pro", hx_biz_yearly:"Biz Yearly",
+      };
+      return labels[plan] || (plan.charAt(0).toUpperCase() + plan.slice(1));
+    })(), sub:"current tier", color: PAID_PLANS.has(plan) ? "#16a34a" : PINK},
                     {label:"Type",         val:userType==="business"?"Business":"Individual", sub:"account type", color:"#0284c7"},
                     {label:"Member since", val:user?.created_at?new Date(user.created_at).toLocaleDateString("en-IN",{month:"short",year:"numeric"}):"—", sub:"joined", color:"#d4a843"},
                   ].map(s=>(
@@ -216,7 +252,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Subscription prompt based on user type */}
-                {plan==="free" && (
+                {!PAID_PLANS.has(plan) && (
                   <div style={{background:"#111",border:`1px solid ${B}`,borderRadius:14,padding:"20px 24px",marginBottom:28}}>
                     <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:12,marginBottom:16}}>
                       <div>
@@ -302,7 +338,7 @@ export default function Dashboard() {
                   </div>
                   {[
                     {label:"Account type", val:userType==="business"?"Business":"Individual"},
-                    {label:"Plan",         val:plan.charAt(0).toUpperCase()+plan.slice(1)},
+                    {label:"Plan", val: PAID_PLANS.has(plan) ? `${plan.charAt(0).toUpperCase()+plan.slice(1)} ✓` : "Free"},
                     {label:"Goal",         val:goal?GOAL_LABEL[goal]:"Not set"},
                     {label:"Situation",    val:profile?.situation?SITUATION_LABEL[profile.situation]||profile.situation:"Not set"},
                     {label:"Industry",     val:profile?.industry||"Not set"},
