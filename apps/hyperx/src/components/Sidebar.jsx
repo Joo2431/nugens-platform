@@ -95,7 +95,7 @@ export default function Sidebar({ profile: profileProp }) {
                 <div style={{ fontWeight:800, fontSize:15, color:TEXT, letterSpacing:"-0.035em", lineHeight:1.1 }}>
                   Hyper<span style={{ color:PINK }}>X</span>
                 </div>
-                <div style={{ fontSize:9, color:MUTED, fontWeight:600, letterSpacing:"0.06em", textTransform:"uppercase" }}>by NuGens</div>
+                <div style={{ fontSize:9, color:MUTED, fontWeight:600, letterSpacing:"0.06em", textTransform:"uppercase" }}>by Nugens</div>
               </div>
             </div>
           )}

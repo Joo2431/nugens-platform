@@ -14,10 +14,11 @@ const AdminPanel   = lazy(() => import("./pages/AdminPanel"));
 
 const PINK = "#e8185d";
 
+// ── Spinner: shows HyperX branding, NOT "NuGens" ────────────────────────────
 function Spinner() {
   return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:"#fff" }}>
-      <div style={{ fontWeight:800, fontSize:22, color:PINK, fontFamily:"'Plus Jakarta Sans',sans-serif", letterSpacing:"-0.04em" }}>
+      <div style={{ fontWeight:800, fontSize:24, color:PINK, fontFamily:"'Plus Jakarta Sans',sans-serif", letterSpacing:"-0.04em" }}>
         Hyper<span style={{color:"#111"}}>X</span>
       </div>
     </div>
@@ -25,7 +26,7 @@ function Spinner() {
 }
 
 function AppShell() {
-  const location       = useLocation();
+  const location = useLocation();
   const [user,    setUser]    = useState(null);
   const [profile, setProfile] = useState(null);
   const [ready,   setReady]   = useState(false);
@@ -34,31 +35,32 @@ function AppShell() {
   useEffect(() => {
     let settled = false;
 
-    // Safety net: if nothing resolves in 6 seconds, force-show the app.
-    // This prevents an infinite spinner if getSession() hangs.
-    const timeout = setTimeout(() => {
+    // ── CRITICAL: hard 5-second timeout so spinner NEVER hangs forever ──────
+    // With Cloudflare's edge cache + custom cookie storage, getSession() can
+    // hang indefinitely on first load. This guarantees the app always renders.
+    const hardTimeout = setTimeout(() => {
       if (!settled) {
         settled = true;
-        console.warn("HyperX: auth timeout — forcing ready");
+        console.warn("HyperX: auth timeout hit — forcing ready state");
         setReady(true);
       }
-    }, 6000);
+    }, 5000);
 
     function finish(usr, prof) {
-      if (settled) return;
+      if (settled) return;       // already resolved — don't double-fire
       settled = true;
-      clearTimeout(timeout);
-      setUser(usr);
-      setProfile(prof);
+      clearTimeout(hardTimeout);
+      if (usr  !== undefined) setUser(usr);
+      if (prof !== undefined) setProfile(prof);
       setReady(true);
     }
 
     async function init() {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-
-        if (error) {
-          console.error("getSession error:", error.message);
+        // Step 1: get session
+        const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
+        if (sessionErr) {
+          console.error("HyperX getSession error:", sessionErr.message);
           finish(null, null);
           return;
         }
@@ -68,21 +70,21 @@ function AppShell() {
           return;
         }
 
-        // We have a session — now fetch the profile
+        // Step 2: fetch profile (with its own timeout guard)
         try {
-          const { data: prof } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", session.user.id)
-            .single();
-          finish(session.user, prof || null);
+          const profileTimeout = new Promise(resolve => setTimeout(() => resolve(null), 4000));
+          const profileFetch   = supabase.from("profiles").select("*").eq("id", session.user.id).single()
+                                   .then(({ data }) => data || null);
+          const prof = await Promise.race([profileFetch, profileTimeout]);
+          finish(session.user, prof);
         } catch (profileErr) {
-          console.warn("Profile fetch failed:", profileErr.message);
-          // Still finish — user is authenticated, profile just unavailable
+          console.warn("HyperX profile fetch failed:", profileErr.message);
+          // Still finish — user is logged in, profile just unavailable
           finish(session.user, null);
         }
+
       } catch (err) {
-        console.error("Auth init error:", err.message);
+        console.error("HyperX init error:", err.message);
         finish(null, null);
       }
     }
@@ -91,19 +93,14 @@ function AppShell() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         if (session?.user) {
-          // Update profile on session change
           try {
             const { data: prof } = await supabase
-              .from("profiles")
-              .select("*")
-              .eq("id", session.user.id)
-              .single();
+              .from("profiles").select("*").eq("id", session.user.id).single();
             setUser(session.user);
             setProfile(prof || null);
           } catch {
             setUser(session.user);
           }
-          // If init() hasn't finished yet, this counts as finishing
           if (!settled) finish(session.user, null);
         } else {
           setUser(null);
@@ -116,7 +113,7 @@ function AppShell() {
     init();
 
     return () => {
-      clearTimeout(timeout);
+      clearTimeout(hardTimeout);
       subscription.unsubscribe();
     };
   }, []);
