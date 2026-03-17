@@ -1246,10 +1246,10 @@ app.post("/api/mini-chat", requireAuth, async (req, res) => {
 
   // Build context-aware system prompt based on user type and product
   const productContext = {
-    nugens:  "NuGens ecosystem (Gen-E AI, HyperX, DigiHub, The Wedding Unit)",
+    nugens:  "NuGens ecosystem (Gen-E AI, HyperX, DigiHub, Units)",
     hyperx:  "HyperX — professional skills and career learning platform",
     digihub: "DigiHub — digital marketing, brand growth and talent community",
-    units:   "The Wedding Unit — wedding and event production platform",
+    units:   "Units — wedding and event production platform",
     gene:    "Gen-E AI — AI-powered career intelligence assistant",
   };
 
@@ -1266,7 +1266,7 @@ app.post("/api/mini-chat", requireAuth, async (req, res) => {
     train_team:           "Focus on team learning plans, HyperX courses for employees, and skill development at scale.",
     hire_talent:          "Focus on DigiHub talent network, hiring best practices, and team building.",
     digital_marketing:    "Focus on DigiHub tools, content strategy, SEO, social media, and brand growth.",
-    content_production:   "Focus on The Wedding Unit services, photography, video production, and content creation.",
+    content_production:   "Focus on Units services, photography, video production, and content creation.",
   };
 
   const contextHint = userType === "business"
@@ -1281,7 +1281,7 @@ app.post("/api/mini-chat", requireAuth, async (req, res) => {
     "You are GEN-E Mini, the AI assistant for " + productName + ".",
     "",
     "STRICT SCOPE — You ONLY answer questions about:",
-    "- NuGens products: Gen-E AI (career intelligence), HyperX (learning platform), DigiHub (digital marketing), The Wedding Unit (production)",
+    "- NuGens products: Gen-E AI (career intelligence), HyperX (learning platform), DigiHub (digital marketing), Units (production)",
     "- Career development, professional skills, workplace situations",
     "- Learning paths, courses, certifications",
     "- Digital marketing, brand building, content strategy",
