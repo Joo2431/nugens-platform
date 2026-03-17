@@ -1,0 +1,14 @@
+{
+  "name": "nugens-platform",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "gene": "cd apps/gene && npm install && npm run dev",
+    "hyperx": "cd apps/hyperx && npm install && npm run dev",
+    "nugens-web": "cd apps/nugens-web && npm install && npm run dev",
+    "backend": "cd backend && npm install && npm run dev",
+    "build:gene": "cd apps/gene && npm install && npm run build",
+    "build:hyperx": "cd apps/hyperx && npm install && npm run build",
+    "build:web": "cd apps/nugens-web && npm install && npm run build"
+  }
+}
