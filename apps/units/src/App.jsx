@@ -85,7 +85,7 @@ function AppShell() {
 
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:"#f8f9fb" }}>
-      {user && <Sidebar profile={profile} onSignOut={signOut} />}
+      <Sidebar profile={profile} onSignOut={signOut} />
       <div style={{ flex:1, overflow:"auto" }}>
         <Suspense fallback={<Spinner />}>
           <Routes>

@@ -117,16 +117,14 @@ function AppShell() {
   // Other routes: outer Sidebar
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:"#f8f9fb" }}>
-      {user && (
-        <Sidebar
-          userType={userType}
-          dbUserType={dbUserType}
-          profile={profile}
-          user={user}
-          onSignOut={signOut}
-          onSwitchMode={(m) => setModeOverride(m)}
-        />
-      )}
+      <Sidebar
+        userType={userType}
+        dbUserType={dbUserType}
+        profile={profile}
+        user={user}
+        onSignOut={signOut}
+        onSwitchMode={(m) => setModeOverride(m)}
+      />
       <div style={{ flex:1, minWidth:0, overflowX:"hidden" }}>
         <Suspense fallback={<Spinner />}>
           <Routes>
