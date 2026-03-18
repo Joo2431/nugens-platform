@@ -26,7 +26,7 @@ const EMPTY_COURSE = {
   is_exclusive:false, total_lessons:0, duration_mins:0, thumbnail_url:"",
 };
 const EMPTY_LESSON = {
-  title:"", description:"", duration_mins:0, sort_order:0, is_free:false, video_url:"",
+  title:"", description:"", section:"", duration_mins:0, sort_order:0, is_free:false, video_url:"",
 };
 
 const ADMIN_EMAILS_LIST = ["jeromjoseph31@gmail.com", "jeromjoshep.23@gmail.com"];
@@ -236,8 +236,10 @@ export default function AdminPanel({ profile: profileProp }) {
     setLf({ ...EMPTY_LESSON });
     await loadLessons(selCourse.id);
     // Update total_lessons count
-    await supabase.from("hx_courses").update({ total_lessons: lessons.length + 1 }).eq("id", selCourse.id);
-    setCf(c => ({ ...c, total_lessons: lessons.length + 1 }));
+    const newCount = lessons.length + 1;
+    await supabase.from("hx_courses").update({ total_lessons: newCount }).eq("id", selCourse.id);
+    setCf(c => ({ ...c, total_lessons: newCount }));
+    await loadCourses(); // refresh left panel count
   };
 
   const deleteLesson = async (id) => {
@@ -539,7 +541,7 @@ export default function AdminPanel({ profile: profileProp }) {
                     </div>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:12, fontWeight:600, color:TEXT, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{l.title}</div>
-                      <div style={{ fontSize:10, color:MUTED }}>{l.duration_mins}m · {l.is_free ? "Free preview" : "Paid"}{l.video_url ? " · ▶ Video" : ""}</div>
+                      <div style={{ fontSize:10, color:MUTED }}>{l.section ? `[${l.section}] ` : ""}{l.duration_mins}m · {l.is_free ? "Free preview" : "Paid"}{l.video_url ? " · ▶ Video" : ""}</div>
                     </div>
                     <button onClick={() => deleteLesson(l.id)}
                       style={{ background:"none", border:"none", cursor:"pointer", color:"#d1d5db", fontSize:16, flexShrink:0 }}>✕</button>
@@ -598,6 +600,7 @@ export default function AdminPanel({ profile: profileProp }) {
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:13, fontWeight:600, color:TEXT }}>{l.title}</div>
                       <div style={{ fontSize:11, color:MUTED }}>
+                        {l.section && <span style={{ background:`${PINK}12`, color:PINK, padding:"1px 6px", borderRadius:4, marginRight:6, fontWeight:600, fontSize:10 }}>{l.section}</span>}
                         {l.duration_mins}m · {l.is_free ? "Free preview" : "Paid"}
                         {l.video_url ? (
                           <a href={l.video_url} target="_blank" rel="noreferrer"
@@ -634,6 +637,12 @@ export default function AdminPanel({ profile: profileProp }) {
                     <textarea style={{ ...S.input, minHeight:60, resize:"vertical" }}
                       value={lf.description || ""} placeholder="What does this lesson cover?"
                       onChange={e => setLf(l => ({ ...l, description: e.target.value }))} />
+                  </div>
+
+                  <div style={{ marginBottom:14 }}>
+                    <label style={S.label}>Section / Chapter (optional)</label>
+                    <input style={S.input} value={lf.section || ""} placeholder="e.g. Introduction, Module 1, Week 2…"
+                      onChange={e => setLf(l => ({ ...l, section: e.target.value }))} />
                   </div>
 
                   <div style={{ marginBottom:14 }}>
