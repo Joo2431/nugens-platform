@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { NG_LOGO }  from "../lib/logo";
-import { useProfile } from "../lib/useProfile";
 
 const PINK   = "#e8185d";
 const TEXT   = "#111827";
@@ -19,31 +18,29 @@ const PLAN_LABELS = {
   hx_biz_pro:"Biz Pro",     hx_biz_yearly:"Biz Yearly",
 };
 
-// Other Nugens products for cross-app navigation
 const OTHER_APPS = [
-  { label:"Gen-E AI",   icon:"◎", color:"#7c3aed", url:"https://gene.nugens.in.net"    },
-  { label:"DigiHub",    icon:"◈", color:"#0284c7", url:"https://digihub.nugens.in.net" },
-  { label:"The Units",  icon:"◇", color:"#d97706", url:"https://units.nugens.in.net"   },
-  { label:"Dashboard",  icon:"⊞", color:PINK,      url:"https://nugens.in.net/dashboard"},
+  { label:"Gen-E AI",  icon:"◎", color:"#7c3aed", url:"https://gene.nugens.in.net"     },
+  { label:"DigiHub",   icon:"◈", color:"#0284c7", url:"https://digihub.nugens.in.net"  },
+  { label:"The Units", icon:"◇", color:"#d97706", url:"https://units.nugens.in.net"    },
+  { label:"Dashboard", icon:"⊞", color:PINK,      url:"https://nugens.in.net/dashboard"},
 ];
 
-export default function Sidebar({ profile: profileProp }) {
-  // useProfile fetches with email fallback — resolves ID mismatch
-  const { profile: ownProfile } = useProfile();
-  const profile = ownProfile || profileProp;
-
-  const [collapsed,    setCollapsed]    = useState(false);
-  const [showApps,     setShowApps]     = useState(false);
+// ── Sidebar receives profile as prop from App.jsx ──────────────────────────
+// NO useProfile() hook here — that causes a second getSession() that hangs.
+// App.jsx already resolved auth; we just display what it passes down.
+export default function Sidebar({ profile }) {
+  const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
 
+  // Derive all display values from prop — show safe defaults when null
   const plan      = profile?.plan      || "free";
   const userType  = profile?.user_type || "individual";
   const isBiz     = userType === "business";
   const firstName = (profile?.full_name || "").split(" ")[0] || "User";
   const email     = (profile?.email    || "").toLowerCase().trim();
   const planLabel = PLAN_LABELS[plan]  || plan;
-  const isAdmin   = plan === "admin"   || ADMIN_EMAILS.includes(email);
   const isPaid    = plan !== "free";
+  const isAdmin   = plan === "admin" || ADMIN_EMAILS.includes(email);
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -51,10 +48,10 @@ export default function Sidebar({ profile: profileProp }) {
   };
 
   const NAV = [
-    { to:"/",        icon:"⊞", label:"Dashboard"    },
+    { to:"/",        icon:"⊞", label:"Dashboard"                     },
     { to:"/courses", icon:"▶", label: isBiz ? "All Courses" : "My Courses" },
-    { to:"/certs",   icon:"◇", label:"Certificates" },
-    { to:"/pricing", icon:"↑", label:"Upgrade"      },
+    { to:"/certs",   icon:"◇", label:"Certificates"                  },
+    { to:"/pricing", icon:"↑", label:"Upgrade"                       },
   ];
 
   return (
@@ -101,7 +98,7 @@ export default function Sidebar({ profile: profileProp }) {
         boxShadow: "1px 0 0 #f3f4f6",
       }}>
 
-        {/* ── LOGO + COLLAPSE ── */}
+        {/* ── LOGO ── */}
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20, paddingLeft:4 }}>
           {!collapsed && (
             <a href="https://nugens.in.net" style={{ display:"flex", alignItems:"center", gap:9, textDecoration:"none" }}>
@@ -110,7 +107,6 @@ export default function Sidebar({ profile: profileProp }) {
                 <div style={{ fontWeight:800, fontSize:15, color:TEXT, letterSpacing:"-0.035em", lineHeight:1.1 }}>
                   Hyper<span style={{ color:PINK }}>X</span>
                 </div>
-                {/* "by Nugens" — lowercase g */}
                 <div style={{ fontSize:9, color:MUTED, fontWeight:600, letterSpacing:"0.06em", textTransform:"uppercase" }}>
                   by Nugens
                 </div>
@@ -129,7 +125,9 @@ export default function Sidebar({ profile: profileProp }) {
             <div style={{ fontSize:9, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.1em", color:isBiz?PINK:"#2563eb", marginBottom:2 }}>
               {isBiz ? "🏢 Business" : "👤 Individual"}
             </div>
-            <div style={{ fontSize:10, color:MUTED }}>{isBiz ? "Business + Individual courses" : "Individual courses only"}</div>
+            <div style={{ fontSize:10, color:MUTED }}>
+              {isBiz ? "Business + Individual courses" : "Individual courses only"}
+            </div>
           </div>
         )}
 
@@ -137,11 +135,15 @@ export default function Sidebar({ profile: profileProp }) {
         {!collapsed && (
           <div style={{ display:"flex", alignItems:"center", gap:9, padding:"8px 10px", background:"#f8f9fb", borderRadius:9, marginBottom:14 }}>
             <div style={{ width:32, height:32, borderRadius:"50%", background:`${PINK}15`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:800, color:PINK, flexShrink:0 }}>
-              {firstName.slice(0,2).toUpperCase()}
+              {firstName.slice(0, 2).toUpperCase()}
             </div>
             <div style={{ overflow:"hidden", flex:1 }}>
-              <div style={{ fontSize:12, fontWeight:700, color:TEXT, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{firstName}</div>
-              <div style={{ fontSize:10, color:isPaid?PINK:MUTED, fontWeight:600 }}>{planLabel}</div>
+              <div style={{ fontSize:12, fontWeight:700, color:TEXT, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
+                {firstName}
+              </div>
+              <div style={{ fontSize:10, color:isPaid ? PINK : MUTED, fontWeight:600 }}>
+                {planLabel}
+              </div>
             </div>
           </div>
         )}
@@ -149,11 +151,12 @@ export default function Sidebar({ profile: profileProp }) {
         {/* ── MAIN NAV ── */}
         <nav style={{ display:"flex", flexDirection:"column", gap:2, marginBottom:8 }}>
           {NAV.map(n => (
-            <NavLink key={n.to} to={n.to} end={n.to==="/"} className={({ isActive }) => `hx-nav${isActive ? " active" : ""}`}>
+            <NavLink key={n.to} to={n.to} end={n.to === "/"} className={({ isActive }) => `hx-nav${isActive ? " active" : ""}`}>
               <span className="hx-ico">{n.icon}</span>
               {!collapsed && n.label}
             </NavLink>
           ))}
+          {/* Admin Panel — shown when email matches or plan=admin */}
           {isAdmin && (
             <NavLink to="/admin" className={({ isActive }) => `hx-nav${isActive ? " active" : ""}`}>
               <span className="hx-ico">⚙</span>
@@ -165,7 +168,7 @@ export default function Sidebar({ profile: profileProp }) {
         {/* ── DIVIDER ── */}
         {!collapsed && <div style={{ borderTop:`1px solid ${BORDER}`, margin:"8px 4px 10px" }}/>}
 
-        {/* ── CROSS-APP NAVIGATION ── */}
+        {/* ── OTHER PRODUCTS ── */}
         {!collapsed && (
           <div style={{ marginBottom:12 }}>
             <div style={{ fontSize:10, fontWeight:700, color:MUTED, textTransform:"uppercase", letterSpacing:"0.08em", padding:"0 10px", marginBottom:6 }}>
@@ -180,11 +183,11 @@ export default function Sidebar({ profile: profileProp }) {
           </div>
         )}
 
+        {/* Collapsed: show product icons */}
         {collapsed && (
           <div style={{ display:"flex", flexDirection:"column", gap:6, alignItems:"center", marginBottom:12 }}>
             {OTHER_APPS.map(app => (
-              <a key={app.url} href={app.url} target="_blank" rel="noreferrer"
-                title={app.label}
+              <a key={app.url} href={app.url} target="_blank" rel="noreferrer" title={app.label}
                 style={{ width:32, height:32, borderRadius:8, background:`${app.color}12`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, color:app.color, textDecoration:"none" }}>
                 {app.icon}
               </a>
