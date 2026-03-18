@@ -33,6 +33,18 @@ function Spinner() {
   );
 }
 
+// Enrich profile full_name from auth metadata if blank, and patch DB so it persists.
+function enrichName(prof, authUser) {
+  if (!prof || prof.full_name?.trim()) return prof;
+  const meta = authUser?.user_metadata || {};
+  const name = meta.full_name || meta.name || authUser?.email?.split("@")[0] || "";
+  if (!name) return prof;
+  // Write back to DB so future loads don't need enrichment
+  supabase.from("profiles").update({ full_name: name }).eq("id", prof.id)
+    .then(({ error: e }) => { if (e) console.warn("[Auth] name patch:", e.message); });
+  return { ...prof, full_name: name };
+}
+
 function AppShell() {
   const [user,    setUser]    = useState(null);
   const [profile, setProfile] = useState(null);
@@ -62,10 +74,7 @@ function AppShell() {
             .then(({ data }) => data || null).catch(() => null),
           new Promise(r => setTimeout(() => r(null), 4000)),
         ]);
-        if (prof && !prof.full_name) {
-          const meta = session.user.user_metadata;
-          prof = { ...prof, full_name: meta?.full_name || meta?.name || session.user.email?.split("@")[0] || "" };
-        }
+        prof = enrichName(prof, session.user);
         finish(session.user, prof);
       } catch(err) {
         console.error("[DigiHub] init:", err.message);
