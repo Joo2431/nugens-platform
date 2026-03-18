@@ -16,28 +16,30 @@ const LEVELS   = ["Beginner","Intermediate","Advanced"];
 const EMPTY_COURSE = { title:"", description:"", category:"Communication", course_type:"individual", level:"Beginner", is_free:false, price:0, offer_percent:0, is_published:false, is_exclusive:false, total_lessons:0, duration_mins:0, thumbnail_url:"" };
 const EMPTY_LESSON = { title:"", description:"", duration_mins:0, sort_order:0, is_free:false, video_url:"" };
 
-const ADMIN_EMAILS = ["jeromjoseph31@gmail.com", "jeromjoshep.23@gmail.com"];
-
 export default function AdminPanel({ profile: profileProp }) {
-  // ── ADMIN CHECK — email-first, never calls getSession() ─────────────────
-  // profile prop comes from App.jsx which already resolved auth with email fallback.
+  // ─── ADMIN CHECK ──────────────────────────────────────────────────────────
+  // Uses profile prop from App.jsx (which already resolved auth with email fallback)
+  // + hardcoded admin email list. No getSession() call here — it hangs on Cloudflare.
+  const ADMIN_EMAILS = ["jeromjoseph31@gmail.com", "jeromjoshep.23@gmail.com"];
   const propEmail      = (profileProp?.email || "").toLowerCase().trim();
   const isAdminByEmail = ADMIN_EMAILS.includes(propEmail);
   const isAdminByPlan  = profileProp?.plan === "admin";
-  const isAdmin        = isAdminByEmail || isAdminByPlan;
-  const authEmail      = propEmail;
 
-  // Retry waiting for profile prop up to 8 seconds
+  // Wait up to 8s for profile prop to arrive from App.jsx
   const [retryCount, setRetryCount] = useState(0);
   useEffect(() => {
     if (!profileProp && retryCount < 8) {
       const t = setTimeout(() => setRetryCount(c => c + 1), 1000);
       return () => clearTimeout(t);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileProp, retryCount]);
 
-  const checking = !profileProp && retryCount < 8;
-  const adminStatus = checking ? "loading" : (isAdmin ? "allowed" : "denied");
+  const adminStatus = !profileProp && retryCount < 8 ? "loading"
+                    : (isAdminByEmail || isAdminByPlan)  ? "allowed"
+                    : "denied";
+  const authEmail = propEmail;
+  const debugPlan = profileProp?.plan || "not loaded yet";
 
   // ─── STATES ───────────────────────────────────────────────────────────────
   const [tab,       setTab]       = useState("courses");
@@ -57,6 +59,7 @@ export default function AdminPanel({ profile: profileProp }) {
   const videoRef = useRef();
 
   const notify = (text, type="success") => { setMsg({text,type}); setTimeout(()=>setMsg({text:"",type:""}),4000); };
+  const isAdmin   = adminStatus === "allowed";
   const isLoading = adminStatus === "loading";
 
   useEffect(() => {
@@ -200,13 +203,13 @@ export default function AdminPanel({ profile: profileProp }) {
           <div style={{ fontSize:11, fontWeight:700, color:MUTED, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:8 }}>Live Debug</div>
           <div style={{ fontSize:12, color:TEXT, fontFamily:"monospace", lineHeight:2 }}>
             auth email: <strong style={{color: authEmail && authEmail !== "no session" ? GREEN : "#DC2626"}}>{authEmail || "not resolved yet"}</strong><br/>
-            plan in DB: <strong style={{color: (profileProp?.plan === "admin") ? GREEN : "#DC2626"}}>{profileProp?.plan || "not fetched yet"}</strong><br/>
+            plan in DB: <strong style={{color: debugPlan === "admin" ? GREEN : "#DC2626"}}>{debugPlan || "not fetched yet"}</strong><br/>
             need: <strong style={{color:GREEN}}>admin</strong>
           </div>
         </div>
 
         {/* If email resolved but plan is wrong */}
-        {authEmail && authEmail !== "no session" && profileProp?.plan && (
+        {authEmail && authEmail !== "no session" && debugPlan !== "" && (
           <div style={{ marginBottom:20 }}>
             <div style={{ fontSize:13, color:MUTED, lineHeight:1.75, marginBottom:14 }}>
               Run this SQL in Supabase to grant admin access, then click Retry:
