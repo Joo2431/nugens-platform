@@ -36,35 +36,16 @@ export default function Sidebar({ profile }) {
   const plan      = profile?.plan      || "free";
   const userType  = profile?.user_type || "individual";
   const isBiz     = userType === "business";
-
-  ///username
-  const firstName =
-  profile?.full_name
-    ? profile.full_name.split(" ")[0]
-    : profile?.email
-    ? profile.email.split("@")[0]
-    : "User";
-
-    //username ends
-
-    
+  const firstName = (profile?.full_name || "").split(" ")[0] || "User";
   const email     = (profile?.email    || "").toLowerCase().trim();
   const planLabel = PLAN_LABELS[plan]  || plan;
   const isPaid    = plan !== "free";
   const isAdmin   = plan === "admin" || ADMIN_EMAILS.includes(email);
 
- //signout
- 
   const signOut = async () => {
-  try {
     await supabase.auth.signOut();
-    navigate("/auth", { replace: true });
-  } catch (err) {
-    console.error("Signout error:", err);
-  }
-};
-
-//signout end
+    window.location.href = "https://nugens.in.net/auth";
+  };
 
   const NAV = [
     { to:"/",        icon:"⊞", label:"Dashboard"                     },
