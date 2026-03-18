@@ -28,7 +28,7 @@ function Spinner() {
   );
 }
 
-// Fetch profile by ID, fallback to email — fixes OAuth ID mismatch
+// Fetch profile by ID then email fallback — handles OAuth UUID mismatch
 async function fetchProfile(userId, userEmail) {
   try {
     const { data: byId } = await supabase
@@ -40,7 +40,7 @@ async function fetchProfile(userId, userEmail) {
       .from("profiles").select("*").eq("email", userEmail).maybeSingle();
     if (!byEmail) return null;
 
-    // Fix the mismatch silently
+    // Fix ID mismatch silently so future queries work by ID
     await supabase.from("profiles").update({ id: userId }).eq("email", userEmail).catch(() => {});
     return { ...byEmail, id: userId };
   } catch { return null; }
@@ -56,9 +56,10 @@ function AppShell() {
   useEffect(() => {
     let settled = false;
 
+    // Hard 6s timeout — app ALWAYS renders, never stays on spinner
     const hardTimeout = setTimeout(() => {
       if (!settled) { settled = true; setReady(true); }
-    }, 5000);
+    }, 6000);
 
     function finish(usr, prof) {
       if (settled) return;
@@ -71,16 +72,33 @@ function AppShell() {
 
     async function init() {
       try {
+        // Method 1: getUser() — server-verified JWT, never returns stale cookie
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (authUser) {
+          const prof = await Promise.race([
+            fetchProfile(authUser.id, authUser.email),
+            new Promise(r => setTimeout(() => r(null), 4000)),
+          ]);
+          finish(authUser, prof);
+          return;
+        }
+
+        // Method 2: getSession() fallback
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) { finish(null, null); return; }
-        const prof = await Promise.race([
-          fetchProfile(session.user.id, session.user.email),
-          new Promise(r => setTimeout(() => r(null), 4000)),
-        ]);
-        finish(session.user, prof);
+        if (session?.user) {
+          const prof = await Promise.race([
+            fetchProfile(session.user.id, session.user.email),
+            new Promise(r => setTimeout(() => r(null), 4000)),
+          ]);
+          finish(session.user, prof);
+          return;
+        }
+
+        finish(null, null);
       } catch { finish(null, null); }
     }
 
+    // onAuthStateChange fires even when getUser/getSession hangs
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         if (session?.user) {
