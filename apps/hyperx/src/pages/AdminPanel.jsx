@@ -1,53 +1,102 @@
-import React, { useState, useEffect, useRef } from "react";
-import { supabase } from "../lib/supabase";
-
-const PINK   = "#e8185d";
-const TEXT   = "#111827";
-const MUTED  = "#6b7280";
-const LIGHT  = "#f8f9fb";
-const CARD   = "#ffffff";
-const BORDER = "#e8eaed";
-const GREEN  = "#16a34a";
-
-const IND_CATS = ["Communication","Career Strategy","Mindset","Interview Prep","Personal Brand","Leadership","Productivity","English for Work","Soft Skills","Time Management","Finance & Investing","Health & Wellness"];
-const BIZ_CATS = ["Business Strategy","Marketing & Growth","Sales","HR & People","Finance","Operations","Startup & Entrepreneurship","Management","B2B Skills","Digital Transformation","Legal Basics","Customer Success"];
-const LEVELS   = ["Beginner","Intermediate","Advanced"];
-
-const EMPTY_COURSE = { title:"", description:"", category:"Communication", course_type:"individual", level:"Beginner", is_free:false, price:0, offer_percent:0, is_published:false, is_exclusive:false, total_lessons:0, duration_mins:0, thumbnail_url:"" };
-const EMPTY_LESSON = { title:"", description:"", duration_mins:0, sort_order:0, is_free:false, video_url:"" };
-
 export default function AdminPanel({ profile: profileProp }) {
-  // ─── ADMIN CHECK ──────────────────────────────────────────────────────────
-  // SIMPLIFIED: profile prop comes from App.jsx which already has the session.
-  // Never do getSession() here — it returns nothing due to cookie timing.
-  // Admin is granted if:
-  //   1. profile prop email is in the hardcoded admin list, OR
-  //   2. profile prop plan === "admin"
+  // ── ADMIN CHECK ─────────────────────────────────────────────────────────
+  // Uses email match (most reliable) + plan check.
+  // Never calls getSession() directly — it hangs on Cloudflare.
+  // Profile comes from App.jsx which already resolved auth with email fallback.
 
-  const ADMIN_EMAILS = [
-    "jeromjoseph31@gmail.com",
-    "jeromjoshep.23@gmail.com",
-  ];
+  const ADMIN_EMAILS = ["jeromjoseph31@gmail.com", "jeromjoshep.23@gmail.com"];
 
   const propEmail = (profileProp?.email || "").toLowerCase().trim();
-  const propPlan  = profileProp?.plan || "";
   const isAdminByEmail = ADMIN_EMAILS.includes(propEmail);
-  const isAdminByPlan  = propPlan === "admin";
+  const isAdminByPlan  = profileProp?.plan === "admin";
 
-  // Derive admin status directly from prop — no async, no useEffect needed
-  const adminStatus = profileProp
-    ? (isAdminByEmail || isAdminByPlan ? "allowed" : "denied")
-    : "loading";
-
+  // Wait up to 8 retries (8 seconds) for profile prop to arrive
   const [retryCount, setRetryCount] = useState(0);
-
-  // If profile prop is null (still loading), wait and retry
   useEffect(() => {
-    if (!profileProp && retryCount < 6) {
+    if (!profileProp && retryCount < 8) {
       const t = setTimeout(() => setRetryCount(c => c + 1), 1000);
       return () => clearTimeout(t);
     }
   }, [profileProp, retryCount]);
+
+  const checking = !profileProp && retryCount < 8;
+  const isAdmin  = isAdminByEmail || isAdminByPlan;
+  const authEmail = propEmail;
+  const debugPlan = profileProp?.plan || "not loaded";
+
+  export default function AdminPanel({ profile: profileProp }) {
+  // ─── ADMIN CHECK ──────────────────────────────────────────────────────────
+  // IMPORTANT: Uses onAuthStateChange (same as App.jsx) + getSession fallback.
+  // Do NOT use getSession() alone at mount — with custom cookie storage the
+  // session is not yet parsed when the component first renders.
+  const [adminStatus, setAdminStatus] = useState("loading");
+  const [authEmail,   setAuthEmail]   = useState("");
+  const [debugPlan,   setDebugPlan]   = useState("");
+  const [retryCount,  setRetryCount]  = useState(0);
+
+  useEffect(() => {
+    let resolved = false;
+
+    async function queryPlan(userId, email) {
+      if (resolved) return;
+      setAuthEmail(email);
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("plan")
+        .eq("id", userId)
+        .single();
+
+      if (resolved) return;
+      resolved = true;
+
+      if (error) {
+        // Row missing — upsert blank row so the SQL fix will work
+        setDebugPlan("NO ROW — upserted blank, run SQL now");
+        await supabase.from("profiles").upsert(
+          { id: userId, email, plan: "free" },
+          { onConflict: "id" }
+        );
+        setAdminStatus("denied");
+        return;
+      }
+
+      setDebugPlan(data?.plan || "null");
+      setAdminStatus(data?.plan === "admin" ? "allowed" : "denied");
+    }
+
+    // Pattern 1: listen for auth state (fires immediately if session exists)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (session?.user) {
+          await queryPlan(session.user.id, session.user.email || "");
+        } else if (!resolved) {
+          resolved = true;
+          setAdminStatus("denied");
+          setAuthEmail("no session");
+        }
+      }
+    );
+
+    // Pattern 2: also call getSession() as a parallel fallback
+    // (sometimes onAuthStateChange fires after a short delay)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user && !resolved) {
+        queryPlan(session.user.id, session.user.email || "");
+      }
+    });
+
+    // Pattern 3: if profileProp was passed and has a plan already, use it directly
+    if (profileProp?.plan) {
+      resolved = true;
+      setAuthEmail(profileProp.email || "from prop");
+      setDebugPlan(profileProp.plan);
+      setAdminStatus(profileProp.plan === "admin" ? "allowed" : "denied");
+    }
+
+    return () => subscription.unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [retryCount]);
 
   // ─── STATES ───────────────────────────────────────────────────────────────
   const [tab,       setTab]       = useState("courses");
@@ -69,9 +118,6 @@ export default function AdminPanel({ profile: profileProp }) {
   const notify = (text, type="success") => { setMsg({text,type}); setTimeout(()=>setMsg({text:"",type:""}),4000); };
   const isAdmin   = adminStatus === "allowed";
   const isLoading = adminStatus === "loading";
-  // Debug info shown on deny screen
-  const authEmail = propEmail || "(no email in profile prop)";
-  const debugPlan = propPlan  || "(no plan in profile prop)";
 
   useEffect(() => {
     loadCourses();

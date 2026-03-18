@@ -28,25 +28,21 @@ function Spinner() {
   );
 }
 
-// Fetch profile by ID, with email fallback for OAuth ID mismatches
+// Fetch profile by ID, fallback to email — fixes OAuth ID mismatch
 async function fetchProfile(userId, userEmail) {
   try {
-    // Try by ID first
     const { data: byId } = await supabase
       .from("profiles").select("*").eq("id", userId).maybeSingle();
     if (byId) return byId;
 
-    // Fallback: try by email (OAuth can create mismatched IDs)
-    if (userEmail) {
-      const { data: byEmail } = await supabase
-        .from("profiles").select("*").eq("email", userEmail).maybeSingle();
-      if (byEmail) {
-        // Fix the ID so future queries work
-        await supabase.from("profiles").update({ id: userId }).eq("email", userEmail);
-        return { ...byEmail, id: userId };
-      }
-    }
-    return null;
+    if (!userEmail) return null;
+    const { data: byEmail } = await supabase
+      .from("profiles").select("*").eq("email", userEmail).maybeSingle();
+    if (!byEmail) return null;
+
+    // Fix the mismatch silently
+    await supabase.from("profiles").update({ id: userId }).eq("email", userEmail).catch(() => {});
+    return { ...byEmail, id: userId };
   } catch { return null; }
 }
 
@@ -60,13 +56,8 @@ function AppShell() {
   useEffect(() => {
     let settled = false;
 
-    // CRITICAL: 5s hard timeout — prevents infinite spinner on Cloudflare cold start
     const hardTimeout = setTimeout(() => {
-      if (!settled) {
-        settled = true;
-        console.warn("HyperX: forced ready after 5s timeout");
-        setReady(true);
-      }
+      if (!settled) { settled = true; setReady(true); }
     }, 5000);
 
     function finish(usr, prof) {
@@ -80,22 +71,16 @@ function AppShell() {
 
     async function init() {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error || !session?.user) { finish(null, null); return; }
-
-        // Race profile fetch vs 4s timeout
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) { finish(null, null); return; }
         const prof = await Promise.race([
           fetchProfile(session.user.id, session.user.email),
           new Promise(r => setTimeout(() => r(null), 4000)),
         ]);
         finish(session.user, prof);
-      } catch (err) {
-        console.error("HyperX init error:", err.message);
-        finish(null, null);
-      }
+      } catch { finish(null, null); }
     }
 
-    // onAuthStateChange fires reliably even when getSession() hangs
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         if (session?.user) {
@@ -116,7 +101,6 @@ function AppShell() {
 
   if (!ready) return <Spinner />;
 
-  // Course player — fullscreen, no sidebar
   if (isCoursePlayer) return (
     <Suspense fallback={<Spinner />}>
       <Routes>
@@ -128,7 +112,6 @@ function AppShell() {
 
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:"#f8f9fb" }}>
-      {/* Sidebar always renders when ready — even if profile is null (shows defaults) */}
       <Sidebar profile={profile} />
       <div style={{ flex:1, minWidth:0, overflowX:"hidden" }}>
         <Suspense fallback={<Spinner />}>
