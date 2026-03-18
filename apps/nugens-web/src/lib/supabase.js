@@ -27,6 +27,6 @@ export const supabase = createClient(SUPA_URL, SUPA_KEY, {
     storageKey: "ng-auth",
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true,  // SSO: must be true so OAuth code in URL is auto-exchanged
+    detectSessionInUrl: false, // Handled manually in AuthPage (cookieStorage breaks auto-exchange)
   },
 });
