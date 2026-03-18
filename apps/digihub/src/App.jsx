@@ -57,11 +57,15 @@ function AppShell() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) { finish(null, null); return; }
-        const prof = await Promise.race([
+        let prof = await Promise.race([
           supabase.from("profiles").select("*").eq("id", session.user.id).maybeSingle()
             .then(({ data }) => data || null).catch(() => null),
           new Promise(r => setTimeout(() => r(null), 4000)),
         ]);
+        if (prof && !prof.full_name) {
+          const meta = session.user.user_metadata;
+          prof = { ...prof, full_name: meta?.full_name || meta?.name || session.user.email?.split("@")[0] || "" };
+        }
         finish(session.user, prof);
       } catch(err) {
         console.error("[DigiHub] init:", err.message);

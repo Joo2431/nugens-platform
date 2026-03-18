@@ -48,6 +48,14 @@ async function fetchProfile(userId, userEmail) {
   }
 }
 
+/** Enrich a profile row with auth metadata when full_name is missing */
+function enrichProfile(prof, authUser) {
+  if (!prof || prof.full_name) return prof;
+  const meta = authUser?.user_metadata;
+  const name = meta?.full_name || meta?.name || authUser?.email?.split("@")[0] || "";
+  return name ? { ...prof, full_name: name } : prof;
+}
+
 function profileFromAuth(authUser) {
   const email = (authUser.email || "").toLowerCase().trim();
   return {
@@ -88,7 +96,7 @@ function AppShell() {
             fetchProfile(authUser.id, authUser.email),
             new Promise(r => setTimeout(() => r(null), 4000)),
           ]);
-          finish(authUser, prof || profileFromAuth(authUser));
+          finish(authUser, enrichProfile(prof, authUser) || profileFromAuth(authUser));
           return;
         }
         const { data: { session } } = await supabase.auth.getSession();
@@ -97,7 +105,7 @@ function AppShell() {
             fetchProfile(session.user.id, session.user.email),
             new Promise(r => setTimeout(() => r(null), 4000)),
           ]);
-          finish(session.user, prof || profileFromAuth(session.user));
+          finish(session.user, enrichProfile(prof, session.user) || profileFromAuth(session.user));
           return;
         }
         finish(null, null);
@@ -110,7 +118,7 @@ function AppShell() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         const prof = await fetchProfile(session.user.id, session.user.email);
-        const finalProf = prof || profileFromAuth(session.user);
+        const finalProf = enrichProfile(prof, session.user) || profileFromAuth(session.user);
         setUser(session.user); setProfile(finalProf);
         if (!settled) finish(session.user, finalProf);
       } else {

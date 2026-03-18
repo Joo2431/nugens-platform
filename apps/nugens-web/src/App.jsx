@@ -46,6 +46,20 @@ export default function App() {
   // Fetch profile silently — never blocks rendering
   const fetchProfile = async (uid) => {
     const { data } = await supabase.from("profiles").select("*").eq("id", uid).maybeSingle();
+    if (data && !data.full_name) {
+      // Enrich from auth metadata — covers Google OAuth users whose full_name was never saved
+      const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+      const meta = session?.user?.user_metadata;
+      if (meta) {
+        const enrichedName = meta.full_name || meta.name || session.user.email?.split("@")[0] || "";
+        if (enrichedName) {
+          // Patch the DB row too so future loads work
+          supabase.from("profiles").update({ full_name: enrichedName }).eq("id", uid).then(() => {});
+          setProfile({ ...data, full_name: enrichedName });
+          return;
+        }
+      }
+    }
     setProfile(data ?? null);
   };
 

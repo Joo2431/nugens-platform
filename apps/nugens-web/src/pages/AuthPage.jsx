@@ -47,43 +47,47 @@ export default function AuthPage() {
   };
 
   useEffect(() => {
-    // Step 1: Check if there is a hash token in the URL (Google OAuth callback)
-    const hash = window.location.hash;
-    if (hash && hash.includes("access_token=")) {
-      // Parse hash manually — most reliable approach
-      const params = new URLSearchParams(hash.replace(/^#/, ""));
-      const accessToken  = params.get("access_token");
-      const refreshToken = params.get("refresh_token");
+    let redirected = false;
 
-      if (accessToken && refreshToken) {
-        // Clear the hash from URL immediately so it doesn't loop
-        window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    const doRedirect = (session) => {
+      if (redirected || !session) return;
+      redirected = true;
 
-        // Set the session directly — bypasses detectSessionInUrl race condition
-        supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-          .then(({ data: { session }, error }) => {
-            if (error) { console.error("setSession error:", error); return; }
-            if (session) {
-              // Upsert profile
-              supabase.from("profiles").upsert({
-                id: session.user.id,
-                email: session.user.email,
-                full_name: session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "",
-                avatar_url: session.user.user_metadata?.avatar_url || "",
-                plan: "free",
-                questions_used: 0,
-              }, { onConflict: "id", ignoreDuplicates: true });
-              goAfterLogin();
-            }
-          });
-        return; // Don't run the normal session check below
-      }
-    }
+      // Upsert profile — always update full_name so it's never empty
+      const fullName =
+        session.user.user_metadata?.full_name ||
+        session.user.user_metadata?.name ||
+        session.user.email?.split("@")[0] || "";
 
-    // Step 2: Normal page load — check existing session
+      supabase.from("profiles").upsert({
+        id:             session.user.id,
+        email:          session.user.email,
+        full_name:      fullName,
+        avatar_url:     session.user.user_metadata?.avatar_url || "",
+        plan:           "free",
+        questions_used: 0,
+      }, {
+        onConflict:      "id",
+        ignoreDuplicates: false,   // MUST be false — always write full_name
+      }).then(({ error }) => {
+        if (error) console.warn("[Auth] profile upsert:", error.message);
+      });
+
+      goAfterLogin();
+    };
+
+    // PRIMARY: onAuthStateChange catches ALL login events reliably —
+    // email/password, Google OAuth (both implicit hash AND PKCE code flow)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => { doRedirect(session); }
+    );
+
+    // FALLBACK: already-logged-in users landing on /auth
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) goAfterLogin();
+      doRedirect(session);
     });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleChange = (e) => { setForm(f => ({ ...f, [e.target.name]: e.target.value })); setError(""); };

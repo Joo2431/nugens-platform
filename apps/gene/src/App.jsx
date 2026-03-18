@@ -37,7 +37,16 @@ function AppShell() {
   const fetchProfile = async (uid) => {
     try {
       const { data } = await supabase.from("profiles").select("*").eq("id", uid).maybeSingle();
-      if (data) setProfile(data);
+      if (data) {
+        if (!data.full_name) {
+          const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+          const meta = session?.user?.user_metadata;
+          const name = meta?.full_name || meta?.name || session?.user?.email?.split("@")[0] || "";
+          setProfile(name ? { ...data, full_name: name } : data);
+        } else {
+          setProfile(data);
+        }
+      }
     } catch(e) { console.error("[Gen-E] fetchProfile:", e.message); }
   };
 

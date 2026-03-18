@@ -51,9 +51,13 @@ function AppShell() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) { finish(null, null); return; }
-        const { data: prof } = await supabase.from("profiles").select("*")
+        let { data: profData } = await supabase.from("profiles").select("*")
           .eq("id", session.user.id).maybeSingle().catch(() => ({ data: null }));
-        finish(session.user, prof || null);
+        if (profData && !profData.full_name) {
+          const meta = session.user.user_metadata;
+          profData = { ...profData, full_name: meta?.full_name || meta?.name || session.user.email?.split("@")[0] || "" };
+        }
+        finish(session.user, profData || null);
       } catch(e) {
         console.error("[Units] init:", e.message);
         finish(null, null);
@@ -62,8 +66,12 @@ function AppShell() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_e, session) => {
       if (session?.user) {
-        const { data: prof } = await supabase.from("profiles").select("*")
+        let { data: prof } = await supabase.from("profiles").select("*")
           .eq("id", session.user.id).maybeSingle().catch(() => ({ data: null }));
+        if (prof && !prof.full_name) {
+          const meta = session.user.user_metadata;
+          prof = { ...prof, full_name: meta?.full_name || meta?.name || session.user.email?.split("@")[0] || "" };
+        }
         setUser(session.user); setProfile(prof || null);
         if (!settled) finish(session.user, prof);
       } else {
