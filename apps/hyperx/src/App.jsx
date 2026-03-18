@@ -1,9 +1,9 @@
 import React, { Suspense, lazy, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { supabase }      from "./lib/supabase";
-import Sidebar           from "./components/Sidebar";
-import ProtectedRoute    from "./components/ProtectedRoute";
-import GenEMiniPopup     from "./components/GenEMiniPopup";
+import { supabase } from "./lib/supabase";
+import Sidebar        from "./components/Sidebar";
+import ProtectedRoute from "./components/ProtectedRoute";
+import GenEMiniPopup  from "./components/GenEMiniPopup";
 
 const Dashboard    = lazy(() => import("./pages/Dashboard"));
 const CoursesPage  = lazy(() => import("./pages/Courses"));
@@ -14,11 +14,10 @@ const AdminPanel   = lazy(() => import("./pages/AdminPanel"));
 
 const PINK = "#e8185d";
 
-// Says "HyperX" — never "NuGens"
 function Spinner() {
   return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
-      height:"100vh", background:"#ffffff", fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
+      height:"100vh", background:"#fff", fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
       <div style={{ textAlign:"center" }}>
         <div style={{ fontWeight:800, fontSize:26, color:PINK, letterSpacing:"-0.04em", marginBottom:8 }}>
           Hyper<span style={{color:"#111"}}>X</span>
@@ -27,6 +26,28 @@ function Spinner() {
       </div>
     </div>
   );
+}
+
+// Fetch profile by ID, with email fallback for OAuth ID mismatches
+async function fetchProfile(userId, userEmail) {
+  try {
+    // Try by ID first
+    const { data: byId } = await supabase
+      .from("profiles").select("*").eq("id", userId).maybeSingle();
+    if (byId) return byId;
+
+    // Fallback: try by email (OAuth can create mismatched IDs)
+    if (userEmail) {
+      const { data: byEmail } = await supabase
+        .from("profiles").select("*").eq("email", userEmail).maybeSingle();
+      if (byEmail) {
+        // Fix the ID so future queries work
+        await supabase.from("profiles").update({ id: userId }).eq("email", userEmail);
+        return { ...byEmail, id: userId };
+      }
+    }
+    return null;
+  } catch { return null; }
 }
 
 function AppShell() {
@@ -39,11 +60,11 @@ function AppShell() {
   useEffect(() => {
     let settled = false;
 
-    // Hard 5-second timeout — app always renders regardless of auth timing
+    // CRITICAL: 5s hard timeout — prevents infinite spinner on Cloudflare cold start
     const hardTimeout = setTimeout(() => {
       if (!settled) {
         settled = true;
-        console.warn("HyperX: forced ready (timeout)");
+        console.warn("HyperX: forced ready after 5s timeout");
         setReady(true);
       }
     }, 5000);
@@ -62,34 +83,32 @@ function AppShell() {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error || !session?.user) { finish(null, null); return; }
 
-        // Race profile fetch vs 4-second timeout
+        // Race profile fetch vs 4s timeout
         const prof = await Promise.race([
-          supabase.from("profiles").select("*")
-            .eq("id", session.user.id).single()
-            .then(({ data }) => data || null)
-            .catch(() => null),
+          fetchProfile(session.user.id, session.user.email),
           new Promise(r => setTimeout(() => r(null), 4000)),
         ]);
         finish(session.user, prof);
       } catch (err) {
-        console.error("HyperX init:", err.message);
+        console.error("HyperX init error:", err.message);
         finish(null, null);
       }
     }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_e, session) => {
-      if (session?.user) {
-        const { data: prof } = await supabase
-          .from("profiles").select("*").eq("id", session.user.id).single()
-          .catch(() => ({ data: null }));
-        setUser(session.user);
-        setProfile(prof || null);
-        if (!settled) finish(session.user, prof);
-      } else {
-        setUser(null); setProfile(null);
-        if (!settled) finish(null, null);
+    // onAuthStateChange fires reliably even when getSession() hangs
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (session?.user) {
+          const prof = await fetchProfile(session.user.id, session.user.email);
+          setUser(session.user);
+          setProfile(prof ?? null);
+          if (!settled) finish(session.user, prof);
+        } else {
+          setUser(null); setProfile(null);
+          if (!settled) finish(null, null);
+        }
       }
-    });
+    );
 
     init();
     return () => { clearTimeout(hardTimeout); subscription.unsubscribe(); };
@@ -97,17 +116,20 @@ function AppShell() {
 
   if (!ready) return <Spinner />;
 
+  // Course player — fullscreen, no sidebar
   if (isCoursePlayer) return (
     <Suspense fallback={<Spinner />}>
       <Routes>
-        <Route path="/courses/:id" element={<ProtectedRoute><CoursePlayer profile={profile} /></ProtectedRoute>} />
+        <Route path="/courses/:id"
+          element={<ProtectedRoute><CoursePlayer profile={profile} /></ProtectedRoute>} />
       </Routes>
     </Suspense>
   );
 
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:"#f8f9fb" }}>
-      {user && <Sidebar profile={profile} />}
+      {/* Sidebar always renders when ready — even if profile is null (shows defaults) */}
+      <Sidebar profile={profile} />
       <div style={{ flex:1, minWidth:0, overflowX:"hidden" }}>
         <Suspense fallback={<Spinner />}>
           <Routes>
@@ -120,7 +142,7 @@ function AppShell() {
           </Routes>
         </Suspense>
       </div>
-      {user && <GenEMiniPopup product="hyperx" />}
+      <GenEMiniPopup product="hyperx" />
     </div>
   );
 }

@@ -18,112 +18,36 @@ const EMPTY_LESSON = { title:"", description:"", duration_mins:0, sort_order:0, 
 
 export default function AdminPanel({ profile: profileProp }) {
   // ─── ADMIN CHECK ──────────────────────────────────────────────────────────
-  // IMPORTANT: Uses onAuthStateChange (same as App.jsx) + getSession fallback.
-  // Do NOT use getSession() alone at mount — with custom cookie storage the
-  // session is not yet parsed when the component first renders.
-  const [adminStatus, setAdminStatus] = useState("loading");
-  const [authEmail,   setAuthEmail]   = useState("");
-  const [debugPlan,   setDebugPlan]   = useState("");
-  const [retryCount,  setRetryCount]  = useState(0);
+  // SIMPLIFIED: profile prop comes from App.jsx which already has the session.
+  // Never do getSession() here — it returns nothing due to cookie timing.
+  // Admin is granted if:
+  //   1. profile prop email is in the hardcoded admin list, OR
+  //   2. profile prop plan === "admin"
 
+  const ADMIN_EMAILS = [
+    "jeromjoseph31@gmail.com",
+    "jeromjoshep.23@gmail.com",
+  ];
+
+  const propEmail = (profileProp?.email || "").toLowerCase().trim();
+  const propPlan  = profileProp?.plan || "";
+  const isAdminByEmail = ADMIN_EMAILS.includes(propEmail);
+  const isAdminByPlan  = propPlan === "admin";
+
+  // Derive admin status directly from prop — no async, no useEffect needed
+  const adminStatus = profileProp
+    ? (isAdminByEmail || isAdminByPlan ? "allowed" : "denied")
+    : "loading";
+
+  const [retryCount, setRetryCount] = useState(0);
+
+  // If profile prop is null (still loading), wait and retry
   useEffect(() => {
-    let resolved = false;
-
-    // Admin emails — always granted access regardless of DB state
-    const ADMIN_EMAILS = [
-      "jeromjoseph31@gmail.com",
-      "jeromjoshep.23@gmail.com",
-    ];
-
-    async function queryPlan(userId, email) {
-      if (resolved) return;
-      setAuthEmail(email);
-
-      // PRIORITY 1: email in hardcoded admin list → always allow
-      if (email && ADMIN_EMAILS.includes(email.toLowerCase().trim())) {
-        // Also ensure DB row is correct so profile prop works next time
-        await supabase.from("profiles").upsert(
-          { id: userId, email, plan: "admin" },
-          { onConflict: "id" }
-        ).catch(() => {});
-        // Also try upsert by email in case ID is different
-        await supabase.from("profiles")
-          .update({ plan: "admin", id: userId })
-          .eq("email", email)
-          .catch(() => {});
-        if (resolved) return;
-        resolved = true;
-        setDebugPlan("admin (email match)");
-        setAdminStatus("allowed");
-        return;
-      }
-
-      // PRIORITY 2: check DB by ID
-      const { data: byId } = await supabase
-        .from("profiles")
-        .select("plan")
-        .eq("id", userId)
-        .maybeSingle();
-
-      if (!byId && email) {
-        // PRIORITY 3: check DB by email (ID mismatch fallback)
-        const { data: byEmail } = await supabase
-          .from("profiles")
-          .select("plan")
-          .eq("email", email)
-          .maybeSingle();
-
-        if (byEmail) {
-          // Fix the ID mismatch in DB
-          await supabase.from("profiles").update({ id: userId }).eq("email", email).catch(() => {});
-          if (resolved) return;
-          resolved = true;
-          setDebugPlan(byEmail.plan || "null");
-          setAdminStatus(byEmail.plan === "admin" ? "allowed" : "denied");
-          return;
-        }
-      }
-
-      if (resolved) return;
-      resolved = true;
-      setDebugPlan(byId?.plan || "NO ROW");
-      setAdminStatus(byId?.plan === "admin" ? "allowed" : "denied");
+    if (!profileProp && retryCount < 6) {
+      const t = setTimeout(() => setRetryCount(c => c + 1), 1000);
+      return () => clearTimeout(t);
     }
-
-    // Pattern 1: listen for auth state (fires immediately if session exists)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (session?.user) {
-          await queryPlan(session.user.id, session.user.email || "");
-        } else if (!resolved) {
-          resolved = true;
-          setAdminStatus("denied");
-          setAuthEmail("no session");
-        }
-      }
-    );
-
-    // Pattern 2: also call getSession() as a parallel fallback
-    // (sometimes onAuthStateChange fires after a short delay)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user && !resolved) {
-        queryPlan(session.user.id, session.user.email || "");
-      }
-    });
-
-    // Pattern 3: check profileProp OR if email is in admin list
-    const adminEmails = ["jeromjoseph31@gmail.com", "jeromjoshep.23@gmail.com"];
-    const propEmail = (profileProp?.email || "").toLowerCase().trim();
-    if (!resolved && (profileProp?.plan === "admin" || adminEmails.includes(propEmail))) {
-      resolved = true;
-      setAuthEmail(profileProp?.email || "from prop");
-      setDebugPlan("admin");
-      setAdminStatus("allowed");
-    }
-
-    return () => subscription.unsubscribe();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [retryCount]);
+  }, [profileProp, retryCount]);
 
   // ─── STATES ───────────────────────────────────────────────────────────────
   const [tab,       setTab]       = useState("courses");
@@ -145,6 +69,9 @@ export default function AdminPanel({ profile: profileProp }) {
   const notify = (text, type="success") => { setMsg({text,type}); setTimeout(()=>setMsg({text:"",type:""}),4000); };
   const isAdmin   = adminStatus === "allowed";
   const isLoading = adminStatus === "loading";
+  // Debug info shown on deny screen
+  const authEmail = propEmail || "(no email in profile prop)";
+  const debugPlan = propPlan  || "(no plan in profile prop)";
 
   useEffect(() => {
     loadCourses();
