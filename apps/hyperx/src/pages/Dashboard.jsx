@@ -21,7 +21,7 @@ const PLAN_CERT_LIMITS = {
   hx_biz_yearly:   999,
 };
 
-export default function Dashboard({ profile }) {
+export default function Dashboard({ profile, user }) {
   const nav = useNavigate();
 
   const [courses,     setCourses]     = useState([]);
@@ -31,7 +31,7 @@ export default function Dashboard({ profile }) {
 
   const plan      = profile?.plan      || "free";
   const isBiz     = profile?.user_type === "business";
-  const firstName = (profile?.full_name || "").split(" ")[0] || "there";
+  const firstName = (profile?.full_name?.trim() || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split("@")[0] || "").split(" ")[0] || "there";
 
   const hour     = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";

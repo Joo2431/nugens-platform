@@ -52,7 +52,7 @@ async function loadStats(userId) {
   };
 }
 
-export default function Dashboard({ profile }) {
+export default function Dashboard({ profile, user }) {
   const nav = useNavigate();
   const [stats,   setStats]   = useState({ posts:0, scheduled:0 });
   const [loading, setLoading] = useState(true);
@@ -60,7 +60,7 @@ export default function Dashboard({ profile }) {
   const isBiz      = profile?.user_type === "business";
   const features   = isBiz ? BIZ_FEATURES : IND_FEATURES;
   const tips       = isBiz ? TIPS_BIZ : TIPS_IND;
-  const firstName  = (profile?.full_name || "").split(" ")[0] || "there";
+  const firstName  = (profile?.full_name?.trim() || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split("@")[0] || "").split(" ")[0] || "there";
   const plan       = profile?.plan || "free";
   const hour       = new Date().getHours();
   const greeting   = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";

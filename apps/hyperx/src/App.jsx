@@ -30,54 +30,14 @@ function Spinner() {
   );
 }
 
-async function fetchProfile(userId, userEmail) {
-  try {
-    const { data: byId, error: idErr } = await supabase
-      .from("profiles").select("*").eq("id", userId).maybeSingle();
-    if (idErr) console.error("[HyperX] fetchProfile by ID:", idErr.message);
-    if (byId) return byId;
-
-    if (!userEmail) return null;
-    const { data: byEmail, error: emailErr } = await supabase
-      .from("profiles").select("*").eq("email", userEmail).maybeSingle();
-    if (emailErr) console.error("[HyperX] fetchProfile by email:", emailErr.message);
-    return byEmail || null;
-  } catch(e) {
-    console.error("[HyperX] fetchProfile error:", e.message);
-    return null;
-  }
-}
-
-
-
-// Get display name: DB profile first, then fresh JWT metadata, then email prefix.
-// Writes back to DB once so future loads are fast.
-async function resolveProfile(prof, userId) {
-  // Get fresh user object — user_metadata is in the JWT, always available
-  const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
-  const meta = user?.user_metadata || {};
-  const name = prof?.full_name?.trim()
-    || meta.full_name || meta.name
-    || user?.email?.split("@")[0] || "";
-
-  if (!name) return prof || null;
-
-  // Patch DB once if it was empty (fire-and-forget)
-  if ((!prof?.full_name?.trim()) && userId) {
-    supabase.from("profiles").update({ full_name: name })
-      .eq("id", userId)
-      .then(({ error: e }) => { if (e) console.warn("[profile] name patch:", e.message); });
-  }
-
-  return prof ? { ...prof, full_name: name } : null;
-}
-
 function profileFromAuth(authUser) {
-  const email = (authUser.email || "").toLowerCase().trim();
+  const meta  = authUser?.user_metadata || {};
+  const email = (authUser?.email || "").toLowerCase().trim();
   return {
-    id: authUser.id, email,
-    full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || email.split("@")[0] || "User",
-    plan: ADMIN_EMAILS.includes(email) ? "admin" : "free",
+    id:        authUser.id,
+    email,
+    full_name: meta.full_name || meta.name || email.split("@")[0] || "",
+    plan:      ADMIN_EMAILS.includes(email) ? "admin" : "free",
     user_type: "individual",
   };
 }
@@ -89,62 +49,35 @@ function AppShell() {
   const [ready,   setReady]   = useState(false);
   const isCoursePlayer = location.pathname.match(/^\/courses\/.+/);
 
+  const fetchProfile = async (uid, authUser) => {
+    try {
+      const { data } = await supabase.from("profiles").select("*")
+        .eq("id", uid).maybeSingle();
+      const meta = authUser?.user_metadata || {};
+      const name = data?.full_name?.trim()
+        || meta.full_name || meta.name
+        || authUser?.email?.split("@")[0] || "";
+      setProfile(data ? { ...data, full_name: name } : profileFromAuth(authUser));
+    } catch(e) {
+      console.error("[HyperX] fetchProfile:", e.message);
+      setProfile(profileFromAuth(authUser));
+    }
+  };
+
   useEffect(() => {
-    let settled = false;
-    const hardTimeout = setTimeout(() => {
-      if (!settled) { settled = true; setReady(true); }
-    }, 6000);
-
-    function finish(usr, prof) {
-      if (settled) return;
-      settled = true;
-      clearTimeout(hardTimeout);
-      setUser(usr ?? null);
-      setProfile(prof ?? null);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
       setReady(true);
-    }
-
-    async function init() {
-      try {
-        const { data: { user: authUser }, error } = await supabase.auth.getUser();
-        if (authUser && !error) {
-          const prof = await Promise.race([
-            fetchProfile(authUser.id, authUser.email),
-            new Promise(r => setTimeout(() => r(null), 4000)),
-          ]);
-          finish(authUser, await resolveProfile(prof, authUser?.id) || profileFromAuth(authUser));
-          return;
-        }
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const prof = await Promise.race([
-            fetchProfile(session.user.id, session.user.email),
-            new Promise(r => setTimeout(() => r(null), 4000)),
-          ]);
-          finish(session.user, await resolveProfile(prof, session.user?.id) || profileFromAuth(session.user));
-          return;
-        }
-        finish(null, null);
-      } catch(e) {
-        console.error("[HyperX] init:", e.message);
-        finish(null, null);
-      }
-    }
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        const prof = await fetchProfile(session.user.id, session.user.email);
-        const finalProf = await resolveProfile(prof, session.user?.id) || profileFromAuth(session.user);
-        setUser(session.user); setProfile(finalProf);
-        if (!settled) finish(session.user, finalProf);
-      } else {
-        setUser(null); setProfile(null);
-        if (!settled) finish(null, null);
-      }
+      if (session?.user) fetchProfile(session.user.id, session.user);
     });
 
-    init();
-    return () => { clearTimeout(hardTimeout); subscription.unsubscribe(); };
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) fetchProfile(session.user.id, session.user);
+      else setProfile(null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   if (!ready) return <Spinner />;
@@ -164,11 +97,11 @@ function AppShell() {
         <Suspense fallback={<Spinner />}>
           <Routes>
             <Route path="/auth"    element={<AuthPage />} />
-            <Route path="/"        element={<ProtectedRoute><Dashboard    profile={profile} /></ProtectedRoute>} />
-            <Route path="/courses" element={<ProtectedRoute><CoursesPage  profile={profile} /></ProtectedRoute>} />
-            <Route path="/certs"   element={<ProtectedRoute><Certificates profile={profile} /></ProtectedRoute>} />
+            <Route path="/"        element={<ProtectedRoute><Dashboard    profile={profile} user={user} /></ProtectedRoute>} />
+            <Route path="/courses" element={<ProtectedRoute><CoursesPage  profile={profile} user={user} /></ProtectedRoute>} />
+            <Route path="/certs"   element={<ProtectedRoute><Certificates profile={profile} user={user} /></ProtectedRoute>} />
             <Route path="/pricing" element={<Pricing profile={profile} />} />
-            <Route path="/admin"   element={<ProtectedRoute><AdminPanel   profile={profile} /></ProtectedRoute>} />
+            <Route path="/admin"   element={<ProtectedRoute><AdminPanel   profile={profile} user={user} /></ProtectedRoute>} />
             <Route path="*"        element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
