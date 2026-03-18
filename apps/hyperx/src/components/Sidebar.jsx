@@ -24,7 +24,7 @@ const PLAN_LABELS = {
 // Current app excluded from switcher
 const OTHER_APPS = PLATFORM_LINKS.filter(a => !a.url.includes("hyperx"));
 
-export default function Sidebar({ profile }) {
+export default function Sidebar({ profile, user }) {
   const [collapsed, setCollapsed] = useState(false);
   const [suiteOpen, setSuiteOpen] = useState(false);
   const navigate = useNavigate();
@@ -32,7 +32,12 @@ export default function Sidebar({ profile }) {
   const plan      = profile?.plan      || "free";
   const userType  = profile?.user_type || "individual";
   const isBiz     = userType === "business";
-  const firstName = (profile?.full_name || "").split(" ")[0] || "User";
+  const resolvedName =
+    profile?.full_name?.trim() ||
+    user?.user_metadata?.full_name?.trim() ||
+    user?.user_metadata?.name?.trim() ||
+    user?.email?.split("@")[0]?.trim() || "User";
+  const firstName = resolvedName.split(" ")[0];
   const email     = (profile?.email    || "").toLowerCase().trim();
   const planLabel = PLAN_LABELS[plan]  || plan;
   const isPaid    = plan !== "free";

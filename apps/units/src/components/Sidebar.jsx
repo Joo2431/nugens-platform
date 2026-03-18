@@ -29,14 +29,19 @@ const INDIVIDUAL_NAV = [
   { to:"/pricing",  icon:"↑",  label:"Pricing"           },
 ];
 
-export default function Sidebar({ profile, onSignOut }) {
+export default function Sidebar({ profile, user, onSignOut }) {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
 
   const isBusiness = profile?.user_type === "business";
   const nav        = isBusiness ? BUSINESS_NAV : INDIVIDUAL_NAV;
   const plan       = profile?.plan || "free";
-  const firstName  = (profile?.full_name || "").split(" ")[0] || "User";
+  const resolvedName =
+    profile?.full_name?.trim() ||
+    user?.user_metadata?.full_name?.trim() ||
+    user?.user_metadata?.name?.trim() ||
+    user?.email?.split("@")[0]?.trim() || "User";
+  const firstName = resolvedName.split(" ")[0];
   const isPaid     = plan !== "free";
 
   const signOut = onSignOut || (async () => {
@@ -122,7 +127,7 @@ export default function Sidebar({ profile, onSignOut }) {
         {!collapsed && (
           <div style={{ display:"flex", alignItems:"center", gap:9, padding:"8px 10px", background:"#f8f9fb", borderRadius:9, marginBottom:16 }}>
             <div style={{ width:30, height:30, borderRadius:"50%", background:AMBER+"15", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:800, color:AMBER, flexShrink:0 }}>
-              {(profile?.full_name||"U").slice(0,2).toUpperCase()}
+              {resolvedName.slice(0,2).toUpperCase()}
             </div>
             <div style={{ overflow:"hidden" }}>
               <div style={{ fontSize:12, fontWeight:700, color:"#111", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{firstName}</div>

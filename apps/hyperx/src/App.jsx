@@ -159,7 +159,7 @@ function AppShell() {
 
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:"#f8f9fb" }}>
-      <Sidebar profile={profile} />
+      <Sidebar profile={profile} user={user} />
       <div style={{ flex:1, minWidth:0, overflowX:"hidden" }}>
         <Suspense fallback={<Spinner />}>
           <Routes>

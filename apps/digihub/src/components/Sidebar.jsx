@@ -33,13 +33,18 @@ const INDIVIDUAL_NAV = [
   { to:"/pricing",   icon:"↑",  label:"Upgrade"         },
 ];
 
-export default function Sidebar({ profile, onSignOut }) {
+export default function Sidebar({ profile, user, onSignOut }) {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
 
   const isBiz     = profile?.user_type === "business";
   const nav       = isBiz ? BUSINESS_NAV : INDIVIDUAL_NAV;
-  const firstName = (profile?.full_name || "").split(" ")[0] || "User";
+  const resolvedName =
+    profile?.full_name?.trim() ||
+    user?.user_metadata?.full_name?.trim() ||
+    user?.user_metadata?.name?.trim() ||
+    user?.email?.split("@")[0]?.trim() || "User";
+  const firstName = resolvedName.split(" ")[0];
   const plan      = profile?.plan || "free";
   const isPaid    = plan !== "free";
 
