@@ -1,11 +1,11 @@
 import React, { Suspense, lazy, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { supabase } from "./lib/supabase";
-import Sidebar       from "./components/Sidebar";
+import Sidebar        from "./components/Sidebar";
 import ProtectedRoute from "./components/ProtectedRoute";
 import GenEMiniPopup  from "./components/GenEMiniPopup";
+import AuthPage       from "./pages/AuthPage";
 
-// Lazy load all pages so Suspense handles individual page loading
 const Dashboard        = lazy(() => import("./pages/Dashboard"));
 const PromptSpace      = lazy(() => import("./pages/PromptSpace"));
 const ImageGenerator   = lazy(() => import("./pages/ImageGenerator"));
@@ -19,7 +19,6 @@ const PricingPage      = lazy(() => import("./pages/PricingPage"));
 
 const PINK = "#e8185d";
 
-// White spinner — matches platform theme, says DigiHub not NuGens
 function Spinner() {
   return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
@@ -41,15 +40,9 @@ function AppShell() {
 
   useEffect(() => {
     let settled = false;
-
-    // Hard 5-second timeout — prevents infinite spinner on Cloudflare cold start
     const hardTimeout = setTimeout(() => {
-      if (!settled) {
-        settled = true;
-        console.warn("DigiHub: auth timeout — forcing ready");
-        setReady(true);
-      }
-    }, 5000);
+      if (!settled) { settled = true; setReady(true); }
+    }, 6000);
 
     function finish(usr, prof) {
       if (settled) return;
@@ -62,42 +55,32 @@ function AppShell() {
 
     async function init() {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error || !session?.user) { finish(null, null); return; }
-
-        // Race profile fetch against 4s timeout — never block the app for profile
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) { finish(null, null); return; }
         const prof = await Promise.race([
-          supabase.from("profiles").select("*")
-            .eq("id", session.user.id).single()
-            .then(({ data }) => data || null)
-            .catch(() => null),
+          supabase.from("profiles").select("*").eq("id", session.user.id).maybeSingle()
+            .then(({ data }) => data || null).catch(() => null),
           new Promise(r => setTimeout(() => r(null), 4000)),
         ]);
-
         finish(session.user, prof);
-      } catch (err) {
-        console.error("DigiHub init error:", err.message);
+      } catch(err) {
+        console.error("[DigiHub] init:", err.message);
         finish(null, null);
       }
     }
 
-    // Subscribe so profile updates on token refresh / plan change
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (session?.user) {
-          const { data: prof } = await supabase
-            .from("profiles").select("*").eq("id", session.user.id).single()
-            .catch(() => ({ data: null }));
-          setUser(session.user);
-          setProfile(prof || null);
-          if (!settled) finish(session.user, prof);
-        } else {
-          setUser(null);
-          setProfile(null);
-          if (!settled) finish(null, null);
-        }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const { data: prof } = await supabase.from("profiles").select("*")
+          .eq("id", session.user.id).maybeSingle().catch(() => ({ data: null }));
+        setUser(session.user);
+        setProfile(prof || null);
+        if (!settled) finish(session.user, prof);
+      } else {
+        setUser(null); setProfile(null);
+        if (!settled) finish(null, null);
       }
-    );
+    });
 
     init();
     return () => { clearTimeout(hardTimeout); subscription.unsubscribe(); };
@@ -116,6 +99,7 @@ function AppShell() {
       <div style={{ flex:1, overflow:"auto", minWidth:0 }}>
         <Suspense fallback={<Spinner />}>
           <Routes>
+            <Route path="/auth"      element={<AuthPage />} />
             <Route path="/"          element={<ProtectedRoute><Dashboard       profile={profile} /></ProtectedRoute>} />
             <Route path="/prompts"   element={<ProtectedRoute><PromptSpace      profile={profile} /></ProtectedRoute>} />
             <Route path="/imagegen"  element={<ProtectedRoute><ImageGenerator   profile={profile} /></ProtectedRoute>} />

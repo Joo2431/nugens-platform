@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { supabase } from "./lib/supabase";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Sidebar from "./components/Sidebar";
+import AuthPage from "./pages/AuthPage";
 
 const GenEChat          = lazy(() => import("./pages/GenEChat"));
 const ResumesPage       = lazy(() => import("./pages/ResumesPage"));
@@ -30,36 +31,44 @@ function AppShell() {
   const [ready,        setReady]       = useState(false);
   const [modeOverride, setModeOverride]= useState(null);
 
-  // These routes render GenEChat which has its OWN internal sidebar + app bar.
-  // Do NOT render the outer Sidebar on these routes — it creates a double sidebar.
-  const isChatRoute = location.pathname === "/" || location.pathname.startsWith("/chat");
-
-  // These routes are fullscreen (no sidebar at all)
+  const isChatRoute  = location.pathname === "/" || location.pathname.startsWith("/chat");
   const isFullscreen = ["/pricing", "/auth"].some(p => location.pathname.startsWith(p));
 
   const fetchProfile = async (uid) => {
-    const { data } = await supabase.from("profiles").select("*").eq("id", uid).single();
-    if (data) setProfile(data);
+    try {
+      const { data } = await supabase.from("profiles").select("*").eq("id", uid).maybeSingle();
+      if (data) setProfile(data);
+    } catch(e) { console.error("[Gen-E] fetchProfile:", e.message); }
   };
 
   useEffect(() => {
-    localStorage.removeItem("gene-mode-override");
-    supabase.auth.getSession().then(({ data:{ session } }) => {
+    let settled = false;
+    const hardTimeout = setTimeout(() => {
+      if (!settled) { settled = true; setReady(true); }
+    }, 6000);
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(hardTimeout);
       setUser(session?.user ?? null);
       setReady(true);
       if (session?.user) fetchProfile(session.user.id);
     });
-    const { data:{ subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null);
       if (session?.user) fetchProfile(session.user.id);
       else { setProfile(null); setModeOverride(null); }
     });
-    return () => subscription.unsubscribe();
+
+    return () => { clearTimeout(hardTimeout); subscription.unsubscribe(); };
   }, []);
 
+  // Re-fetch profile on window focus (catches plan upgrades done in other tabs)
   useEffect(() => {
     const h = async () => {
-      const { data:{ session } } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) fetchProfile(session.user.id);
     };
     window.addEventListener("focus", h);
@@ -77,18 +86,18 @@ function AppShell() {
   const dbUserType = profile?.user_type || "individual";
   const userType   = modeOverride ?? dbUserType;
 
-  // Fullscreen routes (no sidebar, no wrapper)
+  // Fullscreen routes
   if (isFullscreen) return (
     <Suspense fallback={<Spinner />}>
       <Routes>
+        <Route path="/auth"    element={<AuthPage />} />
         <Route path="/pricing" element={<PricingPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*"        element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
   );
 
-  // Chat routes — GenEChat manages its own sidebar AND the AppSwitcherBar.
-  // Render it fullscreen with no outer sidebar.
+  // Chat routes — GenEChat manages its own sidebar + AppSwitcherBar
   if (isChatRoute) return (
     <Suspense fallback={<Spinner />}>
       <Routes>
@@ -100,12 +109,12 @@ function AppShell() {
           </ProtectedRoute>
         } />
         <Route path="/chat" element={<ProtectedRoute><GenEChat profile={profile} /></ProtectedRoute>} />
-        <Route path="*" element={<Navigate to="/chat" replace />} />
+        <Route path="*"     element={<Navigate to="/chat" replace />} />
       </Routes>
     </Suspense>
   );
 
-  // All other routes: show outer Sidebar (resumes, jobs, business dashboard)
+  // Other routes: outer Sidebar
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:"#f8f9fb" }}>
       {user && (
@@ -113,6 +122,7 @@ function AppShell() {
           userType={userType}
           dbUserType={dbUserType}
           profile={profile}
+          user={user}
           onSignOut={signOut}
           onSwitchMode={(m) => setModeOverride(m)}
         />
@@ -124,7 +134,6 @@ function AppShell() {
             <Route path="/jobs"     element={<ProtectedRoute><JobTrackerPage /></ProtectedRoute>} />
             <Route path="/business" element={<ProtectedRoute><BusinessDashboard profile={profile} /></ProtectedRoute>} />
 
-            {/* Tool redirects */}
             <Route path="/skill-gap"          element={<Navigate to="/chat?t=skill_gap" replace />} />
             <Route path="/simulate"           element={<Navigate to="/chat?t=simulate"  replace />} />
             <Route path="/roadmap"            element={<Navigate to="/chat?t=roadmap"   replace />} />

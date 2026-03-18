@@ -8,7 +8,7 @@ import Home from "./pages/Home";
 import GenEMiniPopup from "./components/GenEMiniPopup";
 
 /* ── Auth context ── */
-export const AuthContext = createContext({ user: null, profile: null, ready: false });
+export const AuthContext = createContext({ user: null, profile: null, ready: false, signOut: () => {} });
 export const useAuth = () => useContext(AuthContext);
 
 /* ── lazy pages ── */
@@ -45,8 +45,13 @@ export default function App() {
 
   // Fetch profile silently — never blocks rendering
   const fetchProfile = async (uid) => {
-    const { data } = await supabase.from("profiles").select("*").eq("id", uid).single();
+    const { data } = await supabase.from("profiles").select("*").eq("id", uid).maybeSingle();
     setProfile(data ?? null);
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/auth";
   };
 
   useEffect(() => {
@@ -77,7 +82,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <AuthContext.Provider value={{ user, profile, ready }}>
+      <AuthContext.Provider value={{ user, profile, ready, signOut }}>
         <Suspense fallback={<Spinner />}>
           <Routes>
             {/* public */}

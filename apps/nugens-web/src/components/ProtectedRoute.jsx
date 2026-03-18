@@ -2,24 +2,22 @@ import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
+/**
+ * ProtectedRoute for nugens-web
+ * Uses internal /auth route (nugens-web has its own auth page — it IS the SSO hub).
+ */
 export default function ProtectedRoute({ children }) {
-  const [session, setSession] = useState(undefined); // undefined = still loading
+  const [session, setSession] = useState(undefined);
   const location = useLocation();
 
   useEffect(() => {
     let resolved = false;
-
-    // onAuthStateChange fires first for OAuth hash tokens
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s ?? null);
-      resolved = true;
+      setSession(s ?? null); resolved = true;
     });
-
-    // Fallback for regular sessions (no hash token)
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       if (!resolved) setSession(s ?? null);
     });
-
     return () => subscription.unsubscribe();
   }, []);
 

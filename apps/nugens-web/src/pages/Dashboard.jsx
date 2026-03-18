@@ -45,6 +45,16 @@ const PLAN_LABELS = {
   hx_biz_premium:   { label:"Biz Premium",     color:"#0284c7", paid:true  },
   hx_biz_pro:       { label:"Biz Pro",          color:"#0284c7", paid:true  },
   hx_biz_yearly:    { label:"Biz Yearly",       color:"#0284c7", paid:true  },
+  ng_ind_starter:   { label:"Suite Starter",   color:"#16a34a", paid:true  },
+  ng_ind_pro:       { label:"Suite Pro",        color:"#16a34a", paid:true  },
+  ng_biz_starter:   { label:"Suite Biz",        color:"#16a34a", paid:true  },
+  ng_biz_pro:       { label:"Suite Biz Pro",    color:"#16a34a", paid:true  },
+  dh_starter:       { label:"DigiHub Starter",  color:"#0284c7", paid:true  },
+  dh_pro:           { label:"DigiHub Pro",      color:"#0284c7", paid:true  },
+  units_starter:    { label:"Units Starter",    color:"#d97706", paid:true  },
+  units_pro:        { label:"Units Pro",        color:"#d97706", paid:true  },
+  gene_monthly:     { label:"Gen-E Pro",        color:"#7c3aed", paid:true  },
+  gene_yearly:      { label:"Gen-E Yearly",     color:"#7c3aed", paid:true  },
 };
 
 const GOAL_LABEL = {
