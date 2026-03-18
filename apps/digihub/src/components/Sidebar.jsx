@@ -40,19 +40,19 @@ export default function Sidebar({ profile, onSignOut }) {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        .dh-nav {
-          display:flex; align-items:center; gap:11px; padding:10px 14px; border-radius:10px;
+        .dh-nav { display:flex; align-items:center; gap:11px; padding:10px 14px; border-radius:10px;
           font-size:13px; font-weight:500; color:#6b7280; text-decoration:none;
           transition:all 0.15s; white-space:nowrap; overflow:hidden;
           border:none; background:none; width:100%; cursor:pointer; text-align:left;
-          font-family:'Plus Jakarta Sans',sans-serif;
-        }
+          font-family:'Plus Jakarta Sans',sans-serif; }
         .dh-nav:hover { background:#fef2f2; color:${PINK}; }
         .dh-nav.active { background:#fef2f2; color:${PINK}; font-weight:700; }
         .dh-nav.active .dh-ico, .dh-nav:hover .dh-ico { color:${PINK}; }
         .dh-ico { font-size:14px; flex-shrink:0; width:18px; text-align:center; color:#d1d5db; }
-        .dh-signout { width:100%; padding:9px 13px; background:none; border:1px solid #e8eaed; border-radius:10px; cursor:pointer; font-size:12px; color:#9ca3af; font-family:'Plus Jakarta Sans',sans-serif; transition:all 0.13s; text-align:left; }
-        .dh-signout:hover { border-color:${PINK}40; color:${PINK}; }
+        .dh-out { width:100%; padding:9px 13px; background:none; border:1px solid ${BORDER};
+          border-radius:10px; cursor:pointer; font-size:12px; color:#9ca3af;
+          font-family:'Plus Jakarta Sans',sans-serif; transition:all 0.13s; text-align:left; }
+        .dh-out:hover { border-color:${PINK}40; color:${PINK}; }
       `}</style>
 
       <div style={{
@@ -68,28 +68,34 @@ export default function Sidebar({ profile, onSignOut }) {
         boxShadow: "1px 0 0 #f3f4f6",
       }}>
 
-        {/* Logo */}
+        {/* Logo — "Nugens" not "NuGens" */}
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24, paddingLeft:4 }}>
           {!collapsed && (
             <div style={{ display:"flex", alignItems:"center", gap:9 }}>
               <img src={NG_LOGO} style={{ width:28, height:28, borderRadius:7, objectFit:"cover" }} alt="NG" />
               <div>
-                <div style={{ fontWeight:800, fontSize:14, color:"#111", letterSpacing:"-0.03em", lineHeight:1.1 }}>
+                <div style={{ fontWeight:800, fontSize:14, color:TEXT, letterSpacing:"-0.03em", lineHeight:1.1 }}>
                   Digi<span style={{ color:PINK }}>Hub</span>
                 </div>
-                <div style={{ fontSize:9, color:MUTED, fontWeight:600, letterSpacing:"0.06em", textTransform:"uppercase" }}>by NuGens</div>
+                {/* NOTE: "by Nugens" — lowercase g, no capital G */}
+                <div style={{ fontSize:9, color:MUTED, fontWeight:600, letterSpacing:"0.06em", textTransform:"uppercase" }}>
+                  by Nugens
+                </div>
               </div>
             </div>
           )}
-          <button onClick={()=>setCollapsed(c=>!c)} style={{ background:"none", border:`1px solid ${BORDER}`, borderRadius:7, cursor:"pointer", color:MUTED, fontSize:11, padding:"4px 7px", flexShrink:0 }}>
+          <button
+            onClick={() => setCollapsed(c => !c)}
+            style={{ background:"none", border:`1px solid ${BORDER}`, borderRadius:7, cursor:"pointer", color:MUTED, fontSize:11, padding:"4px 7px", flexShrink:0 }}
+          >
             {collapsed ? "▶" : "◀"}
           </button>
         </div>
 
         {/* Mode badge */}
         {!collapsed && (
-          <div style={{ background: isBiz?"#fef2f2":"#f0fdf4", border:`1px solid ${isBiz?PINK+"30":"#bbf7d0"}`, borderRadius:9, padding:"7px 11px", marginBottom:16 }}>
-            <div style={{ fontSize:9, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.1em", color: isBiz?PINK:"#16a34a", marginBottom:2 }}>
+          <div style={{ background:isBiz?"#fef2f2":"#f0fdf4", border:`1px solid ${isBiz?PINK+"30":"#bbf7d0"}`, borderRadius:9, padding:"7px 11px", marginBottom:16 }}>
+            <div style={{ fontSize:9, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.1em", color:isBiz?PINK:"#16a34a", marginBottom:2 }}>
               {isBiz ? "🏢 Business" : "👤 Individual"}
             </div>
             <div style={{ fontSize:10, color:MUTED }}>{isBiz ? "Brand tools & content" : "Portfolio & opportunities"}</div>
@@ -103,7 +109,7 @@ export default function Sidebar({ profile, onSignOut }) {
               {firstName.slice(0,2).toUpperCase()}
             </div>
             <div style={{ overflow:"hidden" }}>
-              <div style={{ fontSize:12, fontWeight:700, color:"#111", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{firstName}</div>
+              <div style={{ fontSize:12, fontWeight:700, color:TEXT, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{firstName}</div>
               <div style={{ fontSize:10, color:MUTED, textTransform:"capitalize" }}>{plan}</div>
             </div>
           </div>
@@ -111,8 +117,8 @@ export default function Sidebar({ profile, onSignOut }) {
 
         {/* Nav */}
         <nav style={{ flex:1, display:"flex", flexDirection:"column", gap:2 }}>
-          {nav.map(n=>(
-            <NavLink key={n.to} to={n.to} end={n.to==="/"} className={({isActive})=>`dh-nav${isActive?" active":""}`}>
+          {nav.map(n => (
+            <NavLink key={n.to} to={n.to} end={n.to==="/"} className={({isActive}) => `dh-nav${isActive?" active":""}`}>
               <span className="dh-ico">{n.icon}</span>
               {!collapsed && n.label}
             </NavLink>
@@ -120,7 +126,7 @@ export default function Sidebar({ profile, onSignOut }) {
         </nav>
 
         {/* Plan nudge */}
-        {!collapsed && plan==="free" && (
+        {!collapsed && plan === "free" && (
           <div style={{ background:`${PINK}08`, border:`1px solid ${PINK}20`, borderRadius:10, padding:"12px 14px", marginBottom:12 }}>
             <div style={{ fontSize:10, fontWeight:700, color:MUTED, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:4 }}>Free Plan</div>
             <a href="/pricing" style={{ fontSize:12, color:PINK, fontWeight:700, textDecoration:"none" }}>Upgrade →</a>
@@ -130,7 +136,7 @@ export default function Sidebar({ profile, onSignOut }) {
         {/* Sign out */}
         {!collapsed && (
           <div style={{ borderTop:`1px solid ${BORDER}`, paddingTop:12, marginTop:4 }}>
-            <button className="dh-signout" onClick={onSignOut}>← Sign out</button>
+            <button className="dh-out" onClick={onSignOut}>← Sign out</button>
           </div>
         )}
       </div>
