@@ -96,8 +96,9 @@ function AppShell() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
-        const { data: prof } = await supabase.from("profiles").select("*")
+        let { data: prof } = await supabase.from("profiles").select("*")
           .eq("id", session.user.id).maybeSingle().catch(() => ({ data: null }));
+        prof = await resolveProfile(prof, session.user.id);
         setUser(session.user);
         setProfile(prof || null);
         if (!settled) finish(session.user, prof);
