@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { NG_LOGO } from "../lib/logo";
 
@@ -12,18 +12,27 @@ const PRODUCTS = [
 ];
 
 export default function AuthPage() {
-  const navigate = useNavigate();
-
-  // Use a ref so goAfterLogin always reads the LATEST redirect value
-  // even inside stale closures from onAuthStateChange
-  const redirectRef = useRef("/dashboard");
-  useEffect(() => {
-    // Read redirect from URL param OR sessionStorage (set before Google OAuth)
+  // ── Redirect destination ──────────────────────────────────────────────────
+  // Read once at mount — URL param wins, then sessionStorage, then dashboard
+  const getRedirectDest = () => {
     const params = new URLSearchParams(window.location.search);
-    const fromUrl  = params.get("redirect");
-    const fromStorage = (() => { try { return sessionStorage.getItem("ng_redirect"); } catch(e) { return null; } })();
-    redirectRef.current = fromUrl || fromStorage || "/dashboard";
-  }, []);
+    const fromUrl = params.get("redirect");
+    const fromStorage = (() => { try { return sessionStorage.getItem("ng_redirect"); } catch { return null; } })();
+    return fromUrl || fromStorage || "/dashboard";
+  };
+
+  // ── Hard redirect — always use window.location so the full app shell
+  //    re-initialises and reads the fresh cookie. navigate() is React-internal
+  //    and does NOT force a cookie re-read across subdomain boundaries.
+  const hardRedirect = (dest) => {
+    try { sessionStorage.removeItem("ng_redirect"); } catch {}
+    if (dest.startsWith("http")) {
+      window.location.href = dest;
+    } else {
+      // Force full reload so App.jsx picks up the new session from cookie
+      window.location.href = window.location.origin + dest;
+    }
+  };
 
   const [tab,           setTab]           = useState("login");
   const [form,          setForm]          = useState({ name:"", email:"", password:"", confirm:"" });
@@ -32,60 +41,50 @@ export default function AuthPage() {
   const [error,         setError]         = useState("");
   const [success,       setSuccess]       = useState("");
 
-  const goAfterLogin = () => {
-    const dest = redirectRef.current;
-    // Clear sessionStorage redirect now that we're using it
-    try { sessionStorage.removeItem("ng_redirect"); } catch(e) {}
-    // Delay lets cookie write complete before navigating to subdomain
-    setTimeout(() => {
-      if (dest.startsWith("http")) {
-        window.location.href = dest;
-      } else {
-        navigate(dest, { replace: true });
-      }
-    }, 600);
-  };
-
   useEffect(() => {
-    let redirected = false;
+    // ── CRITICAL: with detectSessionInUrl:true, Supabase processes the OAuth
+    //    hash/code inside createClient() — BEFORE React mounts. So the
+    //    SIGNED_IN event from onAuthStateChange may already be gone by the time
+    //    we subscribe. We therefore check getSession() FIRST (sync read from
+    //    cookie) and only fall back to onAuthStateChange for live sign-ins.
+
+    let done = false;
 
     const doRedirect = (session) => {
-      if (redirected || !session) return;
-      redirected = true;
+      if (done || !session) return;
+      done = true;
 
-      // Upsert profile — always update full_name so it's never empty
-      const fullName =
-        session.user.user_metadata?.full_name ||
-        session.user.user_metadata?.name ||
-        session.user.email?.split("@")[0] || "";
-
+      // Always write full_name — ignoreDuplicates:false ensures it's never blank
+      const meta     = session.user.user_metadata || {};
+      const fullName = meta.full_name || meta.name || session.user.email?.split("@")[0] || "";
       supabase.from("profiles").upsert({
         id:             session.user.id,
         email:          session.user.email,
         full_name:      fullName,
-        avatar_url:     session.user.user_metadata?.avatar_url || "",
+        avatar_url:     meta.avatar_url || "",
         plan:           "free",
         questions_used: 0,
-      }, {
-        onConflict:      "id",
-        ignoreDuplicates: false,   // MUST be false — always write full_name
-      }).then(({ error }) => {
-        if (error) console.warn("[Auth] profile upsert:", error.message);
-      });
+      }, { onConflict: "id", ignoreDuplicates: false })
+        .then(({ error: e }) => { if (e) console.warn("[Auth] upsert:", e.message); });
 
-      goAfterLogin();
+      hardRedirect(getRedirectDest());
     };
 
-    // PRIMARY: onAuthStateChange catches ALL login events reliably —
-    // email/password, Google OAuth (both implicit hash AND PKCE code flow)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => { doRedirect(session); }
-    );
-
-    // FALLBACK: already-logged-in users landing on /auth
+    // 1. Check cookie session immediately — handles already-logged-in users
+    //    AND Google OAuth (cookie is written by createClient before mount)
     supabase.auth.getSession().then(({ data: { session } }) => {
       doRedirect(session);
     });
+
+    // 2. onAuthStateChange — catches email/password sign-in and token refresh
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        // Only act on actual sign-in events, not TOKEN_REFRESHED / SIGNED_OUT
+        if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+          doRedirect(session);
+        }
+      }
+    );
 
     return () => subscription.unsubscribe();
   }, []);
@@ -108,7 +107,7 @@ export default function AuthPage() {
             id: data.user.id, email: form.email, full_name: form.name, plan: "free", questions_used: 0
           }, { onConflict: "id", ignoreDuplicates: true });
         }
-        if (data.session) { goAfterLogin(); return; }
+        if (data.session) { hardRedirect(getRedirectDest()); return; }
         setSuccess("Account created! Check your email to confirm, then sign in.");
         setTab("login");
       } else {
@@ -118,7 +117,7 @@ export default function AuthPage() {
           setError("Please confirm your email first. Check your inbox.");
           setLoading(false); return;
         }
-        goAfterLogin();
+        hardRedirect(getRedirectDest());
       }
     } catch (err) { setError(err.message || "Something went wrong."); }
     finally { setLoading(false); }
@@ -126,10 +125,8 @@ export default function AuthPage() {
 
   const handleGoogle = async () => {
     setGoogleLoading(true); setError("");
-    const dest = redirectRef.current;
-    // Save destination in sessionStorage before OAuth redirect
-    // so it survives the full page reload without being in the URL
-    try { sessionStorage.setItem("ng_redirect", dest); } catch(e) {}
+    // Save destination before OAuth redirect — survives the full page reload
+    try { sessionStorage.setItem("ng_redirect", getRedirectDest()); } catch {}
     const { error: e2 } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: "https://nugens.in.net/auth" }
