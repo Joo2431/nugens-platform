@@ -2,48 +2,39 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
-const PINK = "#e8185d";
-const TEXT = "#111827";
-const MUTED = "#6b7280";
-const LIGHT = "#f8f9fb";
-const CARD = "#ffffff";
+const PINK   = "#e8185d";
+const TEXT   = "#111827";
+const MUTED  = "#6b7280";
+const LIGHT  = "#f8f9fb";
+const CARD   = "#ffffff";
 const BORDER = "#e8eaed";
 
-const LEVEL_COLOR = {
-  Beginner: "#16a34a",
-  Intermediate: "#d97706",
-  Advanced: PINK,
-};
-
 const PLAN_CERT_LIMITS = {
-  free: 0,
-  hx_ind_starter: 0,
-  hx_ind_premium: 2,
-  hx_ind_pro: 6,
-  hx_ind_yearly: 999,
-  hx_biz_starter: 2,
-  hx_biz_premium: 2,
-  hx_biz_pro: 6,
-  hx_biz_yearly: 999,
+  free:            0,
+  hx_ind_starter:  0,
+  hx_ind_premium:  2,
+  hx_ind_pro:      6,
+  hx_ind_yearly:   999,
+  hx_biz_starter:  2,
+  hx_biz_premium:  2,
+  hx_biz_pro:      6,
+  hx_biz_yearly:   999,
 };
 
 export default function Dashboard({ profile }) {
   const nav = useNavigate();
 
-  const [courses, setCourses] = useState([]);
+  const [courses,     setCourses]     = useState([]);
   const [enrollments, setEnrollments] = useState([]);
-  const [progress, setProgress] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [progress,    setProgress]    = useState([]);
+  const [loading,     setLoading]     = useState(true);
 
-  const plan = profile?.plan || "free";
-  const isBiz = profile?.user_type === "business";
-
+  const plan      = profile?.plan      || "free";
+  const isBiz     = profile?.user_type === "business";
   const firstName = (profile?.full_name || "").split(" ")[0] || "there";
 
-  const hour = new Date().getHours();
-  const greeting =
-    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-
+  const hour     = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const certLimit = PLAN_CERT_LIMITS[plan] ?? 0;
 
   useEffect(() => {
@@ -64,35 +55,29 @@ export default function Dashboard({ profile }) {
         }
 
         const [
-          { data: coursesData, error: coursesError },
-          { data: enrollmentsData, error: enrollError },
-          { data: progressData, error: progressError },
+          { data: coursesData,     error: coursesError  },
+          { data: enrollmentsData, error: enrollError   },
+          { data: progressData,    error: progressError },
         ] = await Promise.all([
           query.order("created_at", { ascending: false }).limit(12),
-          supabase
-            .from("hx_enrollments")
-            .select("*")
-            .eq("user_id", profile.id),
-          supabase
-            .from("hx_progress")
-            .select("*")
-            .eq("user_id", profile.id),
+          supabase.from("hx_enrollments").select("*").eq("user_id", profile.id),
+          supabase.from("hx_progress").select("*").eq("user_id", profile.id),
         ]);
 
         if (coursesError || enrollError || progressError) {
           console.error(
-            "Dashboard loading error:",
+            "[HyperX] Dashboard loading error:",
             coursesError,
             enrollError,
             progressError
           );
         }
 
-        setCourses(coursesData || []);
+        setCourses(coursesData     || []);
         setEnrollments(enrollmentsData || []);
-        setProgress(progressData || []);
+        setProgress(progressData   || []);
       } catch (err) {
-        console.error("Dashboard crash:", err);
+        console.error("[HyperX] Dashboard crash:", err);
       } finally {
         setLoading(false);
       }
@@ -102,10 +87,8 @@ export default function Dashboard({ profile }) {
   }, [profile?.id, isBiz]);
 
   const enrolledIds = new Set(enrollments.map((e) => e.course_id));
-
-  const enrolled = courses.filter((c) => enrolledIds.has(c.id));
+  const enrolled    = courses.filter((c) => enrolledIds.has(c.id));
   const recommended = courses.filter((c) => !enrolledIds.has(c.id));
-  const exclusive = courses.filter((c) => c.is_exclusive);
 
   const getProgressPercent = (courseId) => {
     const lessons = progress.filter((p) => p.course_id === courseId);
@@ -114,42 +97,38 @@ export default function Dashboard({ profile }) {
 
   const S = {
     page: {
-      minHeight: "100vh",
+      minHeight:  "100vh",
       background: LIGHT,
-      padding: "36px 44px",
+      padding:    "36px 44px",
       fontFamily: "'Plus Jakarta Sans',sans-serif",
     },
-
     stat: {
-      background: CARD,
-      border: `1px solid ${BORDER}`,
+      background:   CARD,
+      border:       `1px solid ${BORDER}`,
       borderRadius: 12,
-      padding: "18px 20px",
+      padding:      "18px 20px",
     },
-
     card: {
-      background: CARD,
-      border: `1px solid ${BORDER}`,
+      background:   CARD,
+      border:       `1px solid ${BORDER}`,
       borderRadius: 14,
     },
-
     courseCard: {
-      background: CARD,
-      border: `1px solid ${BORDER}`,
+      background:   CARD,
+      border:       `1px solid ${BORDER}`,
       borderRadius: 12,
-      overflow: "hidden",
-      cursor: "pointer",
+      overflow:     "hidden",
+      cursor:       "pointer",
     },
-
     btn: {
-      padding: "10px 22px",
-      background: PINK,
-      color: "#fff",
-      border: "none",
+      padding:      "10px 22px",
+      background:   PINK,
+      color:        "#fff",
+      border:       "none",
       borderRadius: 9,
-      fontSize: 13,
-      fontWeight: 700,
-      cursor: "pointer",
+      fontSize:     13,
+      fontWeight:   700,
+      cursor:       "pointer",
     },
   };
 
@@ -158,8 +137,8 @@ export default function Dashboard({ profile }) {
       <div
         style={{
           ...S.page,
-          display: "flex",
-          alignItems: "center",
+          display:        "flex",
+          alignItems:     "center",
           justifyContent: "center",
         }}
       >
@@ -171,12 +150,10 @@ export default function Dashboard({ profile }) {
   return (
     <div style={S.page}>
       {/* Header */}
-
       <div style={{ marginBottom: 32 }}>
         <div style={{ fontSize: 28, fontWeight: 800, color: TEXT }}>
           {greeting}, {firstName} 👋
         </div>
-
         <div style={{ fontSize: 13, color: MUTED }}>
           {isBiz
             ? "Access individual and business courses."
@@ -185,13 +162,12 @@ export default function Dashboard({ profile }) {
       </div>
 
       {/* Stats */}
-
       <div
         style={{
-          display: "grid",
+          display:             "grid",
           gridTemplateColumns: "repeat(4,1fr)",
-          gap: 14,
-          marginBottom: 32,
+          gap:                 14,
+          marginBottom:        32,
         }}
       >
         <div style={S.stat}>
@@ -224,19 +200,14 @@ export default function Dashboard({ profile }) {
       </div>
 
       {/* Continue Learning */}
-
       {enrolled.length > 0 && (
         <div style={{ marginBottom: 28 }}>
-          <div
-            style={{ fontSize: 14, fontWeight: 700, color: TEXT, marginBottom: 14 }}
-          >
+          <div style={{ fontSize: 14, fontWeight: 700, color: TEXT, marginBottom: 14 }}>
             Continue Learning
           </div>
-
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 12 }}>
             {enrolled.slice(0, 4).map((course) => {
               const percent = getProgressPercent(course.id);
-
               return (
                 <div
                   key={course.id}
@@ -245,10 +216,10 @@ export default function Dashboard({ profile }) {
                 >
                   <div
                     style={{
-                      height: 90,
-                      background: "#f3f4f6",
-                      display: "flex",
-                      alignItems: "center",
+                      height:         90,
+                      background:     "#f3f4f6",
+                      display:        "flex",
+                      alignItems:     "center",
                       justifyContent: "center",
                     }}
                   >
@@ -262,25 +233,21 @@ export default function Dashboard({ profile }) {
                       "▶"
                     )}
                   </div>
-
                   <div style={{ padding: 14 }}>
-                    <div style={{ fontWeight: 700, color: TEXT }}>
-                      {course.title}
-                    </div>
-
+                    <div style={{ fontWeight: 700, color: TEXT }}>{course.title}</div>
                     <div
                       style={{
-                        height: 4,
-                        background: "#eee",
-                        marginTop: 8,
+                        height:       4,
+                        background:   "#eee",
+                        marginTop:    8,
                         borderRadius: 4,
                       }}
                     >
                       <div
                         style={{
-                          width: `${percent}%`,
+                          width:      `${percent}%`,
                           background: PINK,
-                          height: "100%",
+                          height:     "100%",
                         }}
                       />
                     </div>
@@ -292,8 +259,7 @@ export default function Dashboard({ profile }) {
         </div>
       )}
 
-      {/* Recommended */}
-
+      {/* Start Learning / Recommended */}
       <div>
         <div style={{ fontSize: 14, fontWeight: 700, color: TEXT, marginBottom: 14 }}>
           Start Learning
@@ -316,10 +282,10 @@ export default function Dashboard({ profile }) {
             >
               <div
                 style={{
-                  height: 90,
-                  background: "#f3f4f6",
-                  display: "flex",
-                  alignItems: "center",
+                  height:         90,
+                  background:     "#f3f4f6",
+                  display:        "flex",
+                  alignItems:     "center",
                   justifyContent: "center",
                 }}
               >
@@ -333,10 +299,8 @@ export default function Dashboard({ profile }) {
                   "▶"
                 )}
               </div>
-
               <div style={{ padding: 14 }}>
                 <div style={{ fontWeight: 700, color: TEXT }}>{course.title}</div>
-
                 <div style={{ fontSize: 11, color: MUTED }}>
                   {course.total_lessons} lessons
                 </div>

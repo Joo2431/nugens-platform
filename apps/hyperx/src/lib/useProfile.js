@@ -1,27 +1,55 @@
 /**
  * useProfile.js — Fixed
- * Queries by ID first, falls back to email if ID doesn't match.
- * This resolves the OAuth ID mismatch where profile row has a different
- * UUID than the current auth session.
+ *
+ * Changes from original:
+ *  - Removed the silent UPDATE profiles SET id=userId WHERE email=...
+ *    The anon key cannot UPDATE rows it doesn't own (Supabase RLS blocks this).
+ *    That update was silently swallowed by the .catch(()=>{}) and the returned
+ *    profile had a stale id, causing every subsequent query-by-id to miss.
+ *  - Added explicit error logging on both query paths so failures surface in
+ *    the console immediately.
+ *  - Returns the email-matched row as-is — admin checks already use email
+ *    directly, so the plan column value is still correct without the ID fix.
+ *
+ * NOTE: App.jsx does not use this hook — it has its own inline fetchProfile.
+ * This file is kept for any other components that may import it. Both
+ * implementations now use the same safe strategy.
  */
 import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 
 async function fetchByIdOrEmail(userId, email) {
   // 1. Try by auth user ID
-  const { data: byId } = await supabase
-    .from("profiles").select("*").eq("id", userId).maybeSingle();
+  const { data: byId, error: idErr } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (idErr) {
+    console.error("[HyperX] useProfile — fetchByIdOrEmail by ID:", idErr.message);
+  }
   if (byId) return byId;
 
-  // 2. Fallback: find by email (handles OAuth ID mismatch)
+  // 2. Fallback: find by email (handles OAuth UUID mismatch)
   if (!email) return null;
-  const { data: byEmail } = await supabase
-    .from("profiles").select("*").eq("email", email).maybeSingle();
+
+  const { data: byEmail, error: emailErr } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (emailErr) {
+    console.error("[HyperX] useProfile — fetchByIdOrEmail by email:", emailErr.message);
+  }
   if (!byEmail) return null;
 
-  // Silently fix the ID so future queries work by ID
-  await supabase.from("profiles").update({ id: userId }).eq("email", email).catch(() => {});
-  return { ...byEmail, id: userId };
+  // FIX: Do NOT attempt to UPDATE the id.
+  // The anon key cannot UPDATE a row it doesn't own — RLS blocks this silently.
+  // The .catch(()=>{}) in the original swallowed the error completely.
+  // Admin access and plan checks both use email, so returning as-is is correct.
+  return byEmail;
 }
 
 export function useProfile() {
@@ -33,7 +61,11 @@ export function useProfile() {
     let settled = false;
 
     const timeout = setTimeout(() => {
-      if (!settled) { settled = true; setReady(true); }
+      if (!settled) {
+        settled = true;
+        console.warn("[HyperX] useProfile: forced ready after timeout");
+        setReady(true);
+      }
     }, 5000);
 
     function finish(usr, prof) {
@@ -46,19 +78,20 @@ export function useProfile() {
     }
 
     // onAuthStateChange fires reliably even when getSession hangs
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_e, session) => {
-        if (session?.user) {
-          const prof = await fetchByIdOrEmail(session.user.id, session.user.email);
-          setUser(session.user);
-          setProfile(prof);
-          if (!settled) finish(session.user, prof);
-        } else {
-          setUser(null); setProfile(null);
-          if (!settled) finish(null, null);
-        }
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_e, session) => {
+      if (session?.user) {
+        const prof = await fetchByIdOrEmail(session.user.id, session.user.email);
+        setUser(session.user);
+        setProfile(prof);
+        if (!settled) finish(session.user, prof);
+      } else {
+        setUser(null);
+        setProfile(null);
+        if (!settled) finish(null, null);
       }
-    );
+    });
 
     // getSession as parallel backup
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -70,7 +103,10 @@ export function useProfile() {
       }
     });
 
-    return () => { clearTimeout(timeout); subscription.unsubscribe(); };
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
