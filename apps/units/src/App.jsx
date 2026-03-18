@@ -27,16 +27,28 @@ function Spinner() {
   );
 }
 
-// Enrich profile full_name from auth metadata if blank, and patch DB so it persists.
-function enrichName(prof, authUser) {
-  if (!prof || prof.full_name?.trim()) return prof;
-  const meta = authUser?.user_metadata || {};
-  const name = meta.full_name || meta.name || authUser?.email?.split("@")[0] || "";
-  if (!name) return prof;
-  // Write back to DB so future loads don't need enrichment
-  supabase.from("profiles").update({ full_name: name }).eq("id", prof.id)
-    .then(({ error: e }) => { if (e) console.warn("[Auth] name patch:", e.message); });
-  return { ...prof, full_name: name };
+
+
+// Get display name: DB profile first, then fresh JWT metadata, then email prefix.
+// Writes back to DB once so future loads are fast.
+async function resolveProfile(prof, userId) {
+  // Get fresh user object — user_metadata is in the JWT, always available
+  const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const meta = user?.user_metadata || {};
+  const name = prof?.full_name?.trim()
+    || meta.full_name || meta.name
+    || user?.email?.split("@")[0] || "";
+
+  if (!name) return prof || null;
+
+  // Patch DB once if it was empty (fire-and-forget)
+  if ((!prof?.full_name?.trim()) && userId) {
+    supabase.from("profiles").update({ full_name: name })
+      .eq("id", userId)
+      .then(({ error: e }) => { if (e) console.warn("[profile] name patch:", e.message); });
+  }
+
+  return prof ? { ...prof, full_name: name } : null;
 }
 
 function AppShell() {
@@ -65,7 +77,7 @@ function AppShell() {
         if (!session?.user) { finish(null, null); return; }
         let { data: profData } = await supabase.from("profiles").select("*")
           .eq("id", session.user.id).maybeSingle().catch(() => ({ data: null }));
-        profData = enrichName(profData, session.user);
+        profData = await resolveProfile(profData, session.user.id);
         finish(session.user, profData || null);
       } catch(e) {
         console.error("[Units] init:", e.message);
@@ -77,7 +89,7 @@ function AppShell() {
       if (session?.user) {
         let { data: prof } = await supabase.from("profiles").select("*")
           .eq("id", session.user.id).maybeSingle().catch(() => ({ data: null }));
-        prof = enrichName(prof, session.user);
+        prof = await resolveProfile(prof, session.user.id);
         setUser(session.user); setProfile(prof || null);
         if (!settled) finish(session.user, prof);
       } else {

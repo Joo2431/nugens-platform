@@ -48,15 +48,28 @@ async function fetchProfile(userId, userEmail) {
   }
 }
 
-// Enrich full_name from auth metadata if blank, and patch DB so it persists.
-function enrichName(prof, authUser) {
-  if (!prof || prof.full_name?.trim()) return prof;
-  const meta = authUser?.user_metadata || {};
-  const name = meta.full_name || meta.name || authUser?.email?.split("@")[0] || "";
-  if (!name) return prof;
-  supabase.from("profiles").update({ full_name: name }).eq("id", prof.id)
-    .then(({ error: e }) => { if (e) console.warn("[Auth] name patch:", e.message); });
-  return { ...prof, full_name: name };
+
+
+// Get display name: DB profile first, then fresh JWT metadata, then email prefix.
+// Writes back to DB once so future loads are fast.
+async function resolveProfile(prof, userId) {
+  // Get fresh user object — user_metadata is in the JWT, always available
+  const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const meta = user?.user_metadata || {};
+  const name = prof?.full_name?.trim()
+    || meta.full_name || meta.name
+    || user?.email?.split("@")[0] || "";
+
+  if (!name) return prof || null;
+
+  // Patch DB once if it was empty (fire-and-forget)
+  if ((!prof?.full_name?.trim()) && userId) {
+    supabase.from("profiles").update({ full_name: name })
+      .eq("id", userId)
+      .then(({ error: e }) => { if (e) console.warn("[profile] name patch:", e.message); });
+  }
+
+  return prof ? { ...prof, full_name: name } : null;
 }
 
 function profileFromAuth(authUser) {
@@ -99,7 +112,7 @@ function AppShell() {
             fetchProfile(authUser.id, authUser.email),
             new Promise(r => setTimeout(() => r(null), 4000)),
           ]);
-          finish(authUser, enrichName(prof, authUser) || profileFromAuth(authUser));
+          finish(authUser, await resolveProfile(prof, authUser?.id) || profileFromAuth(authUser));
           return;
         }
         const { data: { session } } = await supabase.auth.getSession();
@@ -108,7 +121,7 @@ function AppShell() {
             fetchProfile(session.user.id, session.user.email),
             new Promise(r => setTimeout(() => r(null), 4000)),
           ]);
-          finish(session.user, enrichName(prof, session.user) || profileFromAuth(session.user));
+          finish(session.user, await resolveProfile(prof, session.user?.id) || profileFromAuth(session.user));
           return;
         }
         finish(null, null);
@@ -121,7 +134,7 @@ function AppShell() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         const prof = await fetchProfile(session.user.id, session.user.email);
-        const finalProf = enrichName(prof, session.user) || profileFromAuth(session.user);
+        const finalProf = await resolveProfile(prof, session.user?.id) || profileFromAuth(session.user);
         setUser(session.user); setProfile(finalProf);
         if (!settled) finish(session.user, finalProf);
       } else {
