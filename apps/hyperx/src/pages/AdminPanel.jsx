@@ -29,44 +29,65 @@ export default function AdminPanel({ profile: profileProp }) {
   useEffect(() => {
     let resolved = false;
 
+    // Admin emails — always granted access regardless of DB state
+    const ADMIN_EMAILS = [
+      "jeromjoseph31@gmail.com",
+      "jeromjoshep.23@gmail.com",
+    ];
+
     async function queryPlan(userId, email) {
       if (resolved) return;
       setAuthEmail(email);
 
-      // Step 1: Try by auth user ID
-      let { data: profile } = await supabase
+      // PRIORITY 1: email in hardcoded admin list → always allow
+      if (email && ADMIN_EMAILS.includes(email.toLowerCase().trim())) {
+        // Also ensure DB row is correct so profile prop works next time
+        await supabase.from("profiles").upsert(
+          { id: userId, email, plan: "admin" },
+          { onConflict: "id" }
+        ).catch(() => {});
+        // Also try upsert by email in case ID is different
+        await supabase.from("profiles")
+          .update({ plan: "admin", id: userId })
+          .eq("email", email)
+          .catch(() => {});
+        if (resolved) return;
+        resolved = true;
+        setDebugPlan("admin (email match)");
+        setAdminStatus("allowed");
+        return;
+      }
+
+      // PRIORITY 2: check DB by ID
+      const { data: byId } = await supabase
         .from("profiles")
-        .select("plan, id, email")
+        .select("plan")
         .eq("id", userId)
         .maybeSingle();
 
-      // Step 2: If not found by ID, try by email (fixes OAuth ID mismatch)
-      if (!profile && email) {
+      if (!byId && email) {
+        // PRIORITY 3: check DB by email (ID mismatch fallback)
         const { data: byEmail } = await supabase
           .from("profiles")
-          .select("plan, id, email")
+          .select("plan")
           .eq("email", email)
           .maybeSingle();
+
         if (byEmail) {
-          profile = byEmail;
-          // Fix the mismatch: update the row ID to match current auth session
-          await supabase.from("profiles")
-            .update({ id: userId })
-            .eq("email", email);
+          // Fix the ID mismatch in DB
+          await supabase.from("profiles").update({ id: userId }).eq("email", email).catch(() => {});
+          if (resolved) return;
+          resolved = true;
+          setDebugPlan(byEmail.plan || "null");
+          setAdminStatus(byEmail.plan === "admin" ? "allowed" : "denied");
+          return;
         }
       }
 
       if (resolved) return;
       resolved = true;
-
-      if (!profile) {
-        setDebugPlan("NO ROW — run the SQL below, then click Retry");
-        setAdminStatus("denied");
-        return;
-      }
-
-      setDebugPlan(profile.plan || "null");
-      setAdminStatus(profile.plan === "admin" ? "allowed" : "denied");
+      setDebugPlan(byId?.plan || "NO ROW");
+      setAdminStatus(byId?.plan === "admin" ? "allowed" : "denied");
     }
 
     // Pattern 1: listen for auth state (fires immediately if session exists)
@@ -90,12 +111,13 @@ export default function AdminPanel({ profile: profileProp }) {
       }
     });
 
-    // Pattern 3: profileProp is used ONLY if it explicitly says "admin"
-    // (avoids stale prop blocking a freshly-granted admin)
-    if (profileProp?.plan === "admin") {
+    // Pattern 3: check profileProp OR if email is in admin list
+    const adminEmails = ["jeromjoseph31@gmail.com", "jeromjoshep.23@gmail.com"];
+    const propEmail = (profileProp?.email || "").toLowerCase().trim();
+    if (!resolved && (profileProp?.plan === "admin" || adminEmails.includes(propEmail))) {
       resolved = true;
-      setAuthEmail(profileProp.email || "from prop");
-      setDebugPlan("admin (from prop)");
+      setAuthEmail(profileProp?.email || "from prop");
+      setDebugPlan("admin");
       setAdminStatus("allowed");
     }
 
