@@ -38,7 +38,7 @@ export default function Sidebar({ profile, user }) {
     user?.user_metadata?.name?.trim() ||
     user?.email?.split("@")[0]?.trim() || "User";
   const firstName = resolvedName.split(" ")[0];
-  const email     = (profile?.email    || "").toLowerCase().trim();
+  const email     = (profile?.email || user?.email || "").toLowerCase().trim();
   const planLabel = PLAN_LABELS[plan]  || plan;
   const isPaid    = plan !== "free";
   const isAdmin   = plan === "admin" || ADMIN_EMAILS.includes(email);
