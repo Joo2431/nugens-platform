@@ -1,43 +1,32 @@
-import { useEffect, useState } from "react";
+/**
+ * ProtectedRoute — Fixed version
+ *
+ * The old ProtectedRoute did its own getSession() call which:
+ * 1. Showed "NuGens" while loading (wrong branding)
+ * 2. Could hang forever (same cookie storage timing issue)
+ * 3. Was redundant — App.jsx already checks auth before rendering
+ *
+ * Fix: App.jsx only renders children when `user` is set.
+ * ProtectedRoute just passes children through immediately.
+ * If somehow a user lands here unauthenticated, redirect to login.
+ */
+import { useEffect } from "react";
 import { supabase } from "../lib/supabase";
 
 export default function ProtectedRoute({ children }) {
-  const [status, setStatus] = useState("loading"); // loading | ok | redirect
-
+  // Auth is handled by App.jsx — if we're rendering here, user is logged in.
+  // This effect just handles the edge case of session expiry mid-session.
   useEffect(() => {
-    let settled = false;
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (!settled) {
-        settled = true;
-        setStatus(session ? "ok" : "redirect");
-      } else {
-        setStatus(session ? "ok" : "redirect");
+      if (!session) {
+        // Session expired — redirect to login
+        const returnUrl = encodeURIComponent(window.location.href);
+        window.location.href = `https://nugens.in.net/auth?redirect=${returnUrl}`;
       }
     });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!settled) {
-        settled = true;
-        setStatus(session ? "ok" : "redirect");
-      }
-    });
-
     return () => subscription.unsubscribe();
   }, []);
 
-  if (status === "loading") return (
-    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:"inherit" }}>
-      <div style={{ fontWeight:800, fontSize:22, color:"#e8185d", letterSpacing:"-0.04em", fontFamily:"'Plus Jakarta Sans',sans-serif" }}>NuGens</div>
-    </div>
-  );
-
-  if (status === "redirect") {
-    // Redirect to central NuGens login with current URL as return destination
-    const returnUrl = encodeURIComponent(window.location.href);
-    window.location.href = `https://nugens.in.net/auth?redirect=${returnUrl}`;
-    return null;
-  }
-
+  // No loading spinner — App.jsx already waited for auth before rendering this
   return children;
 }

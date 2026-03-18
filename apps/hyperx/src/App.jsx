@@ -14,12 +14,16 @@ const AdminPanel   = lazy(() => import("./pages/AdminPanel"));
 
 const PINK = "#e8185d";
 
-// ── Spinner: shows HyperX branding, NOT "NuGens" ────────────────────────────
+// Says "HyperX" — never "NuGens"
 function Spinner() {
   return (
-    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:"#fff" }}>
-      <div style={{ fontWeight:800, fontSize:24, color:PINK, fontFamily:"'Plus Jakarta Sans',sans-serif", letterSpacing:"-0.04em" }}>
-        Hyper<span style={{color:"#111"}}>X</span>
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
+      height:"100vh", background:"#ffffff", fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
+      <div style={{ textAlign:"center" }}>
+        <div style={{ fontWeight:800, fontSize:26, color:PINK, letterSpacing:"-0.04em", marginBottom:8 }}>
+          Hyper<span style={{color:"#111"}}>X</span>
+        </div>
+        <div style={{ width:32, height:3, background:PINK, borderRadius:2, margin:"0 auto", opacity:0.3 }}/>
       </div>
     </div>
   );
@@ -35,87 +39,60 @@ function AppShell() {
   useEffect(() => {
     let settled = false;
 
-    // ── CRITICAL: hard 5-second timeout so spinner NEVER hangs forever ──────
-    // With Cloudflare's edge cache + custom cookie storage, getSession() can
-    // hang indefinitely on first load. This guarantees the app always renders.
+    // Hard 5-second timeout — app always renders regardless of auth timing
     const hardTimeout = setTimeout(() => {
       if (!settled) {
         settled = true;
-        console.warn("HyperX: auth timeout hit — forcing ready state");
+        console.warn("HyperX: forced ready (timeout)");
         setReady(true);
       }
     }, 5000);
 
     function finish(usr, prof) {
-      if (settled) return;       // already resolved — don't double-fire
+      if (settled) return;
       settled = true;
       clearTimeout(hardTimeout);
-      if (usr  !== undefined) setUser(usr);
-      if (prof !== undefined) setProfile(prof);
+      setUser(usr ?? null);
+      setProfile(prof ?? null);
       setReady(true);
     }
 
     async function init() {
       try {
-        // Step 1: get session
-        const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
-        if (sessionErr) {
-          console.error("HyperX getSession error:", sessionErr.message);
-          finish(null, null);
-          return;
-        }
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error || !session?.user) { finish(null, null); return; }
 
-        if (!session?.user) {
-          finish(null, null);
-          return;
-        }
-
-        // Step 2: fetch profile (with its own timeout guard)
-        try {
-          const profileTimeout = new Promise(resolve => setTimeout(() => resolve(null), 4000));
-          const profileFetch   = supabase.from("profiles").select("*").eq("id", session.user.id).single()
-                                   .then(({ data }) => data || null);
-          const prof = await Promise.race([profileFetch, profileTimeout]);
-          finish(session.user, prof);
-        } catch (profileErr) {
-          console.warn("HyperX profile fetch failed:", profileErr.message);
-          // Still finish — user is logged in, profile just unavailable
-          finish(session.user, null);
-        }
-
+        // Race profile fetch vs 4-second timeout
+        const prof = await Promise.race([
+          supabase.from("profiles").select("*")
+            .eq("id", session.user.id).single()
+            .then(({ data }) => data || null)
+            .catch(() => null),
+          new Promise(r => setTimeout(() => r(null), 4000)),
+        ]);
+        finish(session.user, prof);
       } catch (err) {
-        console.error("HyperX init error:", err.message);
+        console.error("HyperX init:", err.message);
         finish(null, null);
       }
     }
 
-    // Also subscribe to auth state changes (handles token refresh, logout)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (session?.user) {
-          try {
-            const { data: prof } = await supabase
-              .from("profiles").select("*").eq("id", session.user.id).single();
-            setUser(session.user);
-            setProfile(prof || null);
-          } catch {
-            setUser(session.user);
-          }
-          if (!settled) finish(session.user, null);
-        } else {
-          setUser(null);
-          setProfile(null);
-          if (!settled) finish(null, null);
-        }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_e, session) => {
+      if (session?.user) {
+        const { data: prof } = await supabase
+          .from("profiles").select("*").eq("id", session.user.id).single()
+          .catch(() => ({ data: null }));
+        setUser(session.user);
+        setProfile(prof || null);
+        if (!settled) finish(session.user, prof);
+      } else {
+        setUser(null); setProfile(null);
+        if (!settled) finish(null, null);
       }
-    );
+    });
 
     init();
-
-    return () => {
-      clearTimeout(hardTimeout);
-      subscription.unsubscribe();
-    };
+    return () => { clearTimeout(hardTimeout); subscription.unsubscribe(); };
   }, []);
 
   if (!ready) return <Spinner />;
