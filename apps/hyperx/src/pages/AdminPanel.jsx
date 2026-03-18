@@ -83,7 +83,7 @@ export default function AdminPanel({ profile: profileProp }) {
     async function check() {
       // Quick check: if profileProp already has admin email/plan, use it
       const propEmail = (profileProp?.email || "").toLowerCase().trim();
-      if (ADMIN_EMAILS.includes(propEmail) || profileProp?.plan === "admin") {
+      if (ADMIN_EMAILS_LIST.includes(propEmail) || profileProp?.plan === "admin") {
         setAuthState({ user: null, profile: profileProp, checked: true });
         return;
       }
