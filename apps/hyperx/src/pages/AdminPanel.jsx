@@ -11,8 +11,6 @@ const BORDER = "#e8eaed";
 const GREEN  = "#16a34a";
 const RED    = "#dc2626";
 
-const ADMIN_EMAILS = ["jeromjoseph31@gmail.com", "jeromjoshep.23@gmail.com"];
-
 const ALL_CATS = [
   "Communication","Career Strategy","Mindset","Interview Prep","Personal Brand",
   "Leadership","Productivity","English for Work","Soft Skills","Time Management",
@@ -31,42 +29,45 @@ const EMPTY_LESSON = {
   title:"", description:"", duration_mins:0, sort_order:0, is_free:false, video_url:"",
 };
 
-/* ─── Fetch profile with email fallback ─────────────────────────────────── */
+const ADMIN_EMAILS_LIST = ["jeromjoseph31@gmail.com", "jeromjoshep.23@gmail.com"];
+
+/* ─── Fetch profile — NO DB updates (RLS blocks them) ──────────────────── */
 async function fetchAdminProfile() {
   try {
-    // getUser() is server-verified — more reliable than getSession() on Cloudflare
+    // getUser() = server-verified JWT, most reliable
+    let authUser = null;
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      // Fallback to getSession
+    if (user) {
+      authUser = user;
+    } else {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) return { user: null, profile: null };
-      const { data: prof } = await supabase
-        .from("profiles").select("*").eq("id", session.user.id).maybeSingle();
-      if (prof) return { user: session.user, profile: prof };
-      if (session.user.email) {
-        const { data: byEmail } = await supabase
-          .from("profiles").select("*").eq("email", session.user.email).maybeSingle();
-        return { user: session.user, profile: byEmail || null };
-      }
-      return { user: session.user, profile: null };
+      if (session?.user) authUser = session.user;
     }
 
-    // Try by auth user ID
+    if (!authUser) return { user: null, profile: null };
+
+    // Try by ID first
     const { data: byId } = await supabase
-      .from("profiles").select("*").eq("id", user.id).maybeSingle();
-    if (byId) return { user, profile: byId };
+      .from("profiles").select("*").eq("id", authUser.id).maybeSingle();
+    if (byId) return { user: authUser, profile: byId };
 
-    // Fallback by email — handles OAuth UUID mismatch
-    if (user.email) {
+    // Try by email — return as-is, no UPDATE (RLS would block it)
+    if (authUser.email) {
       const { data: byEmail } = await supabase
-        .from("profiles").select("*").eq("email", user.email).maybeSingle();
-      if (byEmail) {
-        // Fix the ID mismatch
-        await supabase.from("profiles").update({ id: user.id }).eq("email", user.email).catch(() => {});
-        return { user, profile: { ...byEmail, id: user.id } };
-      }
+        .from("profiles").select("*").eq("email", authUser.email).maybeSingle();
+      if (byEmail) return { user: authUser, profile: byEmail };
     }
-    return { user, profile: null };
+
+    // No DB row — build minimal profile from OAuth metadata
+    const email = (authUser.email || "").toLowerCase().trim();
+    const syntheticProfile = {
+      id:        authUser.id,
+      email,
+      full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || email.split("@")[0] || "User",
+      plan:      ADMIN_EMAILS_LIST.includes(email) ? "admin" : "free",
+      user_type: "individual",
+    };
+    return { user: authUser, profile: syntheticProfile };
   } catch (e) {
     console.error("fetchAdminProfile:", e.message);
     return { user: null, profile: null };
@@ -97,7 +98,7 @@ export default function AdminPanel({ profile: profileProp }) {
 
   const { profile, checked } = authState;
   const email    = (profile?.email || "").toLowerCase().trim();
-  const isAdmin  = ADMIN_EMAILS.includes(email) || profile?.plan === "admin";
+  const isAdmin  = ADMIN_EMAILS_LIST.includes(email) || profile?.plan === "admin";
   const authEmail = email || "(checking…)";
 
   /* ── STATES ── */
