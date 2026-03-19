@@ -44,6 +44,18 @@ const BUSINESS_PLANS = [
   },
 ];
 
+// Load Razorpay script dynamically — ensures window.Razorpay is ready before use
+function loadRazorpay() {
+  return new Promise((resolve, reject) => {
+    if (window.Razorpay) { resolve(); return; }
+    const s = document.createElement("script");
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.onload  = () => resolve();
+    s.onerror = () => reject(new Error("Razorpay script failed to load"));
+    document.head.appendChild(s);
+  });
+}
+
 export default function PricingPage() {
   const navigate  = useNavigate();
   const [tab,     setTab]     = useState("individual");
@@ -72,8 +84,9 @@ export default function PricingPage() {
         body: JSON.stringify({ plan: plan.razorpay }),
       });
       const { order } = await res.json();
+      await loadRazorpay();
       const rz = new window.Razorpay({
-        key: "rzp_live_YOUR_KEY",
+        key: "rzp_live_SM1s5O14Mm50mV",
         order_id: order.id, amount: plan.amount, currency:"INR",
         name:"GEN-E by NuGens", description: plan.name,
         prefill:{ email: profile.email, name: profile.full_name },

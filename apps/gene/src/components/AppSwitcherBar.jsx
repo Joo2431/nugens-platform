@@ -19,7 +19,7 @@ const APPS = [
   { key:"gene",    label:"Gen-E",    icon:"◎", color:"#7c3aed", url:"https://gene.nugens.in.net",    active:true  },
   { key:"hyperx",  label:"HyperX",   icon:"⬡", color:PINK,      url:"https://hyperx.nugens.in.net",  active:false },
   { key:"digihub", label:"DigiHub",  icon:"◈", color:"#0284c7", url:"https://digihub.nugens.in.net", active:false },
-  { key:"units",   label:"The Units",icon:"◇", color:"#d97706", url:"https://units.nugens.in.net",   active:false },
+  { key:"units",   label:"Units",    icon:"◇", color:"#d97706", url:"https://units.nugens.in.net",   active:false },
 ];
 
 export default function AppSwitcherBar({ profile }) {
@@ -30,7 +30,7 @@ export default function AppSwitcherBar({ profile }) {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        .asb-app { display:flex; align-items:center; gap:5px; padding:5px 12px; border-radius:20px; text-decoration:none; font-size:12px; font-weight:600; transition:all 0.15s; font-family:'Plus Jakarta Sans',sans-serif; border:1px solid transparent; }
+        .asb-app { display:flex; align-items:center; gap:4px; padding:4px 10px; border-radius:20px; text-decoration:none; font-size:11px; font-weight:600; transition:all 0.15s; font-family:'Plus Jakarta Sans',sans-serif; border:1px solid transparent; white-space:nowrap; }
         .asb-app:hover { border-color: var(--app-color,${PINK})30 !important; }
         .asb-link { font-size:11px; font-weight:600; color:#9ca3af; text-decoration:none; padding:5px 10px; border:1px solid #e8eaed; border-radius:7px; transition:all 0.15s; font-family:'Plus Jakarta Sans',sans-serif; }
         .asb-link:hover { color:${PINK}; border-color:${PINK}40; }
@@ -41,12 +41,12 @@ export default function AppSwitcherBar({ profile }) {
         .asb-mobile-app:hover { border-color:var(--app-color)30; }
         .asb-mobile-app.active { background:var(--app-bg); border-color:var(--app-color)30; color:var(--app-color); }
 
-        @media (max-width:640px) {
+        @media (max-width:520px) {
           .asb-desktop-apps { display:none !important; }
           .asb-hamburger { display:flex !important; }
           .asb-dashboard-lnk { display:none !important; }
         }
-        @media (min-width:641px) {
+        @media (min-width:521px) {
           .asb-hamburger { display:none !important; }
           .asb-mobile-menu { display:none !important; }
         }

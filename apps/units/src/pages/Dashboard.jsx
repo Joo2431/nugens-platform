@@ -63,7 +63,7 @@ export default function Dashboard({ profile, user }) {
       </div>
 
       {/* Stats */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16, marginBottom:32 }}>
+      <div className="u-stats-grid" style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:12, marginBottom:24 }}>
         {stats.map(s => (
           <div key={s.label} style={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:14, padding:"18px 20px", boxShadow:"0 1px 3px rgba(0,0,0,0.04)" }}>
             <div style={{ fontSize:26, fontWeight:800, color:s.color, letterSpacing:"-0.04em" }}>{s.value}</div>
@@ -73,11 +73,11 @@ export default function Dashboard({ profile, user }) {
         ))}
       </div>
 
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 320px", gap:24 }}>
+      <div className="u-main-grid" style={{ display:"grid", gridTemplateColumns:"1fr", gap:20 }}>
         <div>
           {/* Feature cards */}
           <div style={{ fontSize:13, fontWeight:700, color:TEXT, marginBottom:14, letterSpacing:"-0.01em" }}>Your Space</div>
-          <div style={{ display:"grid", gridTemplateColumns: isBiz ? "repeat(3,1fr)" : "repeat(2,1fr)", gap:14, marginBottom:28 }}>
+          <div style={{ display:"grid", gridTemplateColumns: "repeat(2,1fr)", gap:14, marginBottom:28 }}>
             {features.map(f => (
               <div key={f.to} className="feat-card" onClick={()=>nav(f.to)} style={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:14, padding:22, cursor:"pointer", transition:"all 0.2s", boxShadow:"0 1px 3px rgba(0,0,0,0.04)" }}>
                 <div style={{ width:42, height:42, borderRadius:12, background:f.bg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, color:f.color, marginBottom:14 }}>{f.icon}</div>

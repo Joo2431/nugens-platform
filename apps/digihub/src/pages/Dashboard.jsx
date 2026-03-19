@@ -72,6 +72,15 @@ export default function Dashboard({ profile, user }) {
       .catch(() => setLoading(false));
   }, [profile?.id]);
 
+  const responsiveCss = `
+    .stats-grid { grid-template-columns: repeat(2,1fr) !important; }
+    .main-grid { grid-template-columns: 1fr !important; }
+    .tool-card { aspect-ratio: 1 / 1; display: flex; flex-direction: column; justify-content: flex-end; }
+    @media (min-width: 768px) {
+      .stats-grid { grid-template-columns: repeat(4,1fr) !important; }
+      .main-grid { grid-template-columns: 1fr 280px !important; }
+    }
+  `;
   const S = {
     page: { minHeight:"100vh", background:LIGHT, padding:"32px 40px", fontFamily:"'Plus Jakarta Sans',sans-serif" },
     card: { background:CARD, border:`1px solid ${BORDER}`, borderRadius:14, padding:22, boxShadow:"0 1px 3px rgba(0,0,0,0.04)" },
@@ -81,6 +90,7 @@ export default function Dashboard({ profile, user }) {
 
   return (
     <div style={S.page}>
+      <style>{responsiveCss}</style>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         .dh-feat:hover { box-shadow:0 4px 20px rgba(0,0,0,0.08)!important; transform:translateY(-2px); }
@@ -102,7 +112,7 @@ export default function Dashboard({ profile, user }) {
       </div>
 
       {/* Stats */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:14, marginBottom:28 }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:12, marginBottom:24 }} className="stats-grid">
         {[
           { label:"Posts Created",   value: loading ? "…" : stats.posts,       sub:"This month",        color:PINK      },
           { label:"Scheduled Posts", value: loading ? "…" : stats.scheduled,   sub:"In queue",          color:"#7c3aed" },
@@ -117,11 +127,11 @@ export default function Dashboard({ profile, user }) {
         ))}
       </div>
 
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 280px", gap:24 }}>
+      <div className="main-grid" style={{ display:"grid", gridTemplateColumns:"1fr", gap:20 }}>
         <div>
           {/* Feature grid */}
           <div style={{ fontSize:13, fontWeight:700, color:TEXT, marginBottom:14 }}>Your Tools</div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:12, marginBottom:28 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:12, marginBottom:20 }}>
             {features.map(f => (
               <div key={f.to} className="dh-feat" onClick={() => nav(f.to)}
                 style={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:12, padding:18, cursor:"pointer", transition:"all 0.2s", boxShadow:"0 1px 3px rgba(0,0,0,0.04)" }}>

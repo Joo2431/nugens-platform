@@ -67,6 +67,18 @@ const IND_PLANS = [
   },
 ];
 
+// Load Razorpay script dynamically — ensures window.Razorpay is ready before use
+function loadRazorpay() {
+  return new Promise((resolve, reject) => {
+    if (window.Razorpay) { resolve(); return; }
+    const s = document.createElement("script");
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.onload  = () => resolve();
+    s.onerror = () => reject(new Error("Razorpay script failed to load"));
+    document.head.appendChild(s);
+  });
+}
+
 export default function PricingPage({ profile }) {
   const [tab,        setTab]        = useState(profile?.user_type === "individual" ? "individual" : "business");
   const [billing,    setBilling]    = useState("monthly");
@@ -88,15 +100,16 @@ export default function PricingPage({ profile }) {
         body: JSON.stringify({
           amount,
           currency:"INR",
-          plan: `digihub_${tab}_${plan.name.toLowerCase()}`,
+          plan: `dh_${plan.name.toLowerCase().replace(/ /g,"_")}_${billing === "yearly" ? "yearly" : "monthly"}`,
           billing,
         })
       });
       const order = await res.json();
       if (!order?.id) throw new Error("Order creation failed");
 
+      await loadRazorpay();
       const rzp = new window.Razorpay({
-        key:"OKbq5A210M1EEWP4Wl213DOU",
+        key:"rzp_live_SM1s5O14Mm50mV",
         amount: order.amount,
         currency:"INR",
         order_id: order.id,
@@ -115,7 +128,7 @@ export default function PricingPage({ profile }) {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_order_id:   response.razorpay_order_id,
               razorpay_signature:  response.razorpay_signature,
-              plan: `digihub_${tab}_${plan.name.toLowerCase()}`,
+              plan: `dh_${plan.name.toLowerCase().replace(/ /g,"_")}_${billing === "yearly" ? "yearly" : "monthly"}`,
               userId: profile?.id,
             })
           });
@@ -153,7 +166,7 @@ export default function PricingPage({ profile }) {
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         ${BLUE && ''}
       `}</style>
-      <script src="https://checkout.razorpay.com/v1/checkout.js" />
+
 
       <div style={S.h1}>DigiHub Pricing</div>
       <div style={S.sub}>Choose the right plan for your digital goals</div>

@@ -39,6 +39,18 @@ const IND_PLANS = [
   },
 ];
 
+// Load Razorpay script dynamically — ensures window.Razorpay is ready before use
+function loadRazorpay() {
+  return new Promise((resolve, reject) => {
+    if (window.Razorpay) { resolve(); return; }
+    const s = document.createElement("script");
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.onload  = () => resolve();
+    s.onerror = () => reject(new Error("Razorpay script failed to load"));
+    document.head.appendChild(s);
+  });
+}
+
 export default function PricingPage({ profile }) {
   const [tab,     setTab]     = useState(profile?.user_type==="individual" ? "individual" : "business");
   const [loading, setLoading] = useState(null);
@@ -53,8 +65,9 @@ export default function PricingPage({ profile }) {
         body: JSON.stringify({ amount, currency:"INR", plan:`units_consult` })
       });
       const order = await res.json();
+      await loadRazorpay();
       const rzp = new window.Razorpay({
-        key:"OKbq5A210M1EEWP4Wl213DOU",
+        key:"rzp_live_SM1s5O14Mm50mV",
         amount:order.amount, currency:"INR", order_id:order.id,
         name:"The Units — NuGens",
         description:"Premium Consultation Session",
@@ -77,7 +90,7 @@ export default function PricingPage({ profile }) {
   return (
     <div style={S.page}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');`}</style>
-      <script src="https://checkout.razorpay.com/v1/checkout.js" />
+
 
       <div style={{ textAlign:"center", marginBottom:40 }}>
         <div style={{ fontSize:32, fontWeight:800, color:TEXT, letterSpacing:"-0.05em", marginBottom:8 }}>The Units — Pricing</div>
