@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { supabase } from "../lib/supabase";
 
 const PINK   = "#e8185d";
 const TEXT   = "#111827";
@@ -92,9 +93,19 @@ export default function Pricing({ profile }) {
     setLoading(plan.id);
 
     try {
+      // Get the current session token to authenticate with the backend
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Not authenticated — please log in again.");
+
+      const authHeaders = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      };
+
       const res = await fetch(`${API}/api/subscription/create-order`, {
         method:"POST",
-        headers:{"Content-Type":"application/json"},
+        headers: authHeaders,
         body: JSON.stringify({ amount, currency:"INR", plan:plan.id, billing:plan.price.yearly?"yearly":"monthly" })
       });
       const order = await res.json();
@@ -110,7 +121,7 @@ export default function Pricing({ profile }) {
         handler: async (r) => {
           await fetch(`${API}/api/subscription/verify`, {
             method:"POST",
-            headers:{"Content-Type":"application/json"},
+            headers: authHeaders,
             body: JSON.stringify({ ...r, plan:plan.id, userId:profile?.id })
           });
           setSuccess(plan.name);

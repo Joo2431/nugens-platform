@@ -19,7 +19,7 @@ const APPS = [
   { key:"gene",    label:"Gen-E",    icon:"◎", color:"#7c3aed", url:"https://gene.nugens.in.net",    active:true  },
   { key:"hyperx",  label:"HyperX",   icon:"⬡", color:PINK,      url:"https://hyperx.nugens.in.net",  active:false },
   { key:"digihub", label:"DigiHub",  icon:"◈", color:"#0284c7", url:"https://digihub.nugens.in.net", active:false },
-  { key:"units",   label:"Units",    icon:"◇", color:"#d97706", url:"https://units.nugens.in.net",   active:false },
+  { key:"units",   label:"The Units", icon:"◇", color:"#d97706", url:"https://units.nugens.in.net",   active:false },
 ];
 
 export default function AppSwitcherBar({ profile }) {
@@ -30,16 +30,74 @@ export default function AppSwitcherBar({ profile }) {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        /* Desktop app pills */
         .asb-app { display:flex; align-items:center; gap:4px; padding:4px 10px; border-radius:20px; text-decoration:none; font-size:11px; font-weight:600; transition:all 0.15s; font-family:'Plus Jakarta Sans',sans-serif; border:1px solid transparent; white-space:nowrap; }
         .asb-app:hover { border-color: var(--app-color,${PINK})30 !important; }
         .asb-link { font-size:11px; font-weight:600; color:#9ca3af; text-decoration:none; padding:5px 10px; border:1px solid #e8eaed; border-radius:7px; transition:all 0.15s; font-family:'Plus Jakarta Sans',sans-serif; }
         .asb-link:hover { color:${PINK}; border-color:${PINK}40; }
 
-        /* Mobile app menu */
-        .asb-mobile-menu { position:fixed; top:44px; left:0; right:0; background:#fff; border-bottom:1px solid #f0f0f0; padding:12px 16px; z-index:100; box-shadow:0 4px 20px rgba(0,0,0,0.08); display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-        .asb-mobile-app { display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:10px; text-decoration:none; font-size:12px; font-weight:600; border:1px solid #f0f0f0; font-family:'Plus Jakarta Sans',sans-serif; color:#374151; transition:all 0.15s; }
-        .asb-mobile-app:hover { border-color:var(--app-color)30; }
-        .asb-mobile-app.active { background:var(--app-bg); border-color:var(--app-color)30; color:var(--app-color); }
+        /* Mobile dropdown — matches desktop pill row layout */
+        .asb-mobile-menu {
+          position: fixed;
+          top: 44px;
+          left: 0;
+          right: 0;
+          background: #fff;
+          border-bottom: 1px solid #f0f0f0;
+          padding: 10px 16px;
+          z-index: 100;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+
+        /* Mobile app pills — same style as desktop */
+        .asb-mobile-app {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          padding: 5px 12px;
+          border-radius: 20px;
+          text-decoration: none;
+          font-size: 12px;
+          font-weight: 600;
+          border: 1px solid transparent;
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          color: #9ca3af;
+          background: none;
+          transition: all 0.15s;
+          white-space: nowrap;
+        }
+        .asb-mobile-app.active {
+          background: var(--app-bg);
+          border-color: var(--app-border);
+          color: var(--app-color);
+        }
+        .asb-mobile-divider {
+          width: 100%;
+          height: 1px;
+          background: #f0f0f0;
+          margin: 4px 0;
+        }
+        .asb-mobile-dashboard {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 5px 14px;
+          border-radius: 7px;
+          text-decoration: none;
+          font-size: 11px;
+          font-weight: 600;
+          color: #6b7280;
+          border: 1px solid #e8eaed;
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          white-space: nowrap;
+        }
 
         @media (max-width:520px) {
           .asb-desktop-apps { display:none !important; }
@@ -59,7 +117,7 @@ export default function AppSwitcherBar({ profile }) {
         fontFamily:"'Plus Jakarta Sans',sans-serif",
       }}>
 
-        {/* Left: Nugens logo — NOTE: "Nugens" lowercase g */}
+        {/* Left: Nugens logo */}
         <a href="https://nugens.in.net" style={{ display:"flex", alignItems:"center", gap:7, textDecoration:"none", flexShrink:0 }}>
           <img src={NG_LOGO} style={{ width:22, height:22, borderRadius:5, objectFit:"cover" }} alt="NG" />
           <span style={{ fontWeight:800, fontSize:13, color:"#111", letterSpacing:"-0.03em" }}>
@@ -114,7 +172,7 @@ export default function AppSwitcherBar({ profile }) {
               Upgrade ↑
             </a>
           )}
-          {/* Mobile hamburger for app switcher */}
+          {/* Mobile hamburger */}
           <button
             className="asb-hamburger"
             onClick={() => setMenuOpen(o => !o)}
@@ -125,7 +183,7 @@ export default function AppSwitcherBar({ profile }) {
         </div>
       </div>
 
-      {/* Mobile app menu dropdown */}
+      {/* Mobile app menu dropdown — pill row matching desktop style */}
       {menuOpen && (
         <>
           <div onClick={() => setMenuOpen(false)} style={{ position:"fixed", inset:0, zIndex:49 }}/>
@@ -135,17 +193,36 @@ export default function AppSwitcherBar({ profile }) {
                 key={app.key}
                 href={app.url}
                 className={`asb-mobile-app${app.active ? " active" : ""}`}
-                style={{ "--app-color": app.color, "--app-bg": `${app.color}10` }}
+                style={{
+                  "--app-color":  app.color,
+                  "--app-bg":     `${app.color}10`,
+                  "--app-border": `${app.color}30`,
+                }}
+                onMouseEnter={e => {
+                  if (!app.active) {
+                    e.currentTarget.style.background = `${app.color}10`;
+                    e.currentTarget.style.color = app.color;
+                    e.currentTarget.style.borderColor = `${app.color}30`;
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!app.active) {
+                    e.currentTarget.style.background = "none";
+                    e.currentTarget.style.color = "#9ca3af";
+                    e.currentTarget.style.borderColor = "transparent";
+                  }
+                }}
               >
-                <span style={{ fontSize:16, color:app.color }}>{app.icon}</span>
-                <div>
-                  <div style={{ fontSize:12, fontWeight:700 }}>{app.label}</div>
-                  {app.active && <div style={{ fontSize:9, color:app.color, fontWeight:600 }}>Current app</div>}
-                </div>
+                <span style={{ fontSize:11, color: app.active ? app.color : "#9ca3af" }}>{app.icon}</span>
+                {app.label}
+                {app.active && (
+                  <span style={{ width:5, height:5, borderRadius:"50%", background:app.color, display:"inline-block", flexShrink:0 }}/>
+                )}
               </a>
             ))}
-            <a href="https://nugens.in.net/dashboard" className="asb-mobile-app" style={{ gridColumn:"1/-1", justifyContent:"center", color:"#374151" }}>
-              ⊞ Back to Nugens Dashboard
+            <div className="asb-mobile-divider"/>
+            <a href="https://nugens.in.net/dashboard" className="asb-mobile-dashboard">
+              ⊞ Dashboard
             </a>
           </div>
         </>

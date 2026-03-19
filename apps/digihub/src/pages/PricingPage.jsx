@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { supabase } from "../lib/supabase";
 
 const BLUE = "#0284c7";
 const BG   = "#06101a";
@@ -94,9 +95,19 @@ export default function PricingPage({ profile }) {
 
     setLoading(plan.name);
     try {
+      // Get the current session token to authenticate with the backend
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Not authenticated — please log in again.");
+
+      const authHeaders = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      };
+
       const res = await fetch(`${API}/api/subscription/create-order`, {
         method:"POST",
-        headers:{"Content-Type":"application/json"},
+        headers: authHeaders,
         body: JSON.stringify({
           amount,
           currency:"INR",
@@ -123,7 +134,7 @@ export default function PricingPage({ profile }) {
         handler: async (response) => {
           await fetch(`${API}/api/subscription/verify`, {
             method:"POST",
-            headers:{"Content-Type":"application/json"},
+            headers: authHeaders,
             body: JSON.stringify({
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_order_id:   response.razorpay_order_id,
