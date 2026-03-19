@@ -45,6 +45,7 @@ function profileFromAuth(authUser) {
 function AppShell() {
   const location = useLocation();
   const [user,    setUser]    = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profile, setProfile] = useState(null);
   const [ready,   setReady]   = useState(false);
   const isCoursePlayer = location.pathname.match(/^\/courses\/.+/);
@@ -91,8 +92,20 @@ function AppShell() {
   );
 
   return (
-    <div style={{ display:"flex", minHeight:"100vh", background:"#f8f9fb" }}>
-      <Sidebar profile={profile} user={user} />
+    <div style={{ display:"flex", minHeight:"100vh", background:"#f8f9fb", flexDirection:"column" }}>
+      {/* Mobile top bar — hidden on desktop via inline responsive logic */}
+      {window.innerWidth < 768 || true ? (
+        <div className="mobile-top-bar" style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 16px", background:"#fff", borderBottom:"1px solid #e8eaed", position:"sticky", top:0, zIndex:100, flexShrink:0 }}>
+          <button onClick={()=>setMobileMenuOpen(true)}
+            style={{ background:"none", border:"1px solid #e8eaed", borderRadius:8, padding:"6px 10px", cursor:"pointer", fontSize:18, color:"#e8185d", lineHeight:1 }}>
+            ☰
+          </button>
+          <span style={{ fontWeight:800, fontSize:15, color:"#111" }}>HyperX</span>
+        </div>
+      ) : null}
+      <style>{`@media(min-width:768px){.mobile-top-bar{display:none!important}}`}</style>
+      <div style={{ display:"flex", flex:1 }}>
+      <Sidebar profile={profile} user={user} open={mobileMenuOpen} onClose={()=>setMobileMenuOpen(false)} />
       <div style={{ flex:1, minWidth:0, overflowX:"hidden" }}>
         <Suspense fallback={<Spinner />}>
           <Routes>
@@ -105,6 +118,7 @@ function AppShell() {
             <Route path="*"        element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
+      </div>
       </div>
       <GenEMiniPopup product="hyperx" />
     </div>

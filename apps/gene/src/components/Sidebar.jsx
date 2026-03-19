@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { NG_LOGO } from "../lib/logo";
@@ -48,11 +48,11 @@ function NavItem({ item, collapsed }) {
   })();
 
   return (
-    <button onClick={() => navigate(dest)} title={collapsed ? item.label : undefined}
+    <button onClick={() => navigate(dest)} title={eff ? item.label : undefined}
       style={{
         display:"flex", alignItems:"center", gap:10,
-        padding: collapsed ? "9px 0" : "9px 12px",
-        justifyContent: collapsed ? "center" : "flex-start",
+        padding: eff ? "9px 0" : "9px 12px",
+        justifyContent: eff ? "center" : "flex-start",
         borderRadius:9, fontSize:13,
         fontWeight: isActive ? 700 : 500,
         color: isActive ? PINK : "#888",
@@ -65,14 +65,21 @@ function NavItem({ item, collapsed }) {
       onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background="none"; e.currentTarget.style.color="#888"; }}}
     >
       <span style={{ fontSize:13, flexShrink:0, color:isActive?PINK:"#ccc", width:16, textAlign:"center" }}>{item.icon}</span>
-      {!collapsed && <span style={{ whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{item.label}</span>}
+      {!eff && <span style={{ whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{item.label}</span>}
     </button>
   );
 }
 
-export default function Sidebar({ userType, dbUserType, profile, user, onSignOut, onSwitchMode }) {
+export default function Sidebar({ userType, dbUserType, profile, user, onSignOut, onSwitchMode, open, onClose }) {
   const [collapsed,  setCollapsed]  = useState(false);
   const [switchOpen, setSwitchOpen] = useState(false);
+  const [isMobile,   setIsMobile]   = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const h = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
+  }, []);
   const navigate = useNavigate();
 
   const isBusiness = userType === "business";
@@ -101,7 +108,9 @@ export default function Sidebar({ userType, dbUserType, profile, user, onSignOut
     window.location.href = "https://nugens.in.net/auth";
   });
 
-  return (
+  const eff = isMobile ? false : collapsed;
+
+  const sidebarBody = (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -134,7 +143,7 @@ export default function Sidebar({ userType, dbUserType, profile, user, onSignOut
       `}</style>
 
       <div style={{
-        width: collapsed ? 52 : 200, minHeight:"100vh", background:"#fff",
+        width: eff ? 52 : 200, minHeight:"100vh", background:"#fff",
         borderRight:"1px solid #f0f0f0",
         display:"flex", flexDirection:"column", padding:"16px 8px 20px",
         transition:"width 0.2s ease", position:"sticky", top:0,
@@ -144,7 +153,7 @@ export default function Sidebar({ userType, dbUserType, profile, user, onSignOut
 
         {/* Logo */}
         <div style={{ display:"flex", alignItems:"center", justifyContent:collapsed?"center":"space-between", marginBottom:16, paddingLeft:collapsed?0:4, flexShrink:0 }}>
-          {!collapsed && (
+          {!eff && (
             <a href="https://nugens.in.net" style={{ display:"flex", alignItems:"center", gap:8, textDecoration:"none" }}>
               <img src={NG_LOGO} style={{ width:26, height:26, borderRadius:7, objectFit:"cover" }} alt="NuGens" />
               <span style={{ fontWeight:800, fontSize:14, color:"#111", letterSpacing:"-0.03em" }}>
@@ -159,7 +168,7 @@ export default function Sidebar({ userType, dbUserType, profile, user, onSignOut
         </div>
 
         {/* Mode switcher */}
-        {!collapsed && (
+        {!eff && (
           <div style={{ position:"relative", marginBottom:10, flexShrink:0 }}>
             <button className="gn-mode-sw" onClick={() => canSwitch && setSwitchOpen(o=>!o)}
               style={{ background:isBusiness?"#eff8ff":`${PINK}08`, outline:`1.5px solid ${isBusiness?"#bae6fd":PINK+"20"}`, cursor:canSwitch?"pointer":"default" }}>
@@ -188,7 +197,7 @@ export default function Sidebar({ userType, dbUserType, profile, user, onSignOut
         )}
 
         {/* User chip */}
-        {!collapsed && (
+        {!eff && (
           <div style={{ display:"flex", alignItems:"center", gap:8, padding:"6px 10px", background:"#fafafa", borderRadius:8, marginBottom:10, flexShrink:0 }}>
             <div style={{ width:24, height:24, borderRadius:"50%", background:`${PINK}15`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:800, color:PINK, flexShrink:0 }}>{initials}</div>
             <div style={{ overflow:"hidden", minWidth:0 }}>
@@ -207,7 +216,7 @@ export default function Sidebar({ userType, dbUserType, profile, user, onSignOut
         {!collapsed && <div style={{ height:1, background:"#f3f4f6", margin:"10px 0 8px" }}/>}
 
         {/* NuGens Suite */}
-        {!collapsed && (
+        {!eff && (
           <div style={{ marginBottom:10 }}>
             <div style={{ fontSize:9, color:"#ccc", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", padding:"0 10px 6px" }}>Nugens Suite</div>
             {OTHER_APPS.map(app => (
@@ -220,7 +229,7 @@ export default function Sidebar({ userType, dbUserType, profile, user, onSignOut
         )}
 
         {/* Collapsed icons */}
-        {collapsed && (
+        {eff && (
           <div style={{ display:"flex", flexDirection:"column", gap:5, alignItems:"center", marginBottom:8 }}>
             {OTHER_APPS.map(app => (
               <a key={app.url} href={app.url} title={app.label}
@@ -247,4 +256,16 @@ export default function Sidebar({ userType, dbUserType, profile, user, onSignOut
       </div>
     </>
   );
+
+  if (isMobile) {
+    if (!open) return null;
+    return (
+      <>
+        <div onClick={onClose} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.4)", zIndex:999 }}/>
+        <div style={{ position:"fixed", top:0, left:0, zIndex:1000, height:"100vh", overflow:"auto", boxShadow:"4px 0 24px rgba(0,0,0,0.15)" }}>{sidebarBody}</div>
+      </>
+    );
+  }
+
+  return <div style={{ position:"sticky", top:0, flexShrink:0 }}>{sidebarBody}</div>;
 }

@@ -30,6 +30,7 @@ function AppShell() {
   const [profile,      setProfile]     = useState(null);
   const [ready,        setReady]       = useState(false);
   const [modeOverride, setModeOverride]= useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isChatRoute  = location.pathname === "/" || location.pathname.startsWith("/chat");
   const isFullscreen = ["/pricing", "/auth"].some(p => location.pathname.startsWith(p));
@@ -125,7 +126,16 @@ function AppShell() {
 
   // Other routes: outer Sidebar
   return (
-    <div style={{ display:"flex", minHeight:"100vh", background:"#f8f9fb" }}>
+    <div style={{ display:"flex", minHeight:"100vh", background:"#f8f9fb", flexDirection:"column" }}>
+      <div className="mobile-top-bar" style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 16px", background:"#fff", borderBottom:"1px solid #f0f0f0", position:"sticky", top:0, zIndex:100, flexShrink:0 }}>
+        <button onClick={()=>setMobileMenuOpen(true)}
+          style={{ background:"none", border:"1px solid #f0f0f0", borderRadius:8, padding:"6px 10px", cursor:"pointer", fontSize:18, color:"#e8185d", lineHeight:1 }}>
+          ☰
+        </button>
+        <span style={{ fontWeight:800, fontSize:15, color:"#111" }}>Gen-<span style={{color:"#e8185d"}}>E</span></span>
+      </div>
+      <style>{`@media(min-width:768px){.mobile-top-bar{display:none!important}}`}</style>
+      <div style={{ display:"flex", flex:1 }}>
       <Sidebar
         userType={userType}
         dbUserType={dbUserType}
@@ -133,8 +143,10 @@ function AppShell() {
         user={user}
         onSignOut={signOut}
         onSwitchMode={(m) => setModeOverride(m)}
+        open={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
       />
-      <div style={{ flex:1, minWidth:0, overflowX:"hidden" }}>
+      <div style={{ flex:1, minWidth:0, overflowX:"hidden", overflow:"auto" }}>
         <Suspense fallback={<Spinner />}>
           <Routes>
             <Route path="/resumes"  element={<ProtectedRoute><ResumesPage /></ProtectedRoute>} />
@@ -155,6 +167,7 @@ function AppShell() {
             <Route path="*" element={<Navigate to={userType === "business" ? "/business" : "/chat"} replace />} />
           </Routes>
         </Suspense>
+      </div>
       </div>
     </div>
   );
