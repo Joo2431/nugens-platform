@@ -79,6 +79,17 @@ const SERVICES = [
 
 const STEPS = ["Choose Service", "Select Package", "Your Details", "Confirm & Pay"];
 
+function loadRazorpay() {
+  return new Promise((resolve, reject) => {
+    if (window.Razorpay) { resolve(); return; }
+    const s = document.createElement("script");
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error("Razorpay failed to load"));
+    document.head.appendChild(s);
+  });
+}
+
 export default function BookServices({ profile }) {
   const [step,     setStep]     = useState(0);
   const [service,  setService]  = useState(null);
@@ -102,7 +113,7 @@ export default function BookServices({ profile }) {
       const order = await res.json();
 
       const rzp = new window.Razorpay({
-        key:"OKbq5A210M1EEWP4Wl213DOU",
+        key:"rzp_live_SM1s5O14Mm50mV",
         amount: order.amount,
         currency:"INR",
         order_id: order.id,
