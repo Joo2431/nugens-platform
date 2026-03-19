@@ -191,16 +191,27 @@ const PLAN_CONFIG = {
   hx_biz_yearly:          { amount: 349900, currency: "INR", label: "HyperX Biz Yearly",           durationDays: 365, profilePlan: "hx_biz_yearly"  },
 
   // ── DigiHub plans ─────────────────────────────────────────────────
-  dh_starter_monthly:  { amount: 9900,   currency: "INR", label: "DigiHub Starter Monthly", durationDays: 30,  profilePlan: "dh_starter" },
-  dh_starter_yearly:   { amount: 79900,  currency: "INR", label: "DigiHub Starter Yearly",  durationDays: 365, profilePlan: "dh_starter" },
-  dh_pro_monthly:      { amount: 19900,  currency: "INR", label: "DigiHub Pro Monthly",     durationDays: 30,  profilePlan: "dh_pro"     },
-  dh_pro_yearly:       { amount: 149900, currency: "INR", label: "DigiHub Pro Yearly",      durationDays: 365, profilePlan: "dh_pro"     },
+  dh_starter_monthly:  { amount: 99900,   currency: "INR", label: "DigiHub Starter Monthly",  durationDays: 30,  profilePlan: "dh_starter"  },
+  dh_starter_yearly:   { amount: 999000,  currency: "INR", label: "DigiHub Starter Yearly",   durationDays: 365, profilePlan: "dh_starter"  },
+  dh_premium_monthly:  { amount: 259900,  currency: "INR", label: "DigiHub Premium Monthly",  durationDays: 30,  profilePlan: "dh_premium"  },
+  dh_premium_yearly:   { amount: 2599000, currency: "INR", label: "DigiHub Premium Yearly",   durationDays: 365, profilePlan: "dh_premium"  },
+  dh_pro_monthly:      { amount: 599900,  currency: "INR", label: "DigiHub Pro Yearly",       durationDays: 365, profilePlan: "dh_pro"      },
+  // Individual DigiHub plans
+  dh_monthly_monthly:  { amount: 29900,   currency: "INR", label: "DigiHub Individual Monthly", durationDays: 30,  profilePlan: "dh_monthly"  },
+  dh_yearly_yearly:    { amount: 199900,  currency: "INR", label: "DigiHub Individual Yearly",  durationDays: 365, profilePlan: "dh_yearly"   },
+
+  // ── Gen-E Business plans ──────────────────────────────────────────
+  biz_starter:          { amount: 49900,   currency: "INR", label: "Gen-E Business Starter Monthly", durationDays: 30,  profilePlan: "gene_biz_starter" },
+  biz_pro:              { amount: 149900,  currency: "INR", label: "Gen-E Business Pro Monthly",     durationDays: 30,  profilePlan: "gene_biz_pro"     },
+  gene_biz_starter:     { amount: 49900,   currency: "INR", label: "Gen-E Business Starter Monthly", durationDays: 30,  profilePlan: "gene_biz_starter" },
+  gene_biz_pro:         { amount: 149900,  currency: "INR", label: "Gen-E Business Pro Monthly",     durationDays: 30,  profilePlan: "gene_biz_pro"     },
 
   // ── Units plans ───────────────────────────────────────────────────
-  units_starter_monthly: { amount: 9900,   currency: "INR", label: "Units Starter Monthly", durationDays: 30,  profilePlan: "units_starter" },
-  units_starter_yearly:  { amount: 79900,  currency: "INR", label: "Units Starter Yearly",  durationDays: 365, profilePlan: "units_starter" },
-  units_pro_monthly:     { amount: 19900,  currency: "INR", label: "Units Pro Monthly",     durationDays: 30,  profilePlan: "units_pro"     },
-  units_pro_yearly:      { amount: 149900, currency: "INR", label: "Units Pro Yearly",      durationDays: 365, profilePlan: "units_pro"     },
+  units_consult:         { amount: 99900,  currency: "INR", label: "Units Premium Consultation",  durationDays: 1,   profilePlan: "units_consult"  },
+  units_starter_monthly: { amount: 9900,   currency: "INR", label: "Units Starter Monthly",       durationDays: 30,  profilePlan: "units_starter"  },
+  units_starter_yearly:  { amount: 79900,  currency: "INR", label: "Units Starter Yearly",        durationDays: 365, profilePlan: "units_starter"  },
+  units_pro_monthly:     { amount: 19900,  currency: "INR", label: "Units Pro Monthly",           durationDays: 30,  profilePlan: "units_pro"      },
+  units_pro_yearly:      { amount: 149900, currency: "INR", label: "Units Pro Yearly",            durationDays: 365, profilePlan: "units_pro"      },
 };
 
 /* ── SYSTEM PROMPT ── */

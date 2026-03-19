@@ -29,11 +29,13 @@ const INDIVIDUAL_PLANS = [
 const BUSINESS_PLANS = [
   {
     id:"biz_starter", name:"Business Starter", price:"₹499", period:"per month", badge:null, color:"#0284c7",
+    razorpay:"biz_starter", amount:49900,
     features:["JD Generator","Interview Questions AI","Hiring Intelligence","Salary Benchmark","5 team members","Basic workforce insights"],
     locked:["Team Skill Mapping","Workforce Planner","Candidate Match (DigiHub)","Bulk exports"],
   },
   {
     id:"biz_pro", name:"Business Pro", price:"₹1,499", period:"per month", badge:"Most Popular", color:PINK,
+    razorpay:"biz_pro", amount:149900,
     features:["Everything in Starter","Team Skill Mapping","Workforce Planning AI","Up to 25 team members","DigiHub candidate match","Priority support","Hiring roadmap export"],
     locked:["Enterprise SSO","Custom AI training"],
   },

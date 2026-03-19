@@ -97,11 +97,10 @@ export default function PricingPage({ profile }) {
 
     try {
       // apiPost (from apiClient.js) auto-attaches the Supabase Bearer token — fixes 401
-      const order = await apiPost("/api/subscription/create-order", {
-        amount,
-        currency: "INR",
-        plan: `dh_${plan.name.toLowerCase().replace(/ /g,"_")}_${billing === "yearly" ? "yearly" : "monthly"}`,
-        billing,
+      // Plan key must exactly match a key in PLAN_CONFIG on the backend
+      const planKey = `dh_${plan.name.toLowerCase()}_${billing === "yearly" ? "yearly" : "monthly"}`;
+      const { order } = await apiPost("/api/subscription/create-order", {
+        plan: planKey,
       });
 
       if (!order?.id) throw new Error("Order creation failed — no order ID returned.");
@@ -125,7 +124,7 @@ export default function PricingPage({ profile }) {
             razorpay_payment_id: response.razorpay_payment_id,
             razorpay_order_id:   response.razorpay_order_id,
             razorpay_signature:  response.razorpay_signature,
-            plan: `dh_${plan.name.toLowerCase().replace(/ /g,"_")}_${billing === "yearly" ? "yearly" : "monthly"}`,
+            plan: planKey,
             userId: profile?.id,
           });
           setSuccess(plan.name);

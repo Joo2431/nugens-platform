@@ -99,11 +99,8 @@ export default function Pricing({ profile }) {
 
     try {
       // apiPost (from apiClient.js) auto-attaches the Supabase Bearer token — fixes 401
-      const order = await apiPost("/api/subscription/create-order", {
-        amount,
-        currency: "INR",
+      const { order } = await apiPost("/api/subscription/create-order", {
         plan: plan.id,
-        billing: plan.price.yearly ? "yearly" : "monthly",
       });
 
       if (!order?.id) throw new Error("Order creation failed — no order ID returned.");

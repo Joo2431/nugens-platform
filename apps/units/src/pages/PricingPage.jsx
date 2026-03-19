@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { apiPost } from "../lib/apiClient";
 
 const PINK  = "#e8185d";
 const TEXT  = "#111827";
@@ -6,7 +7,7 @@ const MUTED = "#6b7280";
 const LIGHT = "#f8f9fb";
 const CARD  = "#ffffff";
 const BORDER= "#e8eaed";
-const API   = "https://nugens-platform.onrender.com";
+const GREEN = "#16a34a";
 
 const BIZ_SERVICES = [
   { icon:"🎬", title:"Video Editing",    from:8000,  tag:"Most Popular" },
@@ -26,6 +27,7 @@ const IND_PLANS = [
     features:["Live brand experience sessions","Entrepreneur Guide (all 6 chapters)","Idea Validation (unlimited)","AI guidance & Q&A","Community access","Gen-E Mini support"],
     cta:"Current Plan",
     free:true,
+    planKey: null,
   },
   {
     name:"Premium Consultation",
@@ -36,10 +38,10 @@ const IND_PLANS = [
     cta:"Book Consultation",
     free:false,
     oneTime:true,
+    planKey:"units_consult",  // matches PLAN_CONFIG in server.js — amount set server-side (₹999)
   },
 ];
 
-// Load Razorpay script dynamically — ensures window.Razorpay is ready before use
 function loadRazorpay() {
   return new Promise((resolve, reject) => {
     if (window.Razorpay) { resolve(); return; }
@@ -52,45 +54,65 @@ function loadRazorpay() {
 }
 
 export default function PricingPage({ profile }) {
-  const [tab,     setTab]     = useState(profile?.user_type==="individual" ? "individual" : "business");
+  const [tab,     setTab]     = useState(profile?.user_type === "individual" ? "individual" : "business");
   const [loading, setLoading] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [error,   setError]   = useState(null);
 
-  const pay = async (amount, label) => {
-    setLoading(label);
+  const pay = async (plan) => {
+    if (plan.free || !plan.planKey) return;
+    setLoading(plan.name);
+    setError(null);
+
     try {
-      const res = await fetch(`${API}/api/subscription/create-order`, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ amount, currency:"INR", plan:`units_consult` })
+      // apiPost auto-attaches Bearer token — fixes 401
+      // Server uses PLAN_CONFIG[plan.planKey].amount — always ₹999, never ₹1
+      const { order } = await apiPost("/api/subscription/create-order", {
+        plan: plan.planKey,
       });
-      const order = await res.json();
+
+      if (!order?.id) throw new Error("Order creation failed.");
+
       await loadRazorpay();
+
       const rzp = new window.Razorpay({
-        key:"rzp_live_SM1s5O14Mm50mV",
-        amount:order.amount, currency:"INR", order_id:order.id,
-        name:"The Units — NuGens",
-        description:"Premium Consultation Session",
-        theme:{ color:PINK },
-        prefill:{ name:profile?.full_name||"", email:profile?.email||"" },
-        handler:async (r)=>{ await fetch(`${API}/api/subscription/verify`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...r,plan:"units_consult",userId:profile?.id})}); setSuccess(true); setLoading(null); },
-        modal:{ ondismiss:()=>setLoading(null) }
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_live_SM1s5O14Mm50mV",
+        amount: order.amount,
+        currency: "INR",
+        order_id: order.id,
+        name: "The Units — NuGens",
+        description: "Premium Consultation Session",
+        theme: { color: PINK },
+        prefill: { name: profile?.full_name || "", email: profile?.email || "" },
+        handler: async (r) => {
+          await apiPost("/api/subscription/verify", {
+            ...r,
+            plan: plan.planKey,
+            userId: profile?.id,
+          });
+          setSuccess(true);
+          setLoading(null);
+        },
+        modal: { ondismiss: () => setLoading(null) },
       });
       rzp.open();
-    } catch(e){ setLoading(null); }
+    } catch (e) {
+      console.error("[Units] Payment error:", e);
+      setError(e.message || "Payment failed. Please try again.");
+      setLoading(null);
+    }
   };
 
   const S = {
-    page: { minHeight:"100vh", background:LIGHT, padding:"48px 44px", fontFamily:"'Plus Jakarta Sans',sans-serif" },
-    card: { background:CARD, border:`1px solid ${BORDER}`, borderRadius:18, padding:32, boxShadow:"0 1px 3px rgba(0,0,0,0.04)", display:"flex", flexDirection:"column" },
-    btn: (c) => ({ width:"100%", padding:"13px 0", background:c, color:"#fff", border:"none", borderRadius:10, fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"inherit", marginTop:"auto" }),
+    page:  { minHeight:"100vh", background:LIGHT, padding:"48px 44px", fontFamily:"'Plus Jakarta Sans',sans-serif" },
+    card:  { background:CARD, border:`1px solid ${BORDER}`, borderRadius:18, padding:32, boxShadow:"0 1px 3px rgba(0,0,0,0.04)", display:"flex", flexDirection:"column" },
+    btn:   (c) => ({ width:"100%", padding:"13px 0", background:c, color:"#fff", border:"none", borderRadius:10, fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"inherit", marginTop:"auto" }),
     check: { fontSize:13, color:MUTED, display:"flex", gap:8, marginBottom:9 },
   };
 
   return (
     <div style={S.page}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');`}</style>
-
 
       <div style={{ textAlign:"center", marginBottom:40 }}>
         <div style={{ fontSize:32, fontWeight:800, color:TEXT, letterSpacing:"-0.05em", marginBottom:8 }}>The Units — Pricing</div>
@@ -100,23 +122,23 @@ export default function PricingPage({ profile }) {
       {/* Tab */}
       <div style={{ display:"flex", justifyContent:"center", marginBottom:40 }}>
         <div style={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:12, padding:4, display:"flex", gap:4 }}>
-          {["business","individual"].map(t=>(
-            <button key={t} onClick={()=>setTab(t)} style={{ padding:"9px 28px", background:tab===t?PINK:"none", color:tab===t?"#fff":MUTED, border:"none", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>
-              {t==="business"?"🏢 Business":"👤 Individual"}
+          {["business","individual"].map(t => (
+            <button key={t} onClick={() => setTab(t)} style={{ padding:"9px 28px", background:tab===t?PINK:"none", color:tab===t?"#fff":MUTED, border:"none", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>
+              {t === "business" ? "🏢 Business" : "👤 Individual"}
             </button>
           ))}
         </div>
       </div>
 
       {/* Business services */}
-      {tab==="business" && (
+      {tab === "business" && (
         <div>
           <div style={{ textAlign:"center", marginBottom:32 }}>
             <div style={{ fontSize:20, fontWeight:800, color:TEXT, marginBottom:8 }}>Pay-Per-Project Services</div>
             <div style={{ fontSize:13, color:MUTED }}>No subscription. Book any service, pay once, get exceptional work delivered.</div>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, maxWidth:900, margin:"0 auto 48px" }}>
-            {BIZ_SERVICES.map(s=>(
+            {BIZ_SERVICES.map(s => (
               <div key={s.title} style={{ ...S.card, padding:24 }}>
                 {s.tag && <div style={{ fontSize:9, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.08em", color:PINK, marginBottom:8 }}>{s.tag}</div>}
                 <div style={{ fontSize:28, marginBottom:10 }}>{s.icon}</div>
@@ -126,40 +148,44 @@ export default function PricingPage({ profile }) {
               </div>
             ))}
           </div>
-
           <div style={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:16, padding:32, maxWidth:700, margin:"0 auto", textAlign:"center" }}>
             <div style={{ fontSize:18, fontWeight:800, color:TEXT, marginBottom:8 }}>Need a custom package?</div>
-            <div style={{ fontSize:13, color:MUTED, marginBottom:20 }}>For ongoing partnerships, retainer arrangements, or bundled services — talk to us. We customise to your needs and budget.</div>
+            <div style={{ fontSize:13, color:MUTED, marginBottom:20 }}>For ongoing partnerships, retainer arrangements, or bundled services — talk to us.</div>
             <a href="mailto:hello@nugens.in" style={{ display:"inline-block", padding:"12px 28px", background:PINK, color:"#fff", borderRadius:10, textDecoration:"none", fontSize:14, fontWeight:700 }}>Contact Our Team →</a>
           </div>
         </div>
       )}
 
       {/* Individual plans */}
-      {tab==="individual" && (
+      {tab === "individual" && (
         <div>
           {success && (
-            <div style={{ background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:12, padding:"16px 24px", textAlign:"center", maxWidth:500, margin:"0 auto 28px", color:GREEN }}>
+            <div style={{ background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:12, padding:"16px 24px", textAlign:"center", maxWidth:500, margin:"0 auto 28px", color:GREEN, fontWeight:700 }}>
               ✓ Consultation booked! Our team will be in touch within 24 hours.
             </div>
           )}
+          {error && (
+            <div style={{ background:"#fff1f2", border:"1px solid #fecdd3", borderRadius:12, padding:"14px 24px", maxWidth:500, margin:"0 auto 28px", textAlign:"center", color:"#be123c", fontWeight:600 }}>
+              ⚠ {error}
+            </div>
+          )}
           <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:20, maxWidth:700, margin:"0 auto" }}>
-            {IND_PLANS.map(plan=>(
+            {IND_PLANS.map(plan => (
               <div key={plan.name} style={{ ...S.card, border:plan.free?`1px solid ${BORDER}`:`1px solid ${PINK}30` }}>
                 <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", color:plan.color, marginBottom:8 }}>
                   {plan.name}
                 </div>
                 <div style={{ fontSize:11, color:MUTED, marginBottom:16 }}>{plan.desc}</div>
                 <div style={{ fontSize:34, fontWeight:800, color:TEXT, letterSpacing:"-0.04em", marginBottom:4 }}>
-                  {plan.price===0 ? "Free" : `₹${plan.price}`}
+                  {plan.price === 0 ? "Free" : `₹${plan.price}`}
                 </div>
                 {plan.oneTime && <div style={{ fontSize:11, color:MUTED, marginBottom:20 }}>one-time · per session</div>}
-                {plan.price===0 && <div style={{ marginBottom:20 }}/>}
+                {plan.price === 0 && <div style={{ marginBottom:20 }}/>}
 
                 <div style={{ flex:1, marginBottom:24 }}>
-                  {plan.features.map((f,i)=>(
+                  {plan.features.map((f, i) => (
                     <div key={i} style={S.check}>
-                      <span style={{color:plan.color,flexShrink:0}}>✓</span>{f}
+                      <span style={{ color:plan.color, flexShrink:0 }}>✓</span>{f}
                     </div>
                   ))}
                 </div>
@@ -169,8 +195,8 @@ export default function PricingPage({ profile }) {
                     All features included
                   </div>
                 ) : (
-                  <button onClick={()=>pay(plan.price,plan.name)} disabled={loading===plan.name} style={{ ...S.btn(PINK), opacity:loading===plan.name?0.6:1 }}>
-                    {loading===plan.name?"Processing...":plan.cta}
+                  <button onClick={() => pay(plan)} disabled={loading === plan.name} style={{ ...S.btn(PINK), opacity:loading === plan.name ? 0.6 : 1 }}>
+                    {loading === plan.name ? "Processing..." : plan.cta}
                   </button>
                 )}
               </div>
@@ -179,7 +205,7 @@ export default function PricingPage({ profile }) {
 
           <div style={{ textAlign:"center", marginTop:36, fontSize:13, color:MUTED }}>
             All individual features are free. Premium consultation is only charged if you find it valuable.
-            <br/>Questions? <a href="mailto:hello@nugens.in" style={{color:PINK}}>hello@nugens.in</a>
+            <br/>Questions? <a href="mailto:hello@nugens.in" style={{ color:PINK }}>hello@nugens.in</a>
           </div>
         </div>
       )}
@@ -190,9 +216,9 @@ export default function PricingPage({ profile }) {
         {[
           { q:"Are individual features really free?", a:"Yes, completely. Live Experience, Entrepreneur Guide, and Idea Validation are free forever. We only charge for premium 1-on-1 consultations." },
           { q:"How does business service pricing work?", a:"Pay-per-project. No subscriptions. Choose a service, pick a package, pay, and our team delivers. Simple." },
-          { q:"What if I'm not happy with the work?", a:"We include revisions in all packages. If the work doesn't meet your brief, we revise until it does. Your satisfaction is our reputation." },
+          { q:"What if I'm not happy with the work?", a:"We include revisions in all packages. If the work doesn't meet your brief, we revise until it does." },
           { q:"How quickly does the team respond?", a:"For consultations: within 24 hours on business days. For service bookings: within 2 hours. For AI guidance: instant." },
-        ].map((f,i)=>(
+        ].map((f, i) => (
           <div key={i} style={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:10, padding:"16px 20px", marginBottom:10 }}>
             <div style={{ fontSize:13, fontWeight:700, color:TEXT, marginBottom:6 }}>{f.q}</div>
             <div style={{ fontSize:13, color:MUTED, lineHeight:1.65 }}>{f.a}</div>
