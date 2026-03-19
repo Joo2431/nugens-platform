@@ -1,45 +1,72 @@
 import React, { useState } from "react";
+import { apiPost } from "../lib/apiClient";
 
-const PINK  = "#e8185d";
-const TEXT  = "#111827";
-const MUTED = "#6b7280";
-const LIGHT = "#f8f9fb";
-const CARD  = "#ffffff";
-const BORDER= "#e8eaed";
-const API   = "https://nugens-platform.onrender.com";
+const BLUE = "#0284c7";
+const BG   = "#06101a";
+const CARD = "#0a1628";
+const B    = "#1a2030";
 
-const BIZ_SERVICES = [
-  { icon:"🎬", title:"Video Editing",    from:8000,  tag:"Most Popular" },
-  { icon:"📣", title:"Content Strategy", from:5000,  tag:"" },
-  { icon:"🎨", title:"Graphic Design",   from:6000,  tag:"" },
-  { icon:"🌐", title:"Website Building", from:12000, tag:"" },
-  { icon:"📊", title:"Marketing",        from:10000, tag:"" },
-  { icon:"✍️", title:"Scripting",        from:4000,  tag:"" },
+const BIZ_PLANS = [
+  {
+    name:"Starter",
+    price:{ monthly:999, yearly:9990 },
+    tag:"For small businesses",
+    color:BLUE,
+    features:["Prompt Space (100 generations/mo)","AI Image Generator (30 posters/mo)","Content Planner (AI-assisted)","Content Scheduler (up to 30 posts)","Community access","1 team member","Basic analytics"],
+    cta:"Get Started",
+    popular:false,
+  },
+  {
+    name:"Premium",
+    price:{ monthly:2599, yearly:25990 },
+    tag:"Most Popular",
+    color:"#e8185d",
+    features:["Prompt Space (unlimited)","AI Image Generator (100 posters/mo)","Content Planner (full AI suite)","Content Scheduler (unlimited)","Community — priority visibility","5 team members","Advanced analytics","Hiring post promotion","Custom brand kit tools"],
+    cta:"Go Premium",
+    popular:true,
+  },
+  {
+    name:"Pro",
+    price:{ monthly:null, yearly:5999 },
+    tag:"Annual only · Best value",
+    color:"#22c55e",
+    features:["Everything in Premium","AI Image Generator (unlimited)","10 team members","White-label reports","API access","Dedicated account manager","Priority support (SLA)","Early feature access","Community verified badge"],
+    cta:"Go Pro",
+    popular:false,
+  },
 ];
 
 const IND_PLANS = [
   {
-    name:"Free",
-    price:0,
-    desc:"Everything to start your journey",
-    color:MUTED,
-    features:["Live brand experience sessions","Entrepreneur Guide (all 6 chapters)","Idea Validation (unlimited)","AI guidance & Q&A","Community access","Gen-E Mini support"],
+    name:"Starter",
+    price:{ monthly:0, yearly:0 },
+    tag:"Always free",
+    color:"#445",
+    features:["Prompt Space (10/month)","AI Image Generator (5/month)","Content Planner (manual only)","Content Scheduler (10 posts)","Community access","Job Board (view only)"],
     cta:"Current Plan",
+    popular:false,
     free:true,
   },
   {
-    name:"Premium Consultation",
-    price:999,
-    desc:"One-on-one with our expert team",
-    color:PINK,
-    features:["Everything in Free","45-min 1-on-1 with senior mentor","Competitive analysis report","Business model refinement","GTM strategy walkthrough","Follow-up action plan","Email support for 7 days"],
-    cta:"Book Consultation",
-    free:false,
-    oneTime:true,
+    name:"Monthly",
+    price:{ monthly:299, yearly:null },
+    tag:"Flexible monthly",
+    color:BLUE,
+    features:["Prompt Space (50/month)","AI Image Generator (25/month)","Content Planner (AI-assisted)","Content Scheduler (60 posts)","Community — post & interact","Job Board (apply to jobs)","Portfolio showcase"],
+    cta:"Subscribe Monthly",
+    popular:false,
+  },
+  {
+    name:"Yearly",
+    price:{ monthly:null, yearly:1999 },
+    tag:"Save ₹1589 vs monthly",
+    color:"#22c55e",
+    features:["Prompt Space (unlimited)","AI Image Generator (100/month)","Content Planner (full AI)","Content Scheduler (unlimited)","Community — verified badge","Job Board (featured profile)","Portfolio showcase","Priority support"],
+    cta:"Go Yearly",
+    popular:true,
   },
 ];
 
-// Load Razorpay script dynamically — ensures window.Razorpay is ready before use
 function loadRazorpay() {
   return new Promise((resolve, reject) => {
     if (window.Razorpay) { resolve(); return; }
@@ -52,150 +79,179 @@ function loadRazorpay() {
 }
 
 export default function PricingPage({ profile }) {
-  const [tab,     setTab]     = useState(profile?.user_type==="individual" ? "individual" : "business");
+  const [tab,     setTab]     = useState(profile?.user_type === "individual" ? "individual" : "business");
+  const [billing, setBilling] = useState("monthly");
   const [loading, setLoading] = useState(null);
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState(null);
+  const [error,   setError]   = useState(null);
 
-  const pay = async (amount, label) => {
-    setLoading(label);
+  const plans = tab === "business" ? BIZ_PLANS : IND_PLANS;
+
+  const initPayment = async (plan) => {
+    if (plan.free) return;
+    const amount = billing === "yearly" && plan.price.yearly ? plan.price.yearly : plan.price.monthly;
+    if (!amount) return;
+
+    setLoading(plan.name);
+    setError(null);
+
     try {
-      const res = await fetch(`${API}/api/subscription/create-order`, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ amount, currency:"INR", plan:`units_consult` })
+      // apiPost (from apiClient.js) auto-attaches the Supabase Bearer token — fixes 401
+      const order = await apiPost("/api/subscription/create-order", {
+        amount,
+        currency: "INR",
+        plan: `dh_${plan.name.toLowerCase().replace(/ /g,"_")}_${billing === "yearly" ? "yearly" : "monthly"}`,
+        billing,
       });
-      const order = await res.json();
+
+      if (!order?.id) throw new Error("Order creation failed — no order ID returned.");
+
       await loadRazorpay();
+
       const rzp = new window.Razorpay({
-        key:"rzp_live_SM1s5O14Mm50mV",
-        amount:order.amount, currency:"INR", order_id:order.id,
-        name:"The Units — NuGens",
-        description:"Premium Consultation Session",
-        theme:{ color:PINK },
-        prefill:{ name:profile?.full_name||"", email:profile?.email||"" },
-        handler:async (r)=>{ await fetch(`${API}/api/subscription/verify`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...r,plan:"units_consult",userId:profile?.id})}); setSuccess(true); setLoading(null); },
-        modal:{ ondismiss:()=>setLoading(null) }
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_live_SM1s5O14Mm50mV",
+        amount: order.amount,
+        currency: "INR",
+        order_id: order.id,
+        name: "DigiHub",
+        description: `DigiHub ${plan.name} Plan — ${billing === "yearly" ? "Yearly" : "Monthly"}`,
+        theme: { color: BLUE },
+        prefill: {
+          name: profile?.full_name || "",
+          email: profile?.email || "",
+        },
+        handler: async (response) => {
+          await apiPost("/api/subscription/verify", {
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_order_id:   response.razorpay_order_id,
+            razorpay_signature:  response.razorpay_signature,
+            plan: `dh_${plan.name.toLowerCase().replace(/ /g,"_")}_${billing === "yearly" ? "yearly" : "monthly"}`,
+            userId: profile?.id,
+          });
+          setSuccess(plan.name);
+          setLoading(null);
+        },
+        modal: { ondismiss: () => setLoading(null) },
       });
       rzp.open();
-    } catch(e){ setLoading(null); }
+    } catch (e) {
+      console.error("[DigiHub] Payment error:", e);
+      setError(e.message || "Payment failed. Please try again.");
+      setLoading(null);
+    }
+  };
+
+  const getPrice = (plan) => {
+    if (plan.free) return "Free";
+    if (billing === "yearly" && plan.price.yearly) return `₹${plan.price.yearly.toLocaleString()}/yr`;
+    if (plan.price.monthly) return `₹${plan.price.monthly.toLocaleString()}/mo`;
+    return "Annual only";
   };
 
   const S = {
-    page: { minHeight:"100vh", background:LIGHT, padding:"48px 44px", fontFamily:"'Plus Jakarta Sans',sans-serif" },
-    card: { background:CARD, border:`1px solid ${BORDER}`, borderRadius:18, padding:32, boxShadow:"0 1px 3px rgba(0,0,0,0.04)", display:"flex", flexDirection:"column" },
-    btn: (c) => ({ width:"100%", padding:"13px 0", background:c, color:"#fff", border:"none", borderRadius:10, fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"inherit", marginTop:"auto" }),
-    check: { fontSize:13, color:MUTED, display:"flex", gap:8, marginBottom:9 },
+    page:  { minHeight:"100vh", background:BG, padding:"48px 40px", fontFamily:"'Plus Jakarta Sans',sans-serif" },
+    h1:    { fontSize:32, fontWeight:800, color:"#fff", letterSpacing:"-0.05em", marginBottom:8, textAlign:"center" },
+    sub:   { fontSize:14, color:"#445", marginBottom:36, textAlign:"center" },
+    card:  (featured) => ({ background:CARD, border:`1px solid ${featured ? "#e8185d40" : B}`, borderRadius:18, padding:32, position:"relative", display:"flex", flexDirection:"column" }),
+    btn:   (color) => ({ width:"100%", padding:"13px 0", background:color, color:"#fff", border:"none", borderRadius:10, fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"inherit", marginTop:"auto" }),
+    check: { fontSize:13, color:"#aaa", display:"flex", gap:8, marginBottom:9 },
   };
 
   return (
     <div style={S.page}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');`}</style>
 
+      <div style={S.h1}>DigiHub Pricing</div>
+      <div style={S.sub}>Choose the right plan for your digital goals</div>
 
-      <div style={{ textAlign:"center", marginBottom:40 }}>
-        <div style={{ fontSize:32, fontWeight:800, color:TEXT, letterSpacing:"-0.05em", marginBottom:8 }}>The Units — Pricing</div>
-        <div style={{ fontSize:14, color:MUTED }}>Individual features are free. Services are pay-per-project. Consultation is pay-per-session.</div>
-      </div>
-
-      {/* Tab */}
-      <div style={{ display:"flex", justifyContent:"center", marginBottom:40 }}>
-        <div style={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:12, padding:4, display:"flex", gap:4 }}>
-          {["business","individual"].map(t=>(
-            <button key={t} onClick={()=>setTab(t)} style={{ padding:"9px 28px", background:tab===t?PINK:"none", color:tab===t?"#fff":MUTED, border:"none", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>
-              {t==="business"?"🏢 Business":"👤 Individual"}
+      {/* Tab switcher */}
+      <div style={{ display:"flex", justifyContent:"center", marginBottom:32 }}>
+        <div style={{ background:"#0a1628", border:`1px solid ${B}`, borderRadius:12, padding:4, display:"flex", gap:4 }}>
+          {["business","individual"].map(t => (
+            <button key={t} onClick={() => setTab(t)} style={{ padding:"8px 24px", background:tab===t?BLUE:"none", color:tab===t?"#fff":"#445", border:"none", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>
+              {t === "business" ? "🏢 Business" : "👤 Individual"}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Business services */}
-      {tab==="business" && (
-        <div>
-          <div style={{ textAlign:"center", marginBottom:32 }}>
-            <div style={{ fontSize:20, fontWeight:800, color:TEXT, marginBottom:8 }}>Pay-Per-Project Services</div>
-            <div style={{ fontSize:13, color:MUTED }}>No subscription. Book any service, pay once, get exceptional work delivered.</div>
-          </div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, maxWidth:900, margin:"0 auto 48px" }}>
-            {BIZ_SERVICES.map(s=>(
-              <div key={s.title} style={{ ...S.card, padding:24 }}>
-                {s.tag && <div style={{ fontSize:9, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.08em", color:PINK, marginBottom:8 }}>{s.tag}</div>}
-                <div style={{ fontSize:28, marginBottom:10 }}>{s.icon}</div>
-                <div style={{ fontSize:15, fontWeight:700, color:TEXT, marginBottom:4 }}>{s.title}</div>
-                <div style={{ fontSize:20, fontWeight:800, color:PINK, marginBottom:16 }}>From ₹{s.from.toLocaleString()}</div>
-                <a href="/book" style={{ ...S.btn(PINK), textDecoration:"none", textAlign:"center", display:"block" }}>Book Now →</a>
-              </div>
+      {/* Billing toggle */}
+      {tab === "business" && (
+        <div style={{ display:"flex", justifyContent:"center", marginBottom:36 }}>
+          <div style={{ background:"#0a1628", border:`1px solid ${B}`, borderRadius:10, padding:3, display:"flex" }}>
+            {["monthly","yearly"].map(b => (
+              <button key={b} onClick={() => setBilling(b)} style={{ padding:"7px 20px", background:billing===b?"#1a2030":"none", color:billing===b?"#fff":"#445", border:"none", borderRadius:7, fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                {b === "yearly" ? "Yearly (save 20%)" : "Monthly"}
+              </button>
             ))}
-          </div>
-
-          <div style={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:16, padding:32, maxWidth:700, margin:"0 auto", textAlign:"center" }}>
-            <div style={{ fontSize:18, fontWeight:800, color:TEXT, marginBottom:8 }}>Need a custom package?</div>
-            <div style={{ fontSize:13, color:MUTED, marginBottom:20 }}>For ongoing partnerships, retainer arrangements, or bundled services — talk to us. We customise to your needs and budget.</div>
-            <a href="mailto:hello@nugens.in" style={{ display:"inline-block", padding:"12px 28px", background:PINK, color:"#fff", borderRadius:10, textDecoration:"none", fontSize:14, fontWeight:700 }}>Contact Our Team →</a>
           </div>
         </div>
       )}
 
-      {/* Individual plans */}
-      {tab==="individual" && (
-        <div>
-          {success && (
-            <div style={{ background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:12, padding:"16px 24px", textAlign:"center", maxWidth:500, margin:"0 auto 28px", color:GREEN }}>
-              ✓ Consultation booked! Our team will be in touch within 24 hours.
+      {success && (
+        <div style={{ background:"#22c55e15", border:"1px solid #22c55e30", borderRadius:12, padding:"16px 24px", textAlign:"center", maxWidth:500, margin:"0 auto 32px", color:"#22c55e" }}>
+          ✓ Payment successful! Your {success} plan is now active. Refresh to see your new features.
+        </div>
+      )}
+
+      {error && (
+        <div style={{ background:"#ff000015", border:"1px solid #ff000030", borderRadius:12, padding:"16px 24px", textAlign:"center", maxWidth:500, margin:"0 auto 32px", color:"#f87171" }}>
+          ⚠ {error}
+        </div>
+      )}
+
+      {/* Plans grid */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:20, maxWidth:1000, margin:"0 auto" }}>
+        {plans.map(plan => (
+          <div key={plan.name} style={S.card(plan.popular)}>
+            {plan.popular && (
+              <div style={{ position:"absolute", top:-12, left:"50%", transform:"translateX(-50%)", background:"#e8185d", color:"#fff", fontSize:10, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.08em", padding:"4px 14px", borderRadius:20 }}>
+                {plan.tag}
+              </div>
+            )}
+
+            <div style={{ marginBottom:8 }}>
+              <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", color:plan.color, marginBottom:6 }}>{plan.name}</div>
+              {!plan.popular && <div style={{ fontSize:11, color:"#334", marginBottom:6 }}>{plan.tag}</div>}
             </div>
-          )}
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:20, maxWidth:700, margin:"0 auto" }}>
-            {IND_PLANS.map(plan=>(
-              <div key={plan.name} style={{ ...S.card, border:plan.free?`1px solid ${BORDER}`:`1px solid ${PINK}30` }}>
-                <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", color:plan.color, marginBottom:8 }}>
-                  {plan.name}
-                </div>
-                <div style={{ fontSize:11, color:MUTED, marginBottom:16 }}>{plan.desc}</div>
-                <div style={{ fontSize:34, fontWeight:800, color:TEXT, letterSpacing:"-0.04em", marginBottom:4 }}>
-                  {plan.price===0 ? "Free" : `₹${plan.price}`}
-                </div>
-                {plan.oneTime && <div style={{ fontSize:11, color:MUTED, marginBottom:20 }}>one-time · per session</div>}
-                {plan.price===0 && <div style={{ marginBottom:20 }}/>}
 
-                <div style={{ flex:1, marginBottom:24 }}>
-                  {plan.features.map((f,i)=>(
-                    <div key={i} style={S.check}>
-                      <span style={{color:plan.color,flexShrink:0}}>✓</span>{f}
-                    </div>
-                  ))}
-                </div>
+            <div style={{ marginBottom:24 }}>
+              <div style={{ fontSize:32, fontWeight:800, color:"#fff", letterSpacing:"-0.04em" }}>{getPrice(plan)}</div>
+              {!plan.free && <div style={{ fontSize:11, color:"#334", marginTop:2 }}>+ GST applicable</div>}
+            </div>
 
-                {plan.free ? (
-                  <div style={{ width:"100%", padding:"13px 0", background:"#f8f9fb", color:MUTED, borderRadius:10, fontSize:13, fontWeight:600, textAlign:"center", border:`1px solid ${BORDER}` }}>
-                    All features included
-                  </div>
-                ) : (
-                  <button onClick={()=>pay(plan.price,plan.name)} disabled={loading===plan.name} style={{ ...S.btn(PINK), opacity:loading===plan.name?0.6:1 }}>
-                    {loading===plan.name?"Processing...":plan.cta}
-                  </button>
-                )}
-              </div>
-            ))}
+            <div style={{ flex:1, marginBottom:24 }}>
+              {plan.features.map((f, i) => (
+                <div key={i} style={S.check}>
+                  <span style={{ color:plan.color, flexShrink:0 }}>✓</span>
+                  {f}
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={() => initPayment(plan)}
+              disabled={plan.free || loading === plan.name}
+              style={{ ...S.btn(plan.popular ? "#e8185d" : plan.free ? "#1a2030" : plan.color), opacity:loading === plan.name ? 0.7 : 1, cursor:plan.free ? "default" : "pointer" }}
+            >
+              {loading === plan.name ? "Processing..." : plan.cta}
+            </button>
           </div>
-
-          <div style={{ textAlign:"center", marginTop:36, fontSize:13, color:MUTED }}>
-            All individual features are free. Premium consultation is only charged if you find it valuable.
-            <br/>Questions? <a href="mailto:hello@nugens.in" style={{color:PINK}}>hello@nugens.in</a>
-          </div>
-        </div>
-      )}
+        ))}
+      </div>
 
       {/* FAQ */}
-      <div style={{ maxWidth:680, margin:"48px auto 0" }}>
-        <div style={{ fontSize:20, fontWeight:800, color:TEXT, textAlign:"center", marginBottom:24 }}>Questions</div>
+      <div style={{ maxWidth:700, margin:"48px auto 0" }}>
+        <div style={{ fontSize:20, fontWeight:800, color:"#fff", textAlign:"center", marginBottom:24 }}>Frequently Asked Questions</div>
         {[
-          { q:"Are individual features really free?", a:"Yes, completely. Live Experience, Entrepreneur Guide, and Idea Validation are free forever. We only charge for premium 1-on-1 consultations." },
-          { q:"How does business service pricing work?", a:"Pay-per-project. No subscriptions. Choose a service, pick a package, pay, and our team delivers. Simple." },
-          { q:"What if I'm not happy with the work?", a:"We include revisions in all packages. If the work doesn't meet your brief, we revise until it does. Your satisfaction is our reputation." },
-          { q:"How quickly does the team respond?", a:"For consultations: within 24 hours on business days. For service bookings: within 2 hours. For AI guidance: instant." },
-        ].map((f,i)=>(
-          <div key={i} style={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:10, padding:"16px 20px", marginBottom:10 }}>
-            <div style={{ fontSize:13, fontWeight:700, color:TEXT, marginBottom:6 }}>{f.q}</div>
-            <div style={{ fontSize:13, color:MUTED, lineHeight:1.65 }}>{f.a}</div>
+          { q:"Can I switch plans?", a:"Yes, you can upgrade or downgrade your plan anytime. Changes take effect immediately." },
+          { q:"Is there a refund policy?", a:"We offer a 7-day refund for yearly plans if you're not satisfied. Monthly plans are non-refundable." },
+          { q:"What payment methods are supported?", a:"We accept all UPI apps, credit/debit cards, net banking, and wallets via Razorpay." },
+          { q:"Can I add team members?", a:"Business plans include team member seats. Starter includes 1, Premium includes 5, and Pro includes 10 seats." },
+        ].map((f, i) => (
+          <div key={i} style={{ background:CARD, border:`1px solid ${B}`, borderRadius:10, padding:"16px 20px", marginBottom:10 }}>
+            <div style={{ fontSize:13, fontWeight:700, color:"#ccc", marginBottom:6 }}>{f.q}</div>
+            <div style={{ fontSize:13, color:"#445", lineHeight:1.6 }}>{f.a}</div>
           </div>
         ))}
       </div>
