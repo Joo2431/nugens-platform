@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+  import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
@@ -16,20 +16,16 @@ const PLAN_ACCESS = {
   admin:()=>true,
 };
 
-// Detect if URL is a Supabase storage URL and get a fresh signed URL
-async function resolveVideoUrl(url) {
-  if (!url) return null;
-  // Already a public URL — return as-is
-  if (!url.includes("/storage/v1/object/")) return url;
-  // Extract bucket and path from public URL
-  // e.g. https://xxx.supabase.co/storage/v1/object/public/hx-videos/videos/xxx.mp4
-  const match = url.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+)/);
-  if (!match) return url;
-  const [, bucket, path] = match;
-  // Get a fresh signed URL valid for 1 hour
-  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
-  if (error || !data?.signedUrl) return url; // fall back to original
-  return data.signedUrl;
+// hx-videos bucket is PUBLIC — return URL as-is.
+// Ensure it uses the public object URL format (not signed).
+function resolveVideoUrl(url) {
+  if (!url) return Promise.resolve(null);
+  // Convert any signed URL back to a public URL
+  const publicUrl = url.replace(
+    /\/storage\/v1\/object\/sign\/([^?]+).*/,
+    "/storage/v1/object/public/$1"
+  );
+  return Promise.resolve(publicUrl);
 }
 
 export default function CoursePlayer({ profile }) {
