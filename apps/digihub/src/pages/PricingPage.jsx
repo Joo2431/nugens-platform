@@ -1,11 +1,10 @@
 import React, { useState } from "react";
-import { supabase } from "../lib/supabase";
+import { apiPost } from "../lib/apiClient";
 
 const BLUE = "#0284c7";
 const BG   = "#06101a";
 const CARD = "#0a1628";
 const B    = "#1a2030";
-const API  = "https://nugens-platform.onrender.com";
 
 const BIZ_PLANS = [
   {
@@ -68,7 +67,6 @@ const IND_PLANS = [
   },
 ];
 
-// Load Razorpay script dynamically — ensures window.Razorpay is ready before use
 function loadRazorpay() {
   return new Promise((resolve, reject) => {
     if (window.Razorpay) { resolve(); return; }
@@ -81,10 +79,11 @@ function loadRazorpay() {
 }
 
 export default function PricingPage({ profile }) {
-  const [tab,        setTab]        = useState(profile?.user_type === "individual" ? "individual" : "business");
-  const [billing,    setBilling]    = useState("monthly");
-  const [loading,    setLoading]    = useState(null);
-  const [success,    setSuccess]    = useState(null);
+  const [tab,     setTab]     = useState(profile?.user_type === "individual" ? "individual" : "business");
+  const [billing, setBilling] = useState("monthly");
+  const [loading, setLoading] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const [error,   setError]   = useState(null);
 
   const plans = tab === "business" ? BIZ_PLANS : IND_PLANS;
 
@@ -94,63 +93,50 @@ export default function PricingPage({ profile }) {
     if (!amount) return;
 
     setLoading(plan.name);
+    setError(null);
+
     try {
-      // Get the current session token to authenticate with the backend
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) throw new Error("Not authenticated — please log in again.");
-
-      const authHeaders = {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      };
-
-      const res = await fetch(`${API}/api/subscription/create-order`, {
-        method:"POST",
-        headers: authHeaders,
-        body: JSON.stringify({
-          amount,
-          currency:"INR",
-          plan: `dh_${plan.name.toLowerCase().replace(/ /g,"_")}_${billing === "yearly" ? "yearly" : "monthly"}`,
-          billing,
-        })
+      // apiPost (from apiClient.js) auto-attaches the Supabase Bearer token — fixes 401
+      const order = await apiPost("/api/subscription/create-order", {
+        amount,
+        currency: "INR",
+        plan: `dh_${plan.name.toLowerCase().replace(/ /g,"_")}_${billing === "yearly" ? "yearly" : "monthly"}`,
+        billing,
       });
-      const order = await res.json();
-      if (!order?.id) throw new Error("Order creation failed");
+
+      if (!order?.id) throw new Error("Order creation failed — no order ID returned.");
 
       await loadRazorpay();
+
       const rzp = new window.Razorpay({
-        key:"rzp_live_SM1s5O14Mm50mV",
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_live_SM1s5O14Mm50mV",
         amount: order.amount,
-        currency:"INR",
+        currency: "INR",
         order_id: order.id,
-        name:"DigiHub",
-        description:`DigiHub ${plan.name} Plan — ${billing === "yearly" ? "Yearly" : "Monthly"}`,
-        theme:{ color:BLUE },
-        prefill:{
+        name: "DigiHub",
+        description: `DigiHub ${plan.name} Plan — ${billing === "yearly" ? "Yearly" : "Monthly"}`,
+        theme: { color: BLUE },
+        prefill: {
           name: profile?.full_name || "",
           email: profile?.email || "",
         },
         handler: async (response) => {
-          await fetch(`${API}/api/subscription/verify`, {
-            method:"POST",
-            headers: authHeaders,
-            body: JSON.stringify({
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id:   response.razorpay_order_id,
-              razorpay_signature:  response.razorpay_signature,
-              plan: `dh_${plan.name.toLowerCase().replace(/ /g,"_")}_${billing === "yearly" ? "yearly" : "monthly"}`,
-              userId: profile?.id,
-            })
+          await apiPost("/api/subscription/verify", {
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_order_id:   response.razorpay_order_id,
+            razorpay_signature:  response.razorpay_signature,
+            plan: `dh_${plan.name.toLowerCase().replace(/ /g,"_")}_${billing === "yearly" ? "yearly" : "monthly"}`,
+            userId: profile?.id,
           });
           setSuccess(plan.name);
           setLoading(null);
         },
-        modal:{ ondismiss:()=>setLoading(null) }
+        modal: { ondismiss: () => setLoading(null) },
       });
       rzp.open();
-    } catch(e) {
-      console.error(e);
+    } catch (e) {
+      console.error("[DigiHub] Payment error:", e);
+      setError(e.message || "Payment failed. Please try again.");
       setLoading(null);
     }
   };
@@ -163,43 +149,39 @@ export default function PricingPage({ profile }) {
   };
 
   const S = {
-    page: { minHeight:"100vh", background:BG, padding:"48px 40px", fontFamily:"'Plus Jakarta Sans',sans-serif" },
-    h1: { fontSize:32, fontWeight:800, color:"#fff", letterSpacing:"-0.05em", marginBottom:8, textAlign:"center" },
-    sub: { fontSize:14, color:"#445", marginBottom:36, textAlign:"center" },
-    card: (featured) => ({ background:CARD, border:`1px solid ${featured?"#e8185d40":B}`, borderRadius:18, padding:32, position:"relative", display:"flex", flexDirection:"column" }),
-    btn: (color) => ({ width:"100%", padding:"13px 0", background:color, color:"#fff", border:"none", borderRadius:10, fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"inherit", marginTop:"auto" }),
+    page:  { minHeight:"100vh", background:BG, padding:"48px 40px", fontFamily:"'Plus Jakarta Sans',sans-serif" },
+    h1:    { fontSize:32, fontWeight:800, color:"#fff", letterSpacing:"-0.05em", marginBottom:8, textAlign:"center" },
+    sub:   { fontSize:14, color:"#445", marginBottom:36, textAlign:"center" },
+    card:  (featured) => ({ background:CARD, border:`1px solid ${featured ? "#e8185d40" : B}`, borderRadius:18, padding:32, position:"relative", display:"flex", flexDirection:"column" }),
+    btn:   (color) => ({ width:"100%", padding:"13px 0", background:color, color:"#fff", border:"none", borderRadius:10, fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"inherit", marginTop:"auto" }),
     check: { fontSize:13, color:"#aaa", display:"flex", gap:8, marginBottom:9 },
   };
 
   return (
     <div style={S.page}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        ${BLUE && ''}
-      `}</style>
-
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');`}</style>
 
       <div style={S.h1}>DigiHub Pricing</div>
       <div style={S.sub}>Choose the right plan for your digital goals</div>
 
       {/* Tab switcher */}
-      <div style={{ display:"flex", justifyContent:"center", gap:0, marginBottom:32 }}>
+      <div style={{ display:"flex", justifyContent:"center", marginBottom:32 }}>
         <div style={{ background:"#0a1628", border:`1px solid ${B}`, borderRadius:12, padding:4, display:"flex", gap:4 }}>
           {["business","individual"].map(t => (
-            <button key={t} onClick={()=>setTab(t)} style={{ padding:"8px 24px", background:tab===t?BLUE:"none", color:tab===t?"#fff":"#445", border:"none", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>
-              {t==="business" ? "🏢 Business" : "👤 Individual"}
+            <button key={t} onClick={() => setTab(t)} style={{ padding:"8px 24px", background:tab===t?BLUE:"none", color:tab===t?"#fff":"#445", border:"none", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>
+              {t === "business" ? "🏢 Business" : "👤 Individual"}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Billing toggle (only for non-free, where applicable) */}
+      {/* Billing toggle */}
       {tab === "business" && (
-        <div style={{ display:"flex", justifyContent:"center", gap:0, marginBottom:36 }}>
+        <div style={{ display:"flex", justifyContent:"center", marginBottom:36 }}>
           <div style={{ background:"#0a1628", border:`1px solid ${B}`, borderRadius:10, padding:3, display:"flex" }}>
             {["monthly","yearly"].map(b => (
-              <button key={b} onClick={()=>setBilling(b)} style={{ padding:"7px 20px", background:billing===b?"#1a2030":"none", color:billing===b?"#fff":"#445", border:"none", borderRadius:7, fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
-                {b==="yearly" ? "Yearly (save 20%)" : "Monthly"}
+              <button key={b} onClick={() => setBilling(b)} style={{ padding:"7px 20px", background:billing===b?"#1a2030":"none", color:billing===b?"#fff":"#445", border:"none", borderRadius:7, fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                {b === "yearly" ? "Yearly (save 20%)" : "Monthly"}
               </button>
             ))}
           </div>
@@ -209,6 +191,12 @@ export default function PricingPage({ profile }) {
       {success && (
         <div style={{ background:"#22c55e15", border:"1px solid #22c55e30", borderRadius:12, padding:"16px 24px", textAlign:"center", maxWidth:500, margin:"0 auto 32px", color:"#22c55e" }}>
           ✓ Payment successful! Your {success} plan is now active. Refresh to see your new features.
+        </div>
+      )}
+
+      {error && (
+        <div style={{ background:"#ff000015", border:"1px solid #ff000030", borderRadius:12, padding:"16px 24px", textAlign:"center", maxWidth:500, margin:"0 auto 32px", color:"#f87171" }}>
+          ⚠ {error}
         </div>
       )}
 
@@ -223,9 +211,7 @@ export default function PricingPage({ profile }) {
             )}
 
             <div style={{ marginBottom:8 }}>
-              <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", color:plan.color, marginBottom:6 }}>
-                {plan.name}
-              </div>
+              <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", color:plan.color, marginBottom:6 }}>{plan.name}</div>
               {!plan.popular && <div style={{ fontSize:11, color:"#334", marginBottom:6 }}>{plan.tag}</div>}
             </div>
 
@@ -235,7 +221,7 @@ export default function PricingPage({ profile }) {
             </div>
 
             <div style={{ flex:1, marginBottom:24 }}>
-              {plan.features.map((f,i) => (
+              {plan.features.map((f, i) => (
                 <div key={i} style={S.check}>
                   <span style={{ color:plan.color, flexShrink:0 }}>✓</span>
                   {f}
@@ -244,11 +230,11 @@ export default function PricingPage({ profile }) {
             </div>
 
             <button
-              onClick={()=>initPayment(plan)}
-              disabled={plan.free || loading===plan.name}
-              style={{ ...S.btn(plan.popular?"#e8185d":plan.free?"#1a2030":plan.color), opacity:loading===plan.name?0.7:1, cursor:plan.free?"default":"pointer" }}
+              onClick={() => initPayment(plan)}
+              disabled={plan.free || loading === plan.name}
+              style={{ ...S.btn(plan.popular ? "#e8185d" : plan.free ? "#1a2030" : plan.color), opacity:loading === plan.name ? 0.7 : 1, cursor:plan.free ? "default" : "pointer" }}
             >
-              {loading===plan.name ? "Processing..." : plan.cta}
+              {loading === plan.name ? "Processing..." : plan.cta}
             </button>
           </div>
         ))}
@@ -262,7 +248,7 @@ export default function PricingPage({ profile }) {
           { q:"Is there a refund policy?", a:"We offer a 7-day refund for yearly plans if you're not satisfied. Monthly plans are non-refundable." },
           { q:"What payment methods are supported?", a:"We accept all UPI apps, credit/debit cards, net banking, and wallets via Razorpay." },
           { q:"Can I add team members?", a:"Business plans include team member seats. Starter includes 1, Premium includes 5, and Pro includes 10 seats." },
-        ].map((f,i) => (
+        ].map((f, i) => (
           <div key={i} style={{ background:CARD, border:`1px solid ${B}`, borderRadius:10, padding:"16px 20px", marginBottom:10 }}>
             <div style={{ fontSize:13, fontWeight:700, color:"#ccc", marginBottom:6 }}>{f.q}</div>
             <div style={{ fontSize:13, color:"#445", lineHeight:1.6 }}>{f.a}</div>
