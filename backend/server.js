@@ -159,32 +159,48 @@ async function logChat({ userId, sessionId, role, message, mode }) {
 // Covers all plans from all platforms (NuGens Web, Gen-E, HyperX, DigiHub, Units)
 // amount = paise (INR × 100). profilePlan = value written to profiles.plan column.
 const PLAN_CONFIG = {
-  // ── Gen-E legacy keys (keep for backward compat) ─────────────────
-  monthly: { amount: 9900,   currency: "INR", label: "Gen-E Pro Monthly",    durationDays: 30,  profilePlan: "monthly" },
-  yearly:  { amount: 69900,  currency: "INR", label: "Gen-E Pro Yearly",     durationDays: 365, profilePlan: "yearly"  },
+  // ── Gen-E plans ───────────────────────────────────────────────────
+  monthly:      { amount: 9900,    currency: "INR", label: "Gen-E Pro Monthly",  durationDays: 30,  profilePlan: "gene_monthly" },
+  yearly:       { amount: 69900,   currency: "INR", label: "Gen-E Pro Yearly",   durationDays: 365, profilePlan: "gene_yearly"  },
+  gene_monthly: { amount: 9900,    currency: "INR", label: "Gen-E Pro Monthly",  durationDays: 30,  profilePlan: "gene_monthly" },
+  gene_yearly:  { amount: 69900,   currency: "INR", label: "Gen-E Pro Yearly",   durationDays: 365, profilePlan: "gene_yearly"  },
 
-  // ── Individual plans (nugens-web pricing page) ────────────────────
-  individual_premium_monthly: { amount: 9900,   currency: "INR", label: "Individual Premium Monthly", durationDays: 30,  profilePlan: "monthly" },
-  individual_premium_yearly:  { amount: 79900,  currency: "INR", label: "Individual Premium Yearly",  durationDays: 365, profilePlan: "yearly"  },
-  individual_pro_monthly:     { amount: 100,  currency: "INR", label: "Individual Pro Monthly",     durationDays: 30,  profilePlan: "yearly"  },
-  individual_pro_yearly:      { amount: 499900, currency: "INR", label: "Individual Pro Yearly",      durationDays: 365, profilePlan: "yearly"  },
+  // ── NuGens Suite — Individual ─────────────────────────────────────
+  individual_starter_monthly: { amount: 9900,    currency: "INR", label: "Suite Starter Monthly",  durationDays: 30,  profilePlan: "ng_ind_starter" },
+  individual_starter_yearly:  { amount: 79900,   currency: "INR", label: "Suite Starter Yearly",   durationDays: 365, profilePlan: "ng_ind_starter" },
+  individual_premium_monthly: { amount: 19900,   currency: "INR", label: "Suite Premium Monthly",  durationDays: 30,  profilePlan: "ng_ind_premium" },
+  individual_premium_yearly:  { amount: 149900,  currency: "INR", label: "Suite Premium Yearly",   durationDays: 365, profilePlan: "ng_ind_premium" },
+  individual_pro_monthly:     { amount: 29900,   currency: "INR", label: "Suite Pro Monthly",      durationDays: 30,  profilePlan: "ng_ind_pro"     },
+  individual_pro_yearly:      { amount: 249900,  currency: "INR", label: "Suite Pro Yearly",       durationDays: 365, profilePlan: "ng_ind_pro"     },
 
-  // ── Business plans (nugens-web pricing page) ──────────────────────
-  business_starter_monthly: { amount: 49900,  currency: "INR", label: "Business Starter Monthly", durationDays: 30,  profilePlan: "monthly" },
-  business_starter_yearly:  { amount: 399900, currency: "INR", label: "Business Starter Yearly",  durationDays: 365, profilePlan: "yearly"  },
-  business_premium_monthly: { amount: 99900,  currency: "INR", label: "Business Premium Monthly", durationDays: 30,  profilePlan: "monthly" },
-  business_premium_yearly:  { amount: 799900, currency: "INR", label: "Business Premium Yearly",  durationDays: 365, profilePlan: "yearly"  },
-  business_pro_monthly:     { amount: 199900, currency: "INR", label: "Business Pro Monthly",     durationDays: 30,  profilePlan: "yearly"  },
-  business_pro_yearly:      { amount: 1499900,currency: "INR", label: "Business Pro Yearly",      durationDays: 365, profilePlan: "yearly"  },
+  // ── NuGens Suite — Business ───────────────────────────────────────
+  business_starter_monthly: { amount: 49900,   currency: "INR", label: "Suite Biz Starter Monthly",  durationDays: 30,  profilePlan: "ng_biz_starter" },
+  business_starter_yearly:  { amount: 399900,  currency: "INR", label: "Suite Biz Starter Yearly",   durationDays: 365, profilePlan: "ng_biz_starter" },
+  business_premium_monthly: { amount: 99900,   currency: "INR", label: "Suite Biz Premium Monthly",  durationDays: 30,  profilePlan: "ng_biz_premium" },
+  business_premium_yearly:  { amount: 799900,  currency: "INR", label: "Suite Biz Premium Yearly",   durationDays: 365, profilePlan: "ng_biz_premium" },
+  business_pro_monthly:     { amount: 199900,  currency: "INR", label: "Suite Biz Pro Monthly",      durationDays: 30,  profilePlan: "ng_biz_pro"     },
+  business_pro_yearly:      { amount: 1499900, currency: "INR", label: "Suite Biz Pro Yearly",       durationDays: 365, profilePlan: "ng_biz_pro"     },
 
   // ── HyperX plans ─────────────────────────────────────────────────
-  hx_ind_premium_monthly: { amount: 29900,  currency: "INR", label: "HyperX Individual Premium Monthly", durationDays: 30,  profilePlan: "hx_ind_premium" },
-  hx_ind_pro_monthly:     { amount: 129900, currency: "INR", label: "HyperX Individual Pro Monthly",     durationDays: 30,  profilePlan: "hx_ind_pro"     },
-  hx_ind_yearly:          { amount: 299900, currency: "INR", label: "HyperX Individual Yearly",          durationDays: 365, profilePlan: "hx_ind_yearly"  },
-  hx_biz_starter_monthly: { amount: 29900,  currency: "INR", label: "HyperX Business Starter Monthly",  durationDays: 30,  profilePlan: "hx_biz_starter" },
-  hx_biz_premium_monthly: { amount: 69900,  currency: "INR", label: "HyperX Business Premium Monthly",  durationDays: 30,  profilePlan: "hx_biz_premium" },
-  hx_biz_pro_monthly:     { amount: 159900, currency: "INR", label: "HyperX Business Pro Monthly",      durationDays: 30,  profilePlan: "hx_biz_pro"     },
-  hx_biz_yearly:          { amount: 349900, currency: "INR", label: "HyperX Business Yearly Pro",       durationDays: 365, profilePlan: "hx_biz_yearly"  },
+  hx_ind_premium_monthly: { amount: 29900,  currency: "INR", label: "HyperX Premium Monthly",      durationDays: 30,  profilePlan: "hx_ind_premium" },
+  hx_ind_pro_monthly:     { amount: 79900,  currency: "INR", label: "HyperX Pro Monthly",          durationDays: 30,  profilePlan: "hx_ind_pro"     },
+  hx_ind_yearly:          { amount: 299900, currency: "INR", label: "HyperX Pro Yearly",           durationDays: 365, profilePlan: "hx_ind_yearly"  },
+  hx_biz_starter_monthly: { amount: 29900,  currency: "INR", label: "HyperX Biz Starter Monthly",  durationDays: 30,  profilePlan: "hx_biz_starter" },
+  hx_biz_premium_monthly: { amount: 69900,  currency: "INR", label: "HyperX Biz Premium Monthly",  durationDays: 30,  profilePlan: "hx_biz_premium" },
+  hx_biz_pro_monthly:     { amount: 159900, currency: "INR", label: "HyperX Biz Pro Monthly",      durationDays: 30,  profilePlan: "hx_biz_pro"     },
+  hx_biz_yearly:          { amount: 349900, currency: "INR", label: "HyperX Biz Yearly",           durationDays: 365, profilePlan: "hx_biz_yearly"  },
+
+  // ── DigiHub plans ─────────────────────────────────────────────────
+  dh_starter_monthly:  { amount: 9900,   currency: "INR", label: "DigiHub Starter Monthly", durationDays: 30,  profilePlan: "dh_starter" },
+  dh_starter_yearly:   { amount: 79900,  currency: "INR", label: "DigiHub Starter Yearly",  durationDays: 365, profilePlan: "dh_starter" },
+  dh_pro_monthly:      { amount: 19900,  currency: "INR", label: "DigiHub Pro Monthly",     durationDays: 30,  profilePlan: "dh_pro"     },
+  dh_pro_yearly:       { amount: 149900, currency: "INR", label: "DigiHub Pro Yearly",      durationDays: 365, profilePlan: "dh_pro"     },
+
+  // ── Units plans ───────────────────────────────────────────────────
+  units_starter_monthly: { amount: 9900,   currency: "INR", label: "Units Starter Monthly", durationDays: 30,  profilePlan: "units_starter" },
+  units_starter_yearly:  { amount: 79900,  currency: "INR", label: "Units Starter Yearly",  durationDays: 365, profilePlan: "units_starter" },
+  units_pro_monthly:     { amount: 19900,  currency: "INR", label: "Units Pro Monthly",     durationDays: 30,  profilePlan: "units_pro"     },
+  units_pro_yearly:      { amount: 149900, currency: "INR", label: "Units Pro Yearly",      durationDays: 365, profilePlan: "units_pro"     },
 };
 
 /* ── SYSTEM PROMPT ── */

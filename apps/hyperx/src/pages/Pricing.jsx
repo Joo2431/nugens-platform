@@ -101,7 +101,7 @@ export default function Pricing({ profile }) {
       if (!order?.id) throw new Error("Order failed");
 
       const rzp = new window.Razorpay({
-        key:"OKbq5A210M1EEWP4Wl213DOU",
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_live_SM1s5O14Mm50mV",
         amount:order.amount, currency:"INR", order_id:order.id,
         name:"HyperX by NuGens",
         description:`HyperX ${plan.name} — ${plan.price.yearly?"Yearly":"Monthly"}`,
