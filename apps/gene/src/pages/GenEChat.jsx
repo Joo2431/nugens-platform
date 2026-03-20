@@ -633,7 +633,7 @@ export default function GenEChat() {
         .sb-overlay.open{display:block}
         .sb-drawer{position:fixed;top:0;left:0;height:100%;width:252px;z-index:200;transform:translateX(-100%);transition:transform 0.22s ease;box-shadow:4px 0 32px rgba(0,0,0,0.1)}
         .sb-drawer.open{transform:translateX(0)}
-        @media(max-width:720px){.mob-btn{display:flex!important}.desktop-sb{display:none!important}}
+        @media(max-width:720px){.mob-btn{display:flex!important}.desktop-sb{display:none!important}.asb-hide-mobile{display:none!important}}
       `}</style>
 
       {upgrade && <UpgradeModal feature={upgrade} onClose={()=>setUpgrade(false)} onUpgrade={()=>{setUpgrade(false);nav("/pricing");}}/>}
@@ -648,8 +648,8 @@ export default function GenEChat() {
       {/* ── Wrapper with top app bar ── */}
       <div style={{display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden"}}>
 
-        {/* ── Cross-app navigation bar ── */}
-        <AppSwitcherBar profile={profile} />
+        {/* ── Cross-app navigation bar (hidden on mobile) ── */}
+        <div className="asb-hide-mobile" style={{flexShrink:0}}><AppSwitcherBar profile={profile} /></div>
 
         <div style={{display:"flex",flex:1,overflow:"hidden"}}>
 
@@ -668,7 +668,8 @@ export default function GenEChat() {
             {/* Topbar */}
             <div style={{display:"flex",alignItems:"center",gap:8,padding:"0 16px",height:50,borderBottom:"1px solid #f0f2f5",background:"rgba(255,255,255,0.95)",backdropFilter:"blur(8px)",flexShrink:0}}>
               <button className="mob-btn" onClick={()=>setSidebarOpen(true)}
-                style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#bbb",padding:"4px",display:"none",alignItems:"center"}}>☰</button>
+                style={{background:"none",border:"1px solid #edf0f3",borderRadius:8,fontSize:17,cursor:"pointer",color:"#888",padding:"5px 9px",display:"none",alignItems:"center",lineHeight:1,flexShrink:0}}>☰</button>
+              <a href="https://nugens.in.net" className="mob-btn" style={{display:"none",alignItems:"center",gap:5,textDecoration:"none",flexShrink:0}}><span style={{fontWeight:800,fontSize:13,color:"#111",letterSpacing:"-0.03em",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Nu<span style={{color:PINK}}>Gens</span></span></a>
 
               {/* Chat picker */}
               <div style={{position:"relative",flexShrink:0}}>
