@@ -127,14 +127,23 @@ function AppShell() {
   // Other routes: outer Sidebar
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:"#f8f9fb", flexDirection:"column" }}>
-      <div className="mobile-top-bar" style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 16px", background:"#fff", borderBottom:"1px solid #f0f0f0", position:"sticky", top:0, zIndex:100, flexShrink:0 }}>
+      {/* Mobile header for non-chat pages (resumes, jobs, business dashboard) */}
+      <div style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 16px", background:"#fff", borderBottom:"1px solid #f0f0f0", position:"sticky", top:0, zIndex:100, flexShrink:0 }}>
         <button onClick={()=>setMobileMenuOpen(true)}
-          style={{ background:"none", border:"1px solid #f0f0f0", borderRadius:8, padding:"6px 10px", cursor:"pointer", fontSize:18, color:"#e8185d", lineHeight:1 }}>
+          style={{ background:"none", border:"1px solid #edf0f3", borderRadius:8, padding:"6px 10px", cursor:"pointer", fontSize:18, color:"#e8185d", lineHeight:1 }}>
           ☰
         </button>
-        <span style={{ fontWeight:800, fontSize:15, color:"#111" }}>Gen-<span style={{color:"#e8185d"}}>E</span></span>
+        <span style={{ fontWeight:800, fontSize:15, color:"#0a0a0a", letterSpacing:"-0.025em" }}>
+          Gen-<span style={{color:"#e8185d"}}>E</span>
+        </span>
+        <div style={{ marginLeft:"auto", display:"flex", gap:8 }}>
+          {["HyperX","DigiHub","Units"].map((a,i) => {
+            const urls = ["https://hyperx.nugens.in.net","https://digihub.nugens.in.net","https://units.nugens.in.net"];
+            const colors = ["#e8185d","#0284c7","#d97706"];
+            return <a key={a} href={urls[i]} style={{ fontSize:10, fontWeight:700, color:colors[i], textDecoration:"none", padding:"3px 8px", borderRadius:20, border:`1px solid ${colors[i]}25`, background:`${colors[i]}08` }}>{a}</a>;
+          })}
+        </div>
       </div>
-      <style>{`@media(min-width:768px){.mobile-top-bar{display:none!important}}`}</style>
       <div style={{ display:"flex", flex:1 }}>
       <Sidebar
         userType={userType}
