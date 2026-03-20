@@ -527,7 +527,7 @@ app.post("/api/chat", requireAuth, checkUsage, async (req, res) => {
 
   // Job Match Analysis → Yearly only
   const isJobQuery = detectJobIntent(clean);
-  if (isJobQuery && plan !== "yearly") {
+  if (isJobQuery && plan !== "yearly" && plan !== "admin") {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     const sendG = (obj) => res.write("data: " + JSON.stringify(obj) + "\n\n");
@@ -842,7 +842,7 @@ app.get("/download/:file", (req, res) => {
 /* POST /api/jobs/search — called internally by /api/chat when job intent detected */
 async function fetchLiveJobs(query, location, remote) {
   const results = [];
-  const q = query || "developer";
+  const q = (query || "developer").trim();
   const loc = (location || "").toLowerCase();
 
   /* ── Source 1: JSearch via RapidAPI (500 free/month, best India coverage) ── */
@@ -883,7 +883,7 @@ async function fetchLiveJobs(query, location, remote) {
         (q ? "&search=" + encodeURIComponent(q) : "");
       const r = await fetch(url, { signal: AbortSignal.timeout(7000) });
       const d = await r.json();
-      (d.jobs || []).forEach(j => results.push({
+      (d.jobs || []).slice(0, 5).forEach(j => results.push({
         id: "rem-" + j.id,
         title: j.title,
         company: j.company_name,
@@ -894,23 +894,26 @@ async function fetchLiveJobs(query, location, remote) {
         source: "Remotive",
         remote: true,
       }));
+      console.log("Remotive:", results.length, "total results");
     } catch (e) { console.warn("Remotive:", e.message); }
   }
 
-  /* ── Source 3: Arbeitnow (no key, broad search) ── */
+  /* ── Source 3: Arbeitnow (no key, filter by query keywords) ── */
   if (results.length < 5) {
     try {
-      const r = await fetch("https://www.arbeitnow.com/api/job-board-api", {
-        signal: AbortSignal.timeout(7000),
-      });
+      // Arbeitnow supports ?search= param on their API
+      const arbUrl = "https://www.arbeitnow.com/api/job-board-api" +
+        (q ? "?search=" + encodeURIComponent(q) : "");
+      const r = await fetch(arbUrl, { signal: AbortSignal.timeout(7000) });
       const d = await r.json();
+      const qWords = q.toLowerCase().split(" ").filter(w => w.length > 2);
       (d.data || [])
         .filter(j => {
-          const mQ = !q || j.title.toLowerCase().includes(q.toLowerCase()) ||
-            (j.description || "").toLowerCase().includes(q.toLowerCase());
-          return mQ && (remote !== true || j.remote);
+          if (!qWords.length) return true;
+          const text = (j.title + " " + (j.description || "")).toLowerCase();
+          return qWords.some(w => text.includes(w));
         })
-        .slice(0, 6)
+        .slice(0, 5)
         .forEach(j => results.push({
           id: "arb-" + j.slug,
           title: j.title,
@@ -922,10 +925,11 @@ async function fetchLiveJobs(query, location, remote) {
           source: "Arbeitnow",
           remote: j.remote,
         }));
+      console.log("Arbeitnow:", results.length, "total results");
     } catch (e) { console.warn("Arbeitnow:", e.message); }
   }
 
-  /* ── Source 4: Adzuna India (250/day free, add ADZUNA keys in Render env) ── */
+  /* ── Source 4: Adzuna India (250/day free) ── */
   if (process.env.ADZUNA_APP_ID && process.env.ADZUNA_API_KEY) {
     try {
       const url = "https://api.adzuna.com/v1/api/jobs/in/search/1" +
@@ -949,7 +953,37 @@ async function fetchLiveJobs(query, location, remote) {
         source: "Adzuna",
         remote: false,
       }));
+      console.log("Adzuna:", results.length, "total results");
     } catch (e) { console.warn("Adzuna:", e.message); }
+  }
+
+  /* ── Source 5: LinkedIn search fallback card (always show if < 3 results) ── */
+  if (results.length < 3) {
+    const linkedInUrl = "https://www.linkedin.com/jobs/search/?keywords=" +
+      encodeURIComponent(q) + "&location=" + encodeURIComponent(location || "India");
+    const naukri = "https://www.naukri.com/" + encodeURIComponent(q.toLowerCase().replace(/\s+/g, "-")) + "-jobs";
+    results.push({
+      id: "fallback-linkedin",
+      title: `Search "${q}" on LinkedIn`,
+      company: "LinkedIn Jobs",
+      location: location || "India",
+      url: linkedInUrl,
+      salary: null,
+      tags: ["Direct search"],
+      source: "LinkedIn",
+      remote: false,
+    });
+    results.push({
+      id: "fallback-naukri",
+      title: `Search "${q}" on Naukri`,
+      company: "Naukri.com",
+      location: location || "India",
+      url: naukri,
+      salary: null,
+      tags: ["India's #1 job portal"],
+      source: "Naukri",
+      remote: false,
+    });
   }
 
   // Deduplicate by title+company
@@ -967,10 +1001,24 @@ async function fetchLiveJobs(query, location, remote) {
 function detectJobIntent(message) {
   const m = message.toLowerCase();
   const triggers = [
+    // Direct search phrases
     "find job", "search job", "find me job", "job for me", "job openings",
     "job listing", "show job", "any job", "find opening", "job vacancies",
-    "job in ", "jobs in ", "hiring", "find work", "job search",
+    "job in ", "jobs in ", "find work", "job search",
     "look for job", "job near", "find position", "open position",
+    // Plural and variations
+    "find jobs", "search jobs", "show jobs", "get jobs", "get job",
+    "live job", "live opening", "job roles matching", "job match",
+    "matching job", "job opportunities", "job opportunity",
+    // Natural language patterns
+    "looking for a job", "looking for jobs", "need a job",
+    "want a job", "apply for job", "job portal", "job board",
+    "hiring manager", "currently hiring", "who is hiring",
+    "companies hiring", "jobs available", "available jobs",
+    "find me work", "help me find a job", "help me get a job",
+    // The auto-trigger message pattern
+    "search for live", "live openings", "matching my profile",
+    "job match", "job matching",
   ];
   return triggers.some(t => m.includes(t));
 }
@@ -978,14 +1026,24 @@ function detectJobIntent(message) {
 /* Extract search params from natural language */
 function extractJobParams(message) {
   const m = message.toLowerCase();
-  // Extract location — look for "in <city>" pattern
-  const locMatch = message.match(/\bin\s+([A-Za-z\s]+?)(?:\s+jobs?|\s+role|\s+position|$|\?)/i);
-  const location = locMatch ? locMatch[1].trim() : "";
-  // Extract role — everything before "job" or "jobs" or "in"
-  const roleMatch = message.match(/(?:find|search|show|get|look for)?\s*(?:me\s+)?([a-zA-Z\s]+?)\s+(?:job|jobs|role|position|opening|work)/i);
-  const query = roleMatch ? roleMatch[1].replace(/\b(find|search|show|get|any|some|me|a|an|the)\b/gi, "").trim() : "";
   const remote = m.includes("remote");
-  return { query: query || "", location, remote };
+  // Extract location
+  const locMatch = message.match(/\bin\s+([A-Za-z\s]{2,30}?)(?:\s+jobs?|\s+role|\s+position|$|\?|,)/i);
+  const location = locMatch ? locMatch[1].trim() : "";
+  // Extract role — try multiple patterns
+  let query = "";
+  const p1 = message.match(/(?:find|search|show|get|look for)\s+(?:me\s+)?([a-zA-Z\s.#+]+?)\s+(?:jobs?|openings?|positions?|roles?|work)/i);
+  if (p1) query = p1[1];
+  if (!query) {
+    const p2 = message.match(/jobs?\s+for\s+(?:a\s+|an\s+)?([a-zA-Z\s.#+]+?)(?:\s+in\s|\s*$|\?)/i);
+    if (p2) query = p2[1];
+  }
+  if (!query) {
+    const p3 = message.match(/(?:as\s+a[n]?\s+|for\s+a[n]?\s+)([a-zA-Z\s.#+]{3,40}?)(?:\s+role|\s+position|\s*$|\?)/i);
+    if (p3) query = p3[1];
+  }
+  query = (query || "").replace(/\b(find|search|show|get|any|some|me|a|an|the|best|good|available|current)\b/gi, "").trim();
+  return { query: query || "software developer", location, remote };
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1162,229 +1220,6 @@ const NUDGE_TIPS = [
   { subject: "Upskilling hack: learn in public 📢", body: "Instead of just taking a course, document what you're learning on LinkedIn. Post one insight per week. This builds a portfolio of thinking that impresses recruiters far more than a certificate." },
 ];
 
-
-/* ─────────────────────────────────────────────────────────────
-   WELCOME EMAIL — sent when a new user creates their account
-   Called from POST /api/auth/welcome  (triggered by Supabase webhook
-   OR called directly from the frontend after first sign-in)
-   ───────────────────────────────────────────────────────────── */
-
-async function sendWelcomeEmail(toEmail, firstName, userType = "individual") {
-  if (!process.env.RESEND_API_KEY) {
-    console.warn("RESEND_API_KEY not set — welcome email skipped");
-    return false;
-  }
-
-  const isBusinessUser = userType === "business";
-
-  const individualProducts = `
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;">
-      ${[
-        { icon:"◎", name:"Gen-E AI", url:"https://gene.nugens.in.net", color:"#7c3aed", desc:"Your AI career coach — resumes, roadmaps, job matching & interview prep." },
-        { icon:"⬡", name:"HyperX",   url:"https://hyperx.nugens.in.net", color:"#e8185d", desc:"Learn workplace skills, salary negotiation & professional communication." },
-        { icon:"◈", name:"DigiHub",  url:"https://digihub.nugens.in.net", color:"#0284c7", desc:"Build your personal brand with AI content tools & community." },
-        { icon:"◇", name:"Units",    url:"https://units.nugens.in.net",  color:"#d4a843", desc:"Event production, brand content & entrepreneur guidance." },
-      ].map(p => `
-        <tr>
-          <td style="padding:10px 0;border-bottom:1px solid #f5f5f5;">
-            <table cellpadding="0" cellspacing="0"><tr>
-              <td style="width:36px;height:36px;border-radius:9px;background:${p.color}18;text-align:center;vertical-align:middle;font-size:14px;padding:0 8px 0 0;">
-                <span style="color:${p.color}">${p.icon}</span>
-              </td>
-              <td style="padding-left:12px;">
-                <div style="font-weight:700;font-size:13.5px;color:#111;">${p.name}</div>
-                <div style="font-size:12px;color:#888;margin-top:1px;">${p.desc}</div>
-              </td>
-              <td style="text-align:right;padding-left:12px;">
-                <a href="${p.url}" style="font-size:11px;font-weight:700;color:${p.color};text-decoration:none;white-space:nowrap;">Open →</a>
-              </td>
-            </tr></table>
-          </td>
-        </tr>
-      `).join("")}
-    </table>
-  `;
-
-  const businessProducts = `
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;">
-      ${[
-        { icon:"◎", name:"Gen-E Business", url:"https://gene.nugens.in.net", color:"#7c3aed", desc:"Hiring intelligence, JD generator, team skill mapping & workforce planning." },
-        { icon:"⬡", name:"HyperX Teams",   url:"https://hyperx.nugens.in.net", color:"#e8185d", desc:"Train your team with professional skills courses and track progress." },
-        { icon:"◈", name:"DigiHub Agency", url:"https://digihub.nugens.in.net", color:"#0284c7", desc:"AI content tools, brand growth, talent hub & business analytics." },
-        { icon:"◇", name:"Units",           url:"https://units.nugens.in.net",  color:"#d4a843", desc:"Corporate videos, brand content campaigns & event production." },
-      ].map(p => `
-        <tr>
-          <td style="padding:10px 0;border-bottom:1px solid #f5f5f5;">
-            <table cellpadding="0" cellspacing="0"><tr>
-              <td style="width:36px;height:36px;border-radius:9px;background:${p.color}18;text-align:center;vertical-align:middle;font-size:14px;padding:0 8px 0 0;">
-                <span style="color:${p.color}">${p.icon}</span>
-              </td>
-              <td style="padding-left:12px;">
-                <div style="font-weight:700;font-size:13.5px;color:#111;">${p.name}</div>
-                <div style="font-size:12px;color:#888;margin-top:1px;">${p.desc}</div>
-              </td>
-              <td style="text-align:right;padding-left:12px;">
-                <a href="${p.url}" style="font-size:11px;font-weight:700;color:${p.color};text-decoration:none;white-space:nowrap;">Open →</a>
-              </td>
-            </tr></table>
-          </td>
-        </tr>
-      `).join("")}
-    </table>
-  `;
-
-  const htmlBody = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background:#f5f7fa;font-family:'Plus Jakarta Sans',system-ui,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f7fa;padding:32px 16px;">
-    <tr><td>
-      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.07);">
-
-        <!-- Header -->
-        <tr>
-          <td style="background:linear-gradient(135deg,#e8185d,#c4134e);padding:28px 32px;text-align:center;">
-            <div style="font-weight:800;font-size:28px;color:#fff;letter-spacing:-0.04em;font-style:italic;">Nugens</div>
-            <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;letter-spacing:0.06em;text-transform:uppercase;">One account. Every product.</div>
-          </td>
-        </tr>
-
-        <!-- Body -->
-        <tr>
-          <td style="padding:32px;">
-            <p style="font-size:20px;font-weight:800;color:#111;margin:0 0 8px;letter-spacing:-0.02em;">
-              Welcome${firstName ? `, ${firstName}` : ""}! 👋
-            </p>
-            <p style="font-size:14px;color:#555;line-height:1.7;margin:0 0 20px;">
-              Your Nugens account is active. You're now signed in to the full ecosystem —
-              ${isBusinessUser
-                ? "all four business tools are ready for your team."
-                : "all four products are available with your free account."}
-            </p>
-
-            <!-- What's Nugens -->
-            <div style="background:#fafbfc;border-radius:10px;padding:16px 18px;margin-bottom:22px;border:1px solid #f0f0f0;">
-              <div style="font-size:11px;font-weight:700;color:#bbb;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Your products</div>
-              ${isBusinessUser ? businessProducts : individualProducts}
-            </div>
-
-            <!-- Key facts -->
-            <div style="display:flex;gap:12px;margin-bottom:24px;">
-              ${["🔑 One login everywhere","🆓 Free to start","🔄 Cancel anytime"].map(f =>
-                `<div style="flex:1;background:#fafbfc;border:1px solid #f0f0f0;border-radius:8px;padding:10px 12px;font-size:12px;font-weight:600;color:#555;text-align:center;">${f}</div>`
-              ).join("")}
-            </div>
-
-            <!-- CTA -->
-            <div style="text-align:center;margin-bottom:24px;">
-              <a href="https://nugens.in.net/dashboard"
-                 style="display:inline-block;padding:13px 32px;background:#e8185d;color:#fff;border-radius:10px;font-weight:700;font-size:14px;text-decoration:none;letter-spacing:-0.01em;box-shadow:0 4px 16px rgba(232,24,93,0.3);">
-                Go to your Dashboard →
-              </a>
-            </div>
-
-            ${!isBusinessUser ? `
-            <!-- Gen-E first-step nudge for individuals -->
-            <div style="background:#f5f3ff;border-radius:10px;padding:16px 18px;border:1px solid #e8e4fb;">
-              <div style="font-weight:700;font-size:13px;color:#7c3aed;margin-bottom:4px;">💡 Where to start</div>
-              <p style="font-size:13px;color:#555;line-height:1.6;margin:0;">
-                Most people start with <strong>Gen-E AI</strong> — describe your current role and career goal, and it'll give you a personalised roadmap in under 2 minutes.
-              </p>
-              <a href="https://gene.nugens.in.net" style="display:inline-block;margin-top:10px;font-size:12.5px;font-weight:700;color:#7c3aed;text-decoration:none;">Try Gen-E AI →</a>
-            </div>` : `
-            <!-- Business first-step nudge -->
-            <div style="background:#eff6ff;border-radius:10px;padding:16px 18px;border:1px solid #bae6fd;">
-              <div style="font-weight:700;font-size:13px;color:#0284c7;margin-bottom:4px;">💡 Start here for business</div>
-              <p style="font-size:13px;color:#555;line-height:1.6;margin:0;">
-                Try the <strong>JD Generator</strong> first — enter a role title and get a complete job description with interview questions in seconds.
-              </p>
-              <a href="https://gene.nugens.in.net/business/jd" style="display:inline-block;margin-top:10px;font-size:12.5px;font-weight:700;color:#0284c7;text-decoration:none;">Generate a JD →</a>
-            </div>`}
-          </td>
-        </tr>
-
-        <!-- Footer -->
-        <tr>
-          <td style="padding:18px 32px;border-top:1px solid #f0f0f0;background:#fafbfc;">
-            <table width="100%" cellpadding="0" cellspacing="0"><tr>
-              <td style="font-size:11px;color:#bbb;">
-                © ${new Date().getFullYear()} Nugens · India<br>
-                <a href="https://nugens.in.net" style="color:#bbb;text-decoration:none;">nugens.in.net</a>
-              </td>
-              <td style="text-align:right;">
-                <a href="https://nugens.in.net/support" style="font-size:11px;color:#bbb;text-decoration:none;">Support</a> &nbsp;·&nbsp;
-                <a href="https://nugens.in.net/auth" style="font-size:11px;color:#bbb;text-decoration:none;">Unsubscribe</a>
-              </td>
-            </tr></table>
-          </td>
-        </tr>
-
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
-
-  try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "Nugens <hello@nugens.in>",
-        to: [toEmail],
-        subject: `Welcome to Nugens${firstName ? `, ${firstName}` : ""}! Your account is ready ✦`,
-        html: htmlBody,
-      }),
-      signal: AbortSignal.timeout(10000),
-    });
-    console.log(`✅ Welcome email sent to ${toEmail} (status ${res.status})`);
-    return res.ok;
-  } catch (e) {
-    console.warn("Welcome email error:", e.message);
-    return false;
-  }
-}
-
-/* ── POST /api/auth/welcome ── Called after first sign-in / onboarding complete ── */
-app.post("/api/auth/welcome", requireAuth, async (req, res) => {
-  try {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("full_name, user_type, welcome_sent")
-      .eq("id", req.user.id)
-      .single();
-
-    // Only send once per user
-    if (profile?.welcome_sent) {
-      return res.json({ ok: true, skipped: true });
-    }
-
-    const firstName  = (profile?.full_name || "").split(" ")[0] || "";
-    const userType   = profile?.user_type || "individual";
-    const emailAddr  = req.user.email;
-
-    const sent = await sendWelcomeEmail(emailAddr, firstName, userType);
-
-    if (sent) {
-      // Mark as sent so we don't send again
-      await supabase
-        .from("profiles")
-        .update({ welcome_sent: true })
-        .eq("id", req.user.id);
-    }
-
-    res.json({ ok: true, sent });
-  } catch (e) {
-    console.warn("Welcome endpoint error:", e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-
 async function sendNudgeEmail(toEmail, firstName, tip) {
   if (!process.env.RESEND_API_KEY) {
     console.warn("RESEND_API_KEY not set — nudge email skipped");
@@ -1412,12 +1247,12 @@ async function sendNudgeEmail(toEmail, firstName, tip) {
               <p style="font-size:14px;color:#333;line-height:1.7;margin:0;">${tip.body}</p>
             </div>
             <p style="font-size:13px;color:#888;margin-top:20px;">Keep building — your career is a long game.</p>
-            <a href="https://nugens.in.net/gen-e" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#e8185d;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;">
+            <a href="https://hugens.in.net/gen-e" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#e8185d;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;">
               Open GEN-E →
             </a>
             <hr style="margin:28px 0;border:none;border-top:1px solid #f0f0f0;">
             <p style="font-size:11px;color:#ccc;">You're receiving this because you signed up for GEN-E.
-              <a href="https://nugens.in.net/gen-e" style="color:#ccc;">Unsubscribe</a></p>
+              <a href="https://hugens.in.net/gen-e" style="color:#ccc;">Unsubscribe</a></p>
           </div>
         `,
       }),
