@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: /
+# This is an authenticated web app. See nugens.in.net for the marketing site.

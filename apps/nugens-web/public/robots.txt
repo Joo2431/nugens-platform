@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://nugens.in.net/sitemap.xml
+
+# Disallow auth and dashboard pages from indexing
+Disallow: /auth
+Disallow: /dashboard
