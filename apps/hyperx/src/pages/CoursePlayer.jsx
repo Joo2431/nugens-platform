@@ -1,4 +1,5 @@
   import React, { useState, useEffect, useRef } from "react";
+import { recordLesson } from "../components/StreakTracker";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
@@ -77,6 +78,7 @@ export default function CoursePlayer({ profile }) {
       { onConflict:"user_id,lesson_id" }
     );
     setCompleted(prev => new Set([...prev, lesson.id]));
+    recordLesson(); // update streak
   };
 
   const goNext = () => {

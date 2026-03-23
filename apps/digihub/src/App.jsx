@@ -16,6 +16,9 @@ const JobBoard         = lazy(() => import("./pages/JobBoard"));
 const Analytics        = lazy(() => import("./pages/Analytics"));
 const Projects         = lazy(() => import("./pages/Projects"));
 const PricingPage      = lazy(() => import("./pages/PricingPage"));
+const HashtagGenerator  = lazy(() => import("./pages/HashtagGenerator"));
+const BulkGenerator     = lazy(() => import("./pages/BulkContentGenerator"));
+const BrandVoice        = lazy(() => import("./pages/BrandVoiceSetup"));
 
 const PINK = "#e8185d";
 
@@ -107,6 +110,9 @@ function AppShell() {
             <Route path="/analytics" element={<ProtectedRoute><Analytics        profile={profile} user={user} /></ProtectedRoute>} />
             <Route path="/projects"  element={<ProtectedRoute><Projects         profile={profile} user={user} /></ProtectedRoute>} />
             <Route path="/pricing"   element={<PricingPage profile={profile} />} />
+            <Route path="/hashtags"  element={<ProtectedRoute><HashtagGenerator profile={profile} user={user} /></ProtectedRoute>} />
+            <Route path="/bulk"      element={<ProtectedRoute><BulkGenerator    profile={profile} user={user} /></ProtectedRoute>} />
+            <Route path="/brand"     element={<ProtectedRoute><BrandVoice       profile={profile} onClose={()=>window.history.back()} /></ProtectedRoute>} />
             <Route path="*"          element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

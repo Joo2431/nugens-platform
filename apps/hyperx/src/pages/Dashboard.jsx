@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import StreakBadge from "../components/StreakTracker";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
@@ -158,6 +159,9 @@ export default function Dashboard({ profile, user }) {
           {isBiz
             ? "Access individual and business courses."
             : "Your learning journey starts here."}
+        </div>
+        <div style={{ marginTop: 16 }}>
+          <StreakBadge />
         </div>
       </div>
 

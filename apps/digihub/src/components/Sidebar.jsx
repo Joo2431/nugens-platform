@@ -18,7 +18,13 @@ const BUSINESS_NAV = [
   { to:"/planner",   icon:"◈",  label:"Content Planner" },
   { to:"/scheduler", icon:"⊞",  label:"Scheduler"       },
   { to:"/community", icon:"◉",  label:"Community"       },
+  { to:"/hashtags",  icon:"#",   label:"Hashtag Gen"     },
+  { to:"/bulk",      icon:"⚡",  label:"Bulk Generator"  },
+  { to:"/brand",     icon:"✦",  label:"Brand Voice"     },
   { to:"/analytics", icon:"⬟",  label:"Analytics"       },
+  { to:"/hashtags",  icon:"#",   label:"Hashtag Gen"     },
+  { to:"/bulk",      icon:"⚡",  label:"Bulk Generator"  },
+  { to:"/brand",     icon:"✦",  label:"Brand Voice"     },
   { to:"/pricing",   icon:"↑",  label:"Upgrade"         },
 ];
 const INDIVIDUAL_NAV = [
@@ -29,6 +35,9 @@ const INDIVIDUAL_NAV = [
   { to:"/scheduler", icon:"⊞",  label:"Scheduler"       },
   { to:"/jobs",      icon:"◇",  label:"Job Board"       },
   { to:"/community", icon:"◉",  label:"Community"       },
+  { to:"/hashtags",  icon:"#",   label:"Hashtag Gen"     },
+  { to:"/bulk",      icon:"⚡",  label:"Bulk Generator"  },
+  { to:"/brand",     icon:"✦",  label:"Brand Voice"     },
   { to:"/pricing",   icon:"↑",  label:"Upgrade"         },
 ];
 

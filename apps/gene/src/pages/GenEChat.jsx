@@ -4,6 +4,8 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { NG_LOGO } from "../lib/logo";
+import MyCareerProfile, { buildContextString } from "./MyCareerProfile";
+import ExportChatButton from "./ExportChatButton";
 
 const API   = import.meta.env.VITE_GEN_E_API_URL || "https://nugens-platform.onrender.com";
 const PINK  = "#e8185d";
@@ -113,7 +115,7 @@ function AppSwitcherBar({ profile }) {
       padding:"0 20px", flexShrink:0, position:"relative", zIndex:20,
       boxShadow:"0 1px 0 #f3f4f6",
     }}>
-      {/* Left: Nugens logo */}
+      {/* Left: NuGens logo */}
       <a href="https://nugens.in.net" style={{ display:"flex", alignItems:"center", gap:7, textDecoration:"none" }}>
         <img src={NG_LOGO} style={{ width:22, height:22, borderRadius:5, objectFit:"cover" }} alt="NG" />
         <span style={{ fontWeight:800, fontSize:13, color:"#111", letterSpacing:"-0.03em" }}>
@@ -303,6 +305,7 @@ export default function GenEChat() {
   const [renaming,   setRenaming]   = useState(null);
   const [editIdx,    setEditIdx]    = useState(null);
   const [editText,   setEditText]   = useState("");
+  const [profileOpen,setProfileOpen]= useState(false);
 
   const bottomRef   = useRef(null);
   const inputRef    = useRef(null);
@@ -416,22 +419,7 @@ export default function GenEChat() {
     return session?.access_token||null;
   };
 
-  /* ── Edit message functions ── */
-  const startEdit  = (idx, text) => { setEditIdx(idx); setEditText(text); };
-  const cancelEdit = ()          => { setEditIdx(null); setEditText(""); };
-  const saveEdit   = async (chatId, idx) => {
-    const txt = editText.trim();
-    if (!txt) return;
-    cancelEdit();
-    // Trim messages back to before this index
-    setChats(prev => prev.map(ch => ch.id === chatId
-      ? { ...ch, messages: ch.messages.slice(0, idx), history: ch.history.slice(0, idx) }
-      : ch
-    ));
-    await send(txt, chatId, mode, null);
-  };
-
-    const stageFile = file => {
+  const stageFile = file => {
     if(!file) return; setShowAttach(false);
     const plan = profile?.plan||"free";
     if(plan==="free"){ setUpgrade("resume_review"); return; }
@@ -492,7 +480,7 @@ export default function GenEChat() {
     try {
       const token=await getToken(); await wakeServer();
       patch(chatId,c=>({...c,messages:[...c.messages,{role:"assistant",text:"",streaming:true}]}));
-      const res=await fetch(`${API}/api/chat`,{method:"POST",headers:{"Content-Type":"application/json",...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify({message:`[MODE:${isBusinessUser?"BUSINESS":chatMode}] ${msg}`,history:hist,session_id:chatId,mode:chatMode,lang})});
+      const res=await fetch(`${API}/api/chat`,{method:"POST",headers:{"Content-Type":"application/json",...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify({message:`[MODE:${chatMode}] ${buildContextString(profile)}${msg}`,history:hist,session_id:chatId,mode:chatMode,lang})});
       if(res.status===403){const d=await res.json().catch(()=>({}));patch(chatId,c=>({...c,messages:c.messages.filter(m=>!m.streaming).slice(0,-1)}));setUpgrade("limit");setBusy(false);return;}
       if(!res.ok||!res.body) throw new Error("Server error "+res.status);
       const reader=res.body.getReader(); const decoder=new TextDecoder();
@@ -642,8 +630,6 @@ export default function GenEChat() {
         .d1{animation:blink 1.2s infinite}.d2{animation:blink 1.2s 0.2s infinite}.d3{animation:blink 1.2s 0.4s infinite}
         @keyframes cur{0%,100%{opacity:1}50%{opacity:0}}
         .streaming-msg::after{content:"▋";color:${PINK};animation:cur 0.7s infinite;margin-left:2px;font-size:13px}
-        .msg-wrap:hover .edit-btn{opacity:1!important}
-        .edit-btn:hover{color:${PINK}!important;background:rgba(232,24,93,0.1)!important}
         .desktop-sb{display:flex!important}
         .mob-btn{display:none!important}
         .sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:199;backdrop-filter:blur(2px)}
@@ -653,6 +639,13 @@ export default function GenEChat() {
         @media(max-width:720px){.mob-btn{display:flex!important}.desktop-sb{display:none!important}}
       `}</style>
 
+      {profileOpen && (
+        <MyCareerProfile
+          profile={profile}
+          onClose={()=>setProfileOpen(false)}
+          onSaved={()=>{ setProfileOpen(false); if(user) loadProfile(user.id); }}
+        />
+      )}
       {upgrade && <UpgradeModal feature={upgrade} onClose={()=>setUpgrade(false)} onUpgrade={()=>{setUpgrade(false);nav("/pricing");}}/>}
       {renaming && <RenameModal chat={chats.find(c=>c.id===renaming)} onSave={t=>renameChat(renaming,t)} onClose={()=>setRenaming(null)}/>}
       {ctx && <CtxMenu x={ctx.x} y={ctx.y} onRename={()=>setRenaming(ctx.id)} onDelete={()=>deleteChat(ctx.id)} onClose={()=>setCtx(null)}/>}
@@ -747,6 +740,15 @@ export default function GenEChat() {
                   </button>
                 )}
                 <PlanBadge plan={profile?.plan||"free"}/>
+                {active?.messages?.length > 0 && (
+                  <ExportChatButton chat={active} profile={profile} />
+                )}
+                <button onClick={()=>setProfileOpen(true)} title="My Career Profile"
+                  style={{padding:"4px 10px",background:"#f8fafb",border:"1.5px solid #edf0f3",borderRadius:9,cursor:"pointer",fontSize:11.5,fontWeight:600,color:"#888",transition:"all 0.13s",display:"flex",alignItems:"center",gap:4}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor=PINK;e.currentTarget.style.color=PINK;e.currentTarget.style.background="#fff0f4";}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor="#edf0f3";e.currentTarget.style.color="#888";e.currentTarget.style.background="#f8fafb";}}>
+                  👤 Profile
+                </button>
                 <LanguagePicker lang={lang} setLang={setLang} open={langOpen} setOpen={setLangOpen}/>
                 <button onClick={newChat} style={{width:30,height:30,background:"#f8fafb",border:"1.5px solid #edf0f3",borderRadius:9,cursor:"pointer",color:"#bbb",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1,transition:"all 0.13s"}}
                   onMouseEnter={e=>{e.currentTarget.style.borderColor=PINK;e.currentTarget.style.color=PINK;e.currentTarget.style.background="#fff0f4";}}
@@ -788,54 +790,14 @@ export default function GenEChat() {
                       )}
                       <div style={{maxWidth:"80%",display:"flex",flexDirection:"column",alignItems:msg.role==="user"?"flex-end":"flex-start",gap:5}}>
                         {msg.imagePreview&&<img src={msg.imagePreview} alt="" style={{maxWidth:220,maxHeight:160,objectFit:"cover",borderRadius:11,border:"1px solid #f0f0f0"}}/>}
-                        <div className="msg-wrap" style={{position:"relative"}}>
-                        {/* Edit pencil — shows on hover for user messages */}
-                        {msg.role==="user" && editIdx!==i && (
-                          <button onClick={()=>startEdit(i, msg.text)}
-                            className="edit-btn"
-                            title="Edit message"
-                            style={{position:"absolute",top:6,left:-32,width:24,height:24,
-                              opacity:0,background:"rgba(0,0,0,0.06)",border:"none",
-                              borderRadius:7,cursor:"pointer",color:"#888",fontSize:13,
-                              display:"flex",alignItems:"center",justifyContent:"center",
-                              transition:"opacity 0.15s",zIndex:10}}>
-                            ✎
-                          </button>
-                        )}
                         <div style={{padding:"12px 16px",borderRadius:16,fontSize:14,lineHeight:1.7,
                           ...(msg.role==="user"
                             ?{background:`linear-gradient(135deg,${PINK},#d01450)`,color:"#fff",borderBottomRightRadius:4,boxShadow:`0 4px 16px ${PINK}35`}
                             :{background:"#fff",color:"#111",border:"1px solid rgba(0,0,0,0.06)",borderBottomLeftRadius:4,boxShadow:"0 1px 4px rgba(0,0,0,0.05)"})
                         }}>
-                          {/* Edit mode for user messages */}
-                          {msg.role==="user" && editIdx===i ? (
-                            <div>
-                              <textarea autoFocus value={editText} onChange={e=>setEditText(e.target.value)}
-                                onKeyDown={e=>{ if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();saveEdit(activeId,i);} if(e.key==="Escape")cancelEdit(); }}
-                                style={{width:"100%",minHeight:60,background:"rgba(255,255,255,0.15)",
-                                  border:"1px solid rgba(255,255,255,0.4)",borderRadius:9,
-                                  padding:"7px 11px",color:"#fff",fontSize:14,lineHeight:1.55,
-                                  fontFamily:"inherit",resize:"vertical",outline:"none"}}/>
-                              <div style={{display:"flex",gap:6,marginTop:6,justifyContent:"flex-end"}}>
-                                <button onClick={cancelEdit}
-                                  style={{padding:"4px 10px",background:"rgba(255,255,255,0.15)",
-                                    border:"1px solid rgba(255,255,255,0.3)",borderRadius:7,
-                                    color:"#fff",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
-                                  Cancel
-                                </button>
-                                <button onClick={()=>saveEdit(activeId,i)}
-                                  style={{padding:"4px 12px",background:"#fff",border:"none",
-                                    borderRadius:7,color:PINK,fontSize:11,fontWeight:700,
-                                    cursor:"pointer",fontFamily:"inherit"}}>
-                                  Send ↑
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className={msg.role==="user"?"md-user":("md-ai"+(msg.streaming?" streaming-msg":""))}>
-                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.text}</ReactMarkdown>
-                            </div>
-                          )}
+                          <div className={msg.role==="user"?"md-user":("md-ai"+(msg.streaming?" streaming-msg":""))}>
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.text}</ReactMarkdown>
+                          </div>
                           {msg.role==="assistant"&&msg.jobs?.length>0&&(
                             <div style={{marginTop:16,display:"flex",flexDirection:"column",gap:8}}>
                               {msg.jobs.map(j=>(
@@ -852,7 +814,6 @@ export default function GenEChat() {
                             </div>
                           )}
                         </div>
-                        </div>{/* close msg-wrap */}
                       </div>
                     </div>
                   ))}

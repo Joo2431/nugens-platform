@@ -5,6 +5,7 @@ import Sidebar            from "./components/Sidebar";
 import ProtectedRoute     from "./components/ProtectedRoute";
 import AuthPage           from "./pages/AuthPage";
 import GenEMiniPopup      from "./components/GenEMiniPopup";
+import { UnitsWhatsAppButton } from "./components/WhatsAppButton";
 
 const Dashboard         = lazy(() => import("./pages/Dashboard"));
 const ContentFeed       = lazy(() => import("./pages/ContentFeed"));
@@ -14,6 +15,7 @@ const LiveExperience    = lazy(() => import("./pages/LiveExperience"));
 const EntrepreneurGuide = lazy(() => import("./pages/EntrepreneurGuide"));
 const IdeaValidation    = lazy(() => import("./pages/IdeaValidation"));
 const PricingPage       = lazy(() => import("./pages/PricingPage"));
+const PackageComparison = lazy(() => import("./pages/PackageComparison"));
 
 const AMBER = "#d97706";
 
@@ -97,6 +99,7 @@ function AppShell() {
             <Route path="/guide"    element={<ProtectedRoute><EntrepreneurGuide profile={profile} user={user} /></ProtectedRoute>} />
             <Route path="/validate" element={<ProtectedRoute><IdeaValidation    profile={profile} user={user} /></ProtectedRoute>} />
             <Route path="/pricing"  element={<PricingPage profile={profile} />} />
+            <Route path="/compare"  element={<ProtectedRoute><PackageComparison profile={profile} user={user} /></ProtectedRoute>} />
             <Route path="*"         element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
@@ -108,5 +111,5 @@ function AppShell() {
 }
 
 export default function App() {
-  return <BrowserRouter><AppShell /></BrowserRouter>;
+  return <BrowserRouter><AppShell /><UnitsWhatsAppButton /></BrowserRouter>;
 }

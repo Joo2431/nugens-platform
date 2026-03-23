@@ -17,6 +17,7 @@ const BUSINESS_NAV = [
   { to:"/feed",     icon:"◉",  label:"Content Feed"     },
   { to:"/guidance", icon:"✦",  label:"AI Guidance"      },
   { to:"/book",     icon:"◈",  label:"Book Our Services"},
+  { to:"/compare",  icon:"⊞",  label:"Compare Packages" },
   { to:"/pricing",  icon:"↑",  label:"Pricing"          },
 ];
 const INDIVIDUAL_NAV = [
@@ -25,6 +26,7 @@ const INDIVIDUAL_NAV = [
   { to:"/guide",    icon:"◇",  label:"Entrepreneur Guide"},
   { to:"/validate", icon:"◑",  label:"Idea Validation"   },
   { to:"/book",     icon:"◈",  label:"Book Consultation" },
+  { to:"/compare",  icon:"⊞",  label:"Compare Packages"  },
   { to:"/pricing",  icon:"↑",  label:"Pricing"           },
 ];
 
