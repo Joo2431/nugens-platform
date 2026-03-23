@@ -112,7 +112,7 @@ export default function Pricing({ profile }) {
         amount: order.amount,
         currency: "INR",
         order_id: order.id,
-        name: "HyperX by NuGens",
+        name: "HyperX by Nugens",
         description: `HyperX ${plan.name} — ${plan.price.yearly ? "Yearly" : "Monthly"}`,
         theme: { color: PINK },
         prefill: { name: profile?.full_name || "", email: profile?.email || "" },

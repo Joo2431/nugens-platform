@@ -90,7 +90,7 @@ export default function PricingPage() {
       const rz = new window.Razorpay({
         key: "rzp_live_SM1s5O14Mm50mV",
         order_id: order.id, amount: plan.amount, currency:"INR",
-        name:"GEN-E by NuGens", description: plan.name,
+        name:"GEN-E by Nugens", description: plan.name,
         prefill:{ email: profile.email, name: profile.full_name },
         theme:{ color: PINK },
         handler: async (response) => {

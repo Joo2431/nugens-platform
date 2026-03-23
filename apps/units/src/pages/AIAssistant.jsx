@@ -112,7 +112,7 @@ export default function AIAssistant() {
           </div>
         </div>
         <div style={{ fontSize:11, color:"#3a3020", background:`${GOLD}10`, border:`1px solid ${GOLD}20`, borderRadius:6, padding:"4px 10px" }}>
-          Powered by NuGens AI
+          Powered by Nugens AI
         </div>
       </div>
 

@@ -156,7 +156,7 @@ async function logChat({ userId, sessionId, role, message, mode }) {
 }
 
 /* ── PLAN CONFIG ── */
-// Covers all plans from all platforms (NuGens Web, Gen-E, HyperX, DigiHub, Units)
+// Covers all plans from all platforms (Nugens Web, Gen-E, HyperX, DigiHub, Units)
 // amount = paise (INR × 100). profilePlan = value written to profiles.plan column.
 const PLAN_CONFIG = {
   // ── Gen-E plans ───────────────────────────────────────────────────
@@ -165,7 +165,7 @@ const PLAN_CONFIG = {
   gene_monthly: { amount: 9900,    currency: "INR", label: "Gen-E Pro Monthly",  durationDays: 30,  profilePlan: "gene_monthly" },
   gene_yearly:  { amount: 69900,   currency: "INR", label: "Gen-E Pro Yearly",   durationDays: 365, profilePlan: "gene_yearly"  },
 
-  // ── NuGens Suite — Individual ─────────────────────────────────────
+  // ── Nugens Suite — Individual ─────────────────────────────────────
   individual_starter_monthly: { amount: 9900,    currency: "INR", label: "Suite Starter Monthly",  durationDays: 30,  profilePlan: "ng_ind_starter" },
   individual_starter_yearly:  { amount: 79900,   currency: "INR", label: "Suite Starter Yearly",   durationDays: 365, profilePlan: "ng_ind_starter" },
   individual_premium_monthly: { amount: 19900,   currency: "INR", label: "Suite Premium Monthly",  durationDays: 30,  profilePlan: "ng_ind_premium" },
@@ -173,7 +173,7 @@ const PLAN_CONFIG = {
   individual_pro_monthly:     { amount: 29900,   currency: "INR", label: "Suite Pro Monthly",      durationDays: 30,  profilePlan: "ng_ind_pro"     },
   individual_pro_yearly:      { amount: 249900,  currency: "INR", label: "Suite Pro Yearly",       durationDays: 365, profilePlan: "ng_ind_pro"     },
 
-  // ── NuGens Suite — Business ───────────────────────────────────────
+  // ── Nugens Suite — Business ───────────────────────────────────────
   business_starter_monthly: { amount: 49900,   currency: "INR", label: "Suite Biz Starter Monthly",  durationDays: 30,  profilePlan: "ng_biz_starter" },
   business_starter_yearly:  { amount: 399900,  currency: "INR", label: "Suite Biz Starter Yearly",   durationDays: 365, profilePlan: "ng_biz_starter" },
   business_premium_monthly: { amount: 99900,   currency: "INR", label: "Suite Biz Premium Monthly",  durationDays: 30,  profilePlan: "ng_biz_premium" },

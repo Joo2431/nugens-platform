@@ -86,7 +86,7 @@ export default function EntrepreneurGuide({ profile }) {
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body: JSON.stringify({
-          message:`You are a startup mentor at NuGens. Answer this question from an aspiring entrepreneur in India in a practical, encouraging, and specific way. Topic: ${chapter?.title}. Question: ${aiQuestion}`,
+          message:`You are a startup mentor at Nugens. Answer this question from an aspiring entrepreneur in India in a practical, encouraging, and specific way. Topic: ${chapter?.title}. Question: ${aiQuestion}`,
           userType:"individual",
           product:"units"
         })

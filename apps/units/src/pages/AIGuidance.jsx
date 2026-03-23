@@ -50,7 +50,7 @@ export default function AIGuidance({ profile }) {
       // Uses apiClient which automatically adds the Bearer token
       const context = messages.slice(-4).map(m => m.role === "user" ? `User: ${m.text}` : `Guide: ${m.text}`).join("\n");
       const data = await miniChat(
-        `You are a professional content creation strategist and creative director at NuGens Units. Help business owners with content strategy, video production, scripting, brand storytelling, and creative direction. Be specific, actionable, and enthusiastic. Always give practical advice relevant to Indian and global markets.\n\nContext:\n${context}\n\nQuestion: ${msg}`,
+        `You are a professional content creation strategist and creative director at Nugens Units. Help business owners with content strategy, video production, scripting, brand storytelling, and creative direction. Be specific, actionable, and enthusiastic. Always give practical advice relevant to Indian and global markets.\n\nContext:\n${context}\n\nQuestion: ${msg}`,
         "units",
         profile?.user_type || "business"
       );
@@ -109,7 +109,7 @@ export default function AIGuidance({ profile }) {
               <div key={i} style={{ display:"flex", flexDirection:"column", gap:4 }}>
                 {m.role !== "user" && (
                   <div style={{ fontSize:11, color:MUTED, marginLeft:4 }}>
-                    {m.role === "system" ? "🤝 NuGens Team" : "✦ AI Guide"}
+                    {m.role === "system" ? "🤝 Nugens Team" : "✦ AI Guide"}
                   </div>
                 )}
                 <div style={S.msg(m.role)}>{m.text}</div>

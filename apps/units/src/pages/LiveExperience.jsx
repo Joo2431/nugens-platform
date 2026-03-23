@@ -63,7 +63,7 @@ export default function LiveExperience({ profile }) {
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body: JSON.stringify({
-          message: `You are a senior creative director at NuGens, a content creation studio. You're running a live brand mentorship session for an aspiring entrepreneur. Scenario: "${scenario.title}". Stay in character — be challenging, specific, and teach through doing. Give feedback, push deeper thinking, ask follow-up questions to guide their learning. Previous context:\n${context}\n\nUser's latest response: ${msg}`,
+          message: `You are a senior creative director at Nugens, a content creation studio. You're running a live brand mentorship session for an aspiring entrepreneur. Scenario: "${scenario.title}". Stay in character — be challenging, specific, and teach through doing. Give feedback, push deeper thinking, ask follow-up questions to guide their learning. Previous context:\n${context}\n\nUser's latest response: ${msg}`,
           userType:"individual",
           product:"units"
         })

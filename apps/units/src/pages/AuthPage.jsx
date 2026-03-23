@@ -23,7 +23,7 @@ export default function AuthPage() {
           Redirecting to Nugens login…
         </div>
         <div style={{ fontSize:13, color:"#9ca3af" }}>
-          All NuGens apps share one account
+          All Nugens apps share one account
         </div>
       </div>
     </div>

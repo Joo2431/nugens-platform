@@ -12,13 +12,13 @@ const POST_TYPES = ["Brand Reel","Behind the Scenes","Product Showcase","Campaig
 const MOCK_POSTS = [
   {
     id:1, user:"KraftBrews Co.", avatar:"KB", verified:true, type:"Brand Reel", time:"1h ago",
-    content:"Just dropped our new brand reel for the summer season launch 🎬\n\nWe worked with @TheUnits for the entire production — scripting, shoot, edit, and delivery in 7 days. The result was beyond what we imagined.\n\nIf you haven't seen what NuGens Units can do for your brand, now is the time to book.",
+    content:"Just dropped our new brand reel for the summer season launch 🎬\n\nWe worked with @TheUnits for the entire production — scripting, shoot, edit, and delivery in 7 days. The result was beyond what we imagined.\n\nIf you haven't seen what Nugens Units can do for your brand, now is the time to book.",
     media:{ type:"reel", placeholder:"Brand reel — KraftBrews Summer 2026", color:"#fef2f2" },
     likes:89, comments:23, shares:12, liked:false
   },
   {
     id:2, user:"Meera Designs", avatar:"MD", verified:false, type:"Behind the Scenes", time:"4h ago",
-    content:"BTS from our packaging photoshoot last week 📦✨\n\nWanted to show the process — we use AI for content strategy planning (via NuGens DigiHub) and then execute with The Units team for the actual production. The combo is powerful.",
+    content:"BTS from our packaging photoshoot last week 📦✨\n\nWanted to show the process — we use AI for content strategy planning (via Nugens DigiHub) and then execute with The Units team for the actual production. The combo is powerful.",
     media:null,
     likes:54, comments:11, shares:7, liked:false
   },
@@ -30,7 +30,7 @@ const MOCK_POSTS = [
   },
   {
     id:4, user:"Asha Handmade", avatar:"AH", verified:false, type:"Client Win", time:"2d ago",
-    content:"Just got featured in @BusinessInsiderIndia thanks to our brand story video 🎉\n\nFrom a small handmade business to being featured nationally — NuGens helped us tell our story the right way. This is what happens when you invest in your content.",
+    content:"Just got featured in @BusinessInsiderIndia thanks to our brand story video 🎉\n\nFrom a small handmade business to being featured nationally — Nugens helped us tell our story the right way. This is what happens when you invest in your content.",
     media:null,
     likes:341, comments:88, shares:61, liked:false
   },
@@ -195,7 +195,7 @@ export default function ContentFeed({ profile }) {
           <div style={{ ...S.card, marginBottom:14 }}>
             <div style={{ fontSize:13, fontWeight:700, color:TEXT, marginBottom:12 }}>🎬 Need content?</div>
             <div style={{ fontSize:12, color:MUTED, lineHeight:1.65, marginBottom:14 }}>
-              NuGens Units handles end-to-end content creation — scripting, shooting, editing, strategy, and more.
+              Nugens Units handles end-to-end content creation — scripting, shooting, editing, strategy, and more.
             </div>
             <a href="/book" style={{ display:"block", width:"100%", padding:"10px 0", background:PINK, color:"#fff", borderRadius:9, textAlign:"center", textDecoration:"none", fontSize:13, fontWeight:700 }}>Book Our Team →</a>
           </div>

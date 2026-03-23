@@ -80,7 +80,7 @@ export default function PricingPage({ profile }) {
         amount: order.amount,
         currency: "INR",
         order_id: order.id,
-        name: "The Units — NuGens",
+        name: "The Units — Nugens",
         description: "Premium Consultation Session",
         theme: { color: PINK },
         prefill: { name: profile?.full_name || "", email: profile?.email || "" },

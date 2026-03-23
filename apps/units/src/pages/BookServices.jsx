@@ -117,7 +117,7 @@ export default function BookServices({ profile }) {
         amount: order.amount,
         currency:"INR",
         order_id: order.id,
-        name:"The Units — NuGens",
+        name:"The Units — Nugens",
         description:`${selected?.title} · ${pkg}`,
         theme:{ color:PINK },
         prefill:{ name:form.name, email:form.email, contact:form.phone },

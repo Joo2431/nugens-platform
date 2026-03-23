@@ -131,7 +131,7 @@ export default function Certificates({ profile }) {
                     </div>
                     <div style={{ fontSize:9, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.1em", color, marginBottom:10 }}>Certificate of Completion</div>
                     <div style={{ fontSize:17, fontWeight:800, color:TEXT, letterSpacing:"-0.02em", lineHeight:1.3, maxWidth:220, marginBottom:6 }}>{course.title}</div>
-                    <div style={{ fontSize:10, color:MUTED }}>NuGens · HyperX Learning</div>
+                    <div style={{ fontSize:10, color:MUTED }}>Nugens · HyperX Learning</div>
                     <div style={{ fontSize:10, color:MUTED, marginTop:4 }}>Issued {course.completedAt}</div>
                   </div>
 

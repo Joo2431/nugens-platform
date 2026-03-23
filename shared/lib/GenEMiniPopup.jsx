@@ -1,5 +1,5 @@
 /**
- * GenEMiniPopup — Shared AI assistant popup for all NuGens platforms
+ * GenEMiniPopup — Shared AI assistant popup for all Nugens platforms
  * Uses the backend /api/mini-chat endpoint (OpenAI GPT-4o-mini via backend)
  * Fully working with auth token from Supabase session
  */
@@ -51,16 +51,16 @@ export default function GenEMiniPopup({ product = "nugens", profile }) {
   const bottomRef = useRef(null);
 
   const PRODUCT_LABELS = {
-    nugens:  "NuGens AI",
+    nugens:  "Nugens AI",
     gene:    "Gen-E Mini",
     hyperx:  "HyperX AI",
     digihub: "DigiHub AI",
     units:   "Units AI",
   };
-  const label = PRODUCT_LABELS[product] || "NuGens AI";
+  const label = PRODUCT_LABELS[product] || "Nugens AI";
 
   const GREETINGS = {
-    nugens:  "Hi! I'm the NuGens AI assistant. I can help with Gen-E, HyperX, DigiHub, and Units. What do you need?",
+    nugens:  "Hi! I'm the Nugens AI assistant. I can help with Gen-E, HyperX, DigiHub, and Units. What do you need?",
     gene:    "Hey! I'm Gen-E Mini. Ask me anything about career guidance, skills, or jobs on this platform.",
     hyperx:  "Hi! I'm the HyperX AI. Ask me about courses, learning paths, and skill development.",
     digihub: "Hi! I'm the DigiHub AI. I can help with marketing tools, content ideas, and business growth.",
@@ -140,7 +140,7 @@ export default function GenEMiniPopup({ product = "nugens", profile }) {
               <div style={{ width:30, height:30, borderRadius:9, background:`${PINK}15`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:800, color:PINK }}>✦</div>
               <div>
                 <div style={{ fontWeight:800, fontSize:13, color:"#111", letterSpacing:"-0.02em" }}>{label}</div>
-                <div style={{ fontSize:10, color:"#bbb", fontWeight:500 }}>by NuGens</div>
+                <div style={{ fontSize:10, color:"#bbb", fontWeight:500 }}>by Nugens</div>
               </div>
             </div>
             <button onClick={() => setOpen(false)} style={{ background:"none", border:"none", cursor:"pointer", color:"#ccc", fontSize:16, lineHeight:1 }}>✕</button>

@@ -113,7 +113,7 @@ function AppSwitcherBar({ profile }) {
       padding:"0 20px", flexShrink:0, position:"relative", zIndex:20,
       boxShadow:"0 1px 0 #f3f4f6",
     }}>
-      {/* Left: NuGens logo */}
+      {/* Left: Nugens logo */}
       <a href="https://nugens.in.net" style={{ display:"flex", alignItems:"center", gap:7, textDecoration:"none" }}>
         <img src={NG_LOGO} style={{ width:22, height:22, borderRadius:5, objectFit:"cover" }} alt="NG" />
         <span style={{ fontWeight:800, fontSize:13, color:"#111", letterSpacing:"-0.03em" }}>

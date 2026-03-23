@@ -82,7 +82,7 @@ export default function ProtectedRoute({ children }) {
         </div>
         <div style={{ fontSize:14, color:"#6b7280", lineHeight:1.7, marginBottom:24 }}>
           Your current plan (<strong>{plan}</strong>) doesn't include {APP_LABEL}.
-          Subscribe to a NuGens suite plan or a {APP_LABEL}-specific plan to get access.
+          Subscribe to a Nugens suite plan or a {APP_LABEL}-specific plan to get access.
         </div>
         <div style={{ display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
           <a href="https://nugens.in.net/pricing"

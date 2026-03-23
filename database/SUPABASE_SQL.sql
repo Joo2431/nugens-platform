@@ -1,5 +1,5 @@
 -- ============================================
--- NuGens Gene App: Run these in Supabase SQL Editor
+-- Nugens Gene App: Run these in Supabase SQL Editor
 -- ============================================
 
 -- 1. chat_sessions table (required for GenEChat to save conversations)

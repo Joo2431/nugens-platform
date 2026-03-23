@@ -1,7 +1,7 @@
 /**
  * HyperX — AI Assistant
  * Fixed: routes through backend /api/mini-chat (product: "hyperx")
- * Color palette matches NuGens system
+ * Color palette matches Nugens system
  */
 import React, { useState, useRef, useEffect } from "react";
 import { supabase } from "../lib/supabase";
@@ -102,7 +102,7 @@ export default function AIAssistant({ profile }) {
           </div>
         </div>
         <div style={{ fontSize: 11, color: MUTED, background: LIGHT, border: `1px solid ${BORDER}`, borderRadius: 6, padding: "4px 10px" }}>
-          Powered by NuGens AI
+          Powered by Nugens AI
         </div>
       </div>
 

@@ -342,7 +342,7 @@ export default function Dashboard() {
                     <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", flexWrap:"wrap", gap:12, marginBottom:16 }}>
                       <div>
                         <div style={{ fontSize:15, fontWeight:800, color:TEXT, marginBottom:4 }}>
-                          {isBiz ? "Unlock NuGens for your team" : "Unlock your full potential"}
+                          {isBiz ? "Unlock Nugens for your team" : "Unlock your full potential"}
                         </div>
                         <div style={{ fontSize:13, color:MUTED }}>
                           {isBiz

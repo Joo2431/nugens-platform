@@ -1,5 +1,5 @@
 /**
- * apiClient.js — Shared authenticated API client for all NuGens apps
+ * apiClient.js — Shared authenticated API client for all Nugens apps
  *
  * WHY THIS EXISTS:
  * The backend uses requireAuth middleware that checks Authorization: Bearer <token>.
@@ -31,7 +31,7 @@ function buildHeaders(token, extra = {}) {
 }
 
 /**
- * POST to the NuGens backend with automatic auth token injection.
+ * POST to the Nugens backend with automatic auth token injection.
  * Returns parsed JSON or throws an error.
  */
 export async function apiPost(endpoint, body = {}) {
@@ -49,7 +49,7 @@ export async function apiPost(endpoint, body = {}) {
 }
 
 /**
- * GET from the NuGens backend with automatic auth token injection.
+ * GET from the Nugens backend with automatic auth token injection.
  */
 export async function apiGet(endpoint, params = {}) {
   const token = await getToken();

@@ -11,7 +11,7 @@ const BORDER= "#e8eaed";
 const BIZ_FEATURES = [
   { icon:"◉", label:"Content Feed",      desc:"Showcase your brand content to the community", to:"/feed",     color:PINK,     bg:"#fef2f2" },
   { icon:"✦", label:"AI Guidance",       desc:"AI-powered content creation strategies",        to:"/guidance", color:"#7c3aed", bg:"#f5f3ff" },
-  { icon:"◈", label:"Book Our Services", desc:"Hire NuGens for content, design & more",        to:"/book",     color:"#0284c7", bg:"#eff6ff" },
+  { icon:"◈", label:"Book Our Services", desc:"Hire Nugens for content, design & more",        to:"/book",     color:"#0284c7", bg:"#eff6ff" },
 ];
 
 const IND_FEATURES = [
@@ -58,7 +58,7 @@ export default function Dashboard({ profile, user }) {
           {greeting}, {firstName} 👋
         </div>
         <div style={{ fontSize:14, color:MUTED, marginTop:6 }}>
-          {isBiz ? "Grow your brand with NuGens creative expertise" : "Your entrepreneurial journey starts here"}
+          {isBiz ? "Grow your brand with Nugens creative expertise" : "Your entrepreneurial journey starts here"}
         </div>
       </div>
 
@@ -162,7 +162,7 @@ export default function Dashboard({ profile, user }) {
               {isBiz ? "Ready to create?" : "Have a business idea?"}
             </div>
             <div style={{ fontSize:12, color:MUTED, marginBottom:14 }}>
-              {isBiz ? "Book NuGens for your next content project. We handle everything." : "Drop it in Idea Validation — our AI + team will give you a detailed analysis."}
+              {isBiz ? "Book Nugens for your next content project. We handle everything." : "Drop it in Idea Validation — our AI + team will give you a detailed analysis."}
             </div>
             <button onClick={()=>nav(isBiz?"/book":"/validate")} style={{ width:"100%", padding:"10px 0", background:PINK, color:"#fff", border:"none", borderRadius:9, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
               {isBiz ? "Book a service →" : "Validate my idea →"}

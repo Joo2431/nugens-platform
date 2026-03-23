@@ -1,6 +1,6 @@
-# NuGens Platform
+# Nugens Platform
 
-Monorepo for the NuGens career ecosystem.
+Monorepo for the Nugens career ecosystem.
 
 ## Apps
 | App | URL | Status |
