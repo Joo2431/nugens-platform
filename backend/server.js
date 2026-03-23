@@ -300,7 +300,30 @@ The user is in INTERVIEW PREP mode.
 The user wants a CAREER READINESS SCORE.
 - Ask about skills, experience, and target role if not already provided.
 - Score them 0–100 with: Strength Areas, Skill Gaps, Risk Factors, and a 30-Day Action Plan.`,
-  CAREER: ""
+  CAREER: "",
+  BUSINESS: `
+You are GEN-E Business Intelligence AI — a powerful HR, hiring, workforce and business tool assistant built for founders, managers and business teams.
+
+YOU ARE IN BUSINESS MODE. You MUST help with ALL of these business tools without restriction:
+
+1. JD GENERATOR — Create comprehensive job descriptions when asked. Include: role overview, responsibilities, required skills, nice-to-have skills, experience level, salary range (Indian market), and 8-10 interview questions tailored to the role.
+
+2. HIRING INTELLIGENCE — When asked for hiring intelligence or hiring strategy for a role: provide required skill breakdown by category, market salary ranges by experience tier (fresher/junior/mid/senior/lead), key red flags to screen for, sourcing channels, evaluation framework, and full hiring timeline.
+
+3. TEAM SKILL MAP — Analyse team composition when provided. Identify: individual strengths, collective skill gaps vs company goals, skill overlaps/redundancies, and a prioritised training roadmap with specific resources.
+
+4. WORKFORCE PLANNING — Create phase-by-phase hiring roadmaps based on company stage and growth goals. Cover: priority hires by quarter, budget estimates, org structure recommendations, and build-vs-hire decisions.
+
+5. SALARY BENCHMARK — Provide detailed Indian market salary data for any role: ranges by experience tier, city variations (Bangalore/Mumbai/Chennai/Hyderabad/Pune/Tier 2), industry premiums, variable pay norms, equity expectations, and negotiation guidance.
+
+6. INTERVIEW AI — Generate complete interview kits for any role and level: screening questions, technical/functional questions, behavioural questions (STAR format), case/scenario questions, and evaluation rubric with scoring criteria.
+
+STYLE IN BUSINESS MODE:
+- Be direct and data-driven. Founders and managers want actionable intel, not career coaching.
+- Use structured output with clear sections and headers — business users need scannable information.
+- Always include numbers: salary ranges, timelines, headcounts, percentages.
+- India market context is default unless another market is specified.
+- Never refuse a business tool request. If you need more context, ask ONE specific question then proceed.`
 };
 
 /* ── UTILS ── */
@@ -318,6 +341,7 @@ function detectMode(message) {
   if (m.includes("[mode:resume]"))    return "RESUME";
   if (m.includes("[mode:interview]")) return "INTERVIEW";
   if (m.includes("[mode:scoring]"))   return "SCORING";
+  if (m.includes("[mode:business]"))  return "BUSINESS";
   return "CAREER";
 }
 
@@ -327,6 +351,7 @@ function cleanMessage(message) {
     .replace(/\[MODE:INTERVIEW\]/gi, "")
     .replace(/\[MODE:SCORING\]/gi, "")
     .replace(/\[MODE:CAREER\]/gi, "")
+    .replace(/\[MODE:BUSINESS\]/gi, "")
     .trim();
 }
 
@@ -504,7 +529,7 @@ app.post("/api/chat", requireAuth, checkUsage, async (req, res) => {
   /* ══ FEATURE GATES ══ */
 
   // ATS Resume Builder → Pro only (monthly + yearly)
-  if (mode === "RESUME" && plan === "free") {
+  if (mode === "RESUME" && !["monthly","yearly","admin","hx_ind_starter","hx_ind_premium","hx_ind_pro","hx_ind_yearly","hx_biz_starter","hx_biz_premium","hx_biz_pro","hx_biz_yearly","ng_ind_starter","ng_ind_premium","ng_ind_pro","ng_biz_starter","ng_biz_premium","ng_biz_pro"].includes(plan)) {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     const send = (obj) => res.write("data: " + JSON.stringify(obj) + "\n\n");
@@ -515,7 +540,7 @@ app.post("/api/chat", requireAuth, checkUsage, async (req, res) => {
   }
 
   // Advanced Interview Prep → Pro only (monthly + yearly)
-  if (mode === "INTERVIEW" && plan === "free") {
+  if (mode === "INTERVIEW" && !["monthly","yearly","admin","hx_ind_starter","hx_ind_premium","hx_ind_pro","hx_ind_yearly","hx_biz_starter","hx_biz_premium","hx_biz_pro","hx_biz_yearly","ng_ind_starter","ng_ind_premium","ng_ind_pro","ng_biz_starter","ng_biz_premium","ng_biz_pro"].includes(plan)) {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     const send = (obj) => res.write("data: " + JSON.stringify(obj) + "\n\n");
@@ -842,7 +867,7 @@ app.get("/download/:file", (req, res) => {
 /* POST /api/jobs/search — called internally by /api/chat when job intent detected */
 async function fetchLiveJobs(query, location, remote) {
   const results = [];
-  const q = (query || "developer").trim();
+  const q = query || "developer";
   const loc = (location || "").toLowerCase();
 
   /* ── Source 1: JSearch via RapidAPI (500 free/month, best India coverage) ── */
@@ -883,7 +908,7 @@ async function fetchLiveJobs(query, location, remote) {
         (q ? "&search=" + encodeURIComponent(q) : "");
       const r = await fetch(url, { signal: AbortSignal.timeout(7000) });
       const d = await r.json();
-      (d.jobs || []).slice(0, 5).forEach(j => results.push({
+      (d.jobs || []).forEach(j => results.push({
         id: "rem-" + j.id,
         title: j.title,
         company: j.company_name,
@@ -894,26 +919,23 @@ async function fetchLiveJobs(query, location, remote) {
         source: "Remotive",
         remote: true,
       }));
-      console.log("Remotive:", results.length, "total results");
     } catch (e) { console.warn("Remotive:", e.message); }
   }
 
-  /* ── Source 3: Arbeitnow (no key, filter by query keywords) ── */
+  /* ── Source 3: Arbeitnow (no key, broad search) ── */
   if (results.length < 5) {
     try {
-      // Arbeitnow supports ?search= param on their API
-      const arbUrl = "https://www.arbeitnow.com/api/job-board-api" +
-        (q ? "?search=" + encodeURIComponent(q) : "");
-      const r = await fetch(arbUrl, { signal: AbortSignal.timeout(7000) });
+      const r = await fetch("https://www.arbeitnow.com/api/job-board-api", {
+        signal: AbortSignal.timeout(7000),
+      });
       const d = await r.json();
-      const qWords = q.toLowerCase().split(" ").filter(w => w.length > 2);
       (d.data || [])
         .filter(j => {
-          if (!qWords.length) return true;
-          const text = (j.title + " " + (j.description || "")).toLowerCase();
-          return qWords.some(w => text.includes(w));
+          const mQ = !q || j.title.toLowerCase().includes(q.toLowerCase()) ||
+            (j.description || "").toLowerCase().includes(q.toLowerCase());
+          return mQ && (remote !== true || j.remote);
         })
-        .slice(0, 5)
+        .slice(0, 6)
         .forEach(j => results.push({
           id: "arb-" + j.slug,
           title: j.title,
@@ -925,11 +947,10 @@ async function fetchLiveJobs(query, location, remote) {
           source: "Arbeitnow",
           remote: j.remote,
         }));
-      console.log("Arbeitnow:", results.length, "total results");
     } catch (e) { console.warn("Arbeitnow:", e.message); }
   }
 
-  /* ── Source 4: Adzuna India (250/day free) ── */
+  /* ── Source 4: Adzuna India (250/day free, add ADZUNA keys in Render env) ── */
   if (process.env.ADZUNA_APP_ID && process.env.ADZUNA_API_KEY) {
     try {
       const url = "https://api.adzuna.com/v1/api/jobs/in/search/1" +
@@ -953,37 +974,7 @@ async function fetchLiveJobs(query, location, remote) {
         source: "Adzuna",
         remote: false,
       }));
-      console.log("Adzuna:", results.length, "total results");
     } catch (e) { console.warn("Adzuna:", e.message); }
-  }
-
-  /* ── Source 5: LinkedIn search fallback card (always show if < 3 results) ── */
-  if (results.length < 3) {
-    const linkedInUrl = "https://www.linkedin.com/jobs/search/?keywords=" +
-      encodeURIComponent(q) + "&location=" + encodeURIComponent(location || "India");
-    const naukri = "https://www.naukri.com/" + encodeURIComponent(q.toLowerCase().replace(/\s+/g, "-")) + "-jobs";
-    results.push({
-      id: "fallback-linkedin",
-      title: `Search "${q}" on LinkedIn`,
-      company: "LinkedIn Jobs",
-      location: location || "India",
-      url: linkedInUrl,
-      salary: null,
-      tags: ["Direct search"],
-      source: "LinkedIn",
-      remote: false,
-    });
-    results.push({
-      id: "fallback-naukri",
-      title: `Search "${q}" on Naukri`,
-      company: "Naukri.com",
-      location: location || "India",
-      url: naukri,
-      salary: null,
-      tags: ["India's #1 job portal"],
-      source: "Naukri",
-      remote: false,
-    });
   }
 
   // Deduplicate by title+company
@@ -1001,24 +992,10 @@ async function fetchLiveJobs(query, location, remote) {
 function detectJobIntent(message) {
   const m = message.toLowerCase();
   const triggers = [
-    // Direct search phrases
     "find job", "search job", "find me job", "job for me", "job openings",
     "job listing", "show job", "any job", "find opening", "job vacancies",
-    "job in ", "jobs in ", "find work", "job search",
+    "job in ", "jobs in ", "hiring", "find work", "job search",
     "look for job", "job near", "find position", "open position",
-    // Plural and variations
-    "find jobs", "search jobs", "show jobs", "get jobs", "get job",
-    "live job", "live opening", "job roles matching", "job match",
-    "matching job", "job opportunities", "job opportunity",
-    // Natural language patterns
-    "looking for a job", "looking for jobs", "need a job",
-    "want a job", "apply for job", "job portal", "job board",
-    "hiring manager", "currently hiring", "who is hiring",
-    "companies hiring", "jobs available", "available jobs",
-    "find me work", "help me find a job", "help me get a job",
-    // The auto-trigger message pattern
-    "search for live", "live openings", "matching my profile",
-    "job match", "job matching",
   ];
   return triggers.some(t => m.includes(t));
 }
@@ -1026,24 +1003,14 @@ function detectJobIntent(message) {
 /* Extract search params from natural language */
 function extractJobParams(message) {
   const m = message.toLowerCase();
-  const remote = m.includes("remote");
-  // Extract location
-  const locMatch = message.match(/\bin\s+([A-Za-z\s]{2,30}?)(?:\s+jobs?|\s+role|\s+position|$|\?|,)/i);
+  // Extract location — look for "in <city>" pattern
+  const locMatch = message.match(/\bin\s+([A-Za-z\s]+?)(?:\s+jobs?|\s+role|\s+position|$|\?)/i);
   const location = locMatch ? locMatch[1].trim() : "";
-  // Extract role — try multiple patterns
-  let query = "";
-  const p1 = message.match(/(?:find|search|show|get|look for)\s+(?:me\s+)?([a-zA-Z\s.#+]+?)\s+(?:jobs?|openings?|positions?|roles?|work)/i);
-  if (p1) query = p1[1];
-  if (!query) {
-    const p2 = message.match(/jobs?\s+for\s+(?:a\s+|an\s+)?([a-zA-Z\s.#+]+?)(?:\s+in\s|\s*$|\?)/i);
-    if (p2) query = p2[1];
-  }
-  if (!query) {
-    const p3 = message.match(/(?:as\s+a[n]?\s+|for\s+a[n]?\s+)([a-zA-Z\s.#+]{3,40}?)(?:\s+role|\s+position|\s*$|\?)/i);
-    if (p3) query = p3[1];
-  }
-  query = (query || "").replace(/\b(find|search|show|get|any|some|me|a|an|the|best|good|available|current)\b/gi, "").trim();
-  return { query: query || "software developer", location, remote };
+  // Extract role — everything before "job" or "jobs" or "in"
+  const roleMatch = message.match(/(?:find|search|show|get|look for)?\s*(?:me\s+)?([a-zA-Z\s]+?)\s+(?:job|jobs|role|position|opening|work)/i);
+  const query = roleMatch ? roleMatch[1].replace(/\b(find|search|show|get|any|some|me|a|an|the)\b/gi, "").trim() : "";
+  const remote = m.includes("remote");
+  return { query: query || "", location, remote };
 }
 
 /* ═══════════════════════════════════════════════════════════

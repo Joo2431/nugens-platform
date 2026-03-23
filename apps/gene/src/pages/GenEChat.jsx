@@ -246,48 +246,6 @@ function FeatureCard({ f, plan, onTrigger }) {
   );
 }
 
-function SaveResumeModal({ defaultText, saving, onClose, onSave }) {
-  const [title,   setTitle]   = useState("My Resume");
-  const [role,    setRole]    = useState("");
-  const [company, setCompany] = useState("");
-  const inp = { width:"100%",padding:"9px 12px",border:"1.5px solid #e8ecf0",borderRadius:9,
-    fontSize:13,outline:"none",fontFamily:"inherit",transition:"border 0.15s",boxSizing:"border-box",background:"#fafbfc" };
-  return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:900,
-      display:"flex",alignItems:"center",justifyContent:"center",padding:20}}
-      onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
-      <div style={{background:"#fff",borderRadius:18,padding:"28px 24px",maxWidth:380,
-        width:"100%",boxShadow:"0 32px 80px rgba(0,0,0,0.2)"}}>
-        <div style={{fontWeight:800,fontSize:17,color:"#111",marginBottom:4}}>💾 Save to Resume Vault</div>
-        <div style={{fontSize:12.5,color:"#aaa",marginBottom:20}}>Name this version so you can find it later.</div>
-        <div style={{display:"flex",flexDirection:"column",gap:12}}>
-          {[["Resume Title *",title,setTitle,"e.g. Resume v1 — TCS"],
-            ["Target Role (optional)",role,setRole,"e.g. Software Engineer"],
-            ["Target Company (optional)",company,setCompany,"e.g. Google, TCS, any startup"]
-          ].map(([lbl,val,set,ph])=>(
-            <div key={lbl}>
-              <label style={{fontSize:11.5,fontWeight:600,color:"#555",display:"block",marginBottom:4}}>{lbl}</label>
-              <input value={val} onChange={e=>set(e.target.value)} placeholder={ph} style={inp}
-                onFocus={e=>e.target.style.borderColor=PINK} onBlur={e=>e.target.style.borderColor="#e8ecf0"}/>
-            </div>
-          ))}
-        </div>
-        <div style={{display:"flex",gap:10,marginTop:20}}>
-          <button onClick={onClose}
-            style={{flex:1,padding:"10px 0",background:"#f5f7fa",border:"none",borderRadius:9,
-              fontWeight:600,fontSize:13,color:"#888",cursor:"pointer"}}>Cancel</button>
-          <button onClick={()=>onSave({title:title||"My Resume",target_role:role,target_company:company,content_md:defaultText})}
-            disabled={saving||!title.trim()}
-            style={{flex:2,padding:"10px 0",background:saving?"#f0f0f0":PINK,border:"none",
-              borderRadius:9,fontWeight:700,fontSize:13,color:saving?"#aaa":"#fff",cursor:saving?"wait":"pointer"}}>
-            {saving?"Saving…":"Save Resume →"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function RenameModal({chat,onSave,onClose}){
   const [v,setV]=useState(chat?.title||"");
   return(
@@ -341,8 +299,6 @@ export default function GenEChat() {
   const [lang,       setLang]       = useState(()=>localStorage.getItem("gene-lang")||"en");
   const [langOpen,   setLangOpen]   = useState(false);
   const [savedToast, setSavedToast] = useState(false);
-  const [saveModal,  setSaveModal]  = useState(null);
-  const [saving,     setSaving]     = useState(false);
   const [ctx,        setCtx]        = useState(null);
   const [renaming,   setRenaming]   = useState(null);
   const [editIdx,    setEditIdx]    = useState(null);
@@ -460,56 +416,19 @@ export default function GenEChat() {
     return session?.access_token||null;
   };
 
-  /* ── html2canvas lazy loader ── */
-  const getHtml2Canvas = () => new Promise((res,rej)=>{
-    if(window.html2canvas){res(window.html2canvas);return;}
-    if(document.getElementById("h2c-script")){
-      const iv=setInterval(()=>{if(window.html2canvas){clearInterval(iv);res(window.html2canvas);}},50);return;
-    }
-    const s=document.createElement("script");s.id="h2c-script";
-    s.src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
-    s.onload=()=>res(window.html2canvas);s.onerror=()=>rej(new Error("html2canvas failed"));
-    document.head.appendChild(s);
-  });
-
-  /* ── Download resume as PNG image ── */
-  const downloadResumeImage = async (txt) => {
-    try {
-      const h2c = await getHtml2Canvas();
-      const wrap = document.createElement("div");
-      wrap.style.cssText = "position:fixed;left:-9999px;top:0;width:800px;padding:52px 60px;background:#fff;font-family:Inter,sans-serif;color:#222;font-size:13px;line-height:1.75;";
-      const html = txt
-        .replace(/^## (.+)$/gm,'<h2 style="color:#e8185d;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;margin:20px 0 5px;padding-bottom:5px;border-bottom:1.5px solid #ffe0e9">$1</h2>')
-        .replace(/^### (.+)$/gm,'<h3 style="font-size:13px;font-weight:700;color:#111;margin:12px 0 3px">$1</h3>')
-        .replace(/\*\*(.+?)\*\*/g,'<strong style="font-weight:700;color:#111">$1</strong>')
-        .replace(/^[•\-] (.+)$/gm,'<div style="padding:1.5px 0 1.5px 16px;color:#333">&bull; $1</div>')
-        .replace(/\n/g,"<br/>");
-      wrap.innerHTML = '<div style="text-align:center;margin-bottom:32px;padding-bottom:20px;border-bottom:2px solid #f0f0f0"><div style="font-size:24px;font-weight:900;letter-spacing:-0.04em;color:#111">GEN<span style="color:#e8185d">-E</span></div><div style="font-size:10px;color:#aaa;margin-top:3px;letter-spacing:0.06em;text-transform:uppercase">AI-Generated Resume</div></div>'+html;
-      document.body.appendChild(wrap);
-      const canvas = await h2c(wrap,{scale:2,useCORS:true,backgroundColor:"#fff"});
-      document.body.removeChild(wrap);
-      const a=document.createElement("a"); a.download="resume-gene.png"; a.href=canvas.toDataURL("image/png"); a.click();
-    } catch(e){alert("Export failed: "+e.message);}
-  };
-
-  /* ── Save resume to vault (Pro only) ── */
-  const saveResume = async ({title,target_role,target_company,content_md}) => {
-    setSaving(true);
-    try {
-      const {data:{session}} = await supabase.auth.getSession();
-      const res = await fetch(`${API}/api/resumes`,{
-        method:"POST",
-        headers:{"Content-Type":"application/json",...(session?{Authorization:`Bearer ${session.access_token}`}:{})},
-        body:JSON.stringify({title,target_role,target_company,content_md}),
-      });
-      const data = await res.json();
-      if(res.status===403){setUpgrade("resume_builder");setSaveModal(null);return;}
-      if(!res.ok) throw new Error(data.detail||data.error||"Save failed");
-      setSaveModal(null);
-      setSavedToast(true);
-      setTimeout(()=>setSavedToast(false),3000);
-    } catch(e){alert("Could not save resume: "+e.message);}
-    finally{setSaving(false);}
+  /* ── Edit message functions ── */
+  const startEdit  = (idx, text) => { setEditIdx(idx); setEditText(text); };
+  const cancelEdit = ()          => { setEditIdx(null); setEditText(""); };
+  const saveEdit   = async (chatId, idx) => {
+    const txt = editText.trim();
+    if (!txt) return;
+    cancelEdit();
+    // Trim messages back to before this index
+    setChats(prev => prev.map(ch => ch.id === chatId
+      ? { ...ch, messages: ch.messages.slice(0, idx), history: ch.history.slice(0, idx) }
+      : ch
+    ));
+    await send(txt, chatId, mode, null);
   };
 
     const stageFile = file => {
@@ -573,7 +492,7 @@ export default function GenEChat() {
     try {
       const token=await getToken(); await wakeServer();
       patch(chatId,c=>({...c,messages:[...c.messages,{role:"assistant",text:"",streaming:true}]}));
-      const res=await fetch(`${API}/api/chat`,{method:"POST",headers:{"Content-Type":"application/json",...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify({message:`[MODE:${chatMode}] ${msg}`,history:hist,session_id:chatId,mode:chatMode,lang})});
+      const res=await fetch(`${API}/api/chat`,{method:"POST",headers:{"Content-Type":"application/json",...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify({message:`[MODE:${isBusinessUser?"BUSINESS":chatMode}] ${msg}`,history:hist,session_id:chatId,mode:chatMode,lang})});
       if(res.status===403){const d=await res.json().catch(()=>({}));patch(chatId,c=>({...c,messages:c.messages.filter(m=>!m.streaming).slice(0,-1)}));setUpgrade("limit");setBusy(false);return;}
       if(!res.ok||!res.body) throw new Error("Server error "+res.status);
       const reader=res.body.getReader(); const decoder=new TextDecoder();
@@ -660,62 +579,6 @@ export default function GenEChat() {
         })}
       </div>
 
-      {/* Nav links + Quick Tools */}
-      <div style={{padding:"10px 12px 6px",borderTop:"1px solid #f5f7fa",flexShrink:0}}>
-        <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:10}}>
-          {[
-            {icon:"📄",label:"Resume Vault",path:"/resumes",pro:true},
-            {icon:"📊",label:"Job Tracker",path:"/jobs",pro:false},
-          ].map(item=>{
-            const locked = item.pro && !PAID_PLANS.has(profile?.plan||"free");
-            return (
-              <button key={item.path}
-                onClick={()=>locked?setUpgrade("resume_builder"):nav(item.path)}
-                style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",
-                  background:"none",border:"1.5px solid #edf0f3",borderRadius:9,
-                  cursor:"pointer",textAlign:"left",fontSize:12,
-                  color:locked?"#ccc":"#555",fontWeight:500,transition:"all 0.12s"}}
-                onMouseEnter={e=>{if(!locked){e.currentTarget.style.background="#fff0f4";e.currentTarget.style.borderColor="#fcc";e.currentTarget.style.color=PINK;}}}
-                onMouseLeave={e=>{if(!locked){e.currentTarget.style.background="none";e.currentTarget.style.borderColor="#edf0f3";e.currentTarget.style.color="#555";}}}>
-                <span>{item.icon}</span>
-                <span style={{flex:1}}>{item.label}</span>
-                {locked && <span style={{fontSize:10}}>🔒</span>}
-              </button>
-            );
-          })}
-        </div>
-        <div style={{fontSize:10,fontWeight:700,color:"#d0d5dd",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:6}}>Quick Tools</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:5,marginBottom:10}}>
-          {[
-            {label:"ATS Resume",  mode:"RESUME",    body:"Help me build an ATS-optimised resume. Ask me what role I'm targeting.", pro:true},
-            {label:"Career Plan", mode:"CAREER",    body:"Create a detailed personalised career roadmap for my situation.",         pro:false},
-            {label:"Skill Gap",   mode:"CAREER",    body:"Do a skill gap analysis. Ask me my current role and target role first.", pro:false},
-            {label:"Mock Interview",mode:"INTERVIEW",body:"Start a mock interview. Ask me the role I am targeting first.",           pro:true},
-            {label:"Score Me",    mode:"SCORING",   body:"Give me a full career readiness score with strengths, gaps and 30-day plan.",pro:false},
-            {label:"Job Match",   mode:"CAREER",    body:"Find the best job roles matching my profile and search for live openings.",  yearly:true},
-          ].map(t=>{
-            const plan = profile?.plan||"free";
-            const locked = (t.pro && !PAID_PLANS.has(plan)) || (t.yearly && plan!=="yearly" && plan!=="admin");
-            const handleTool = () => {
-              if(locked){ setUpgrade(t.yearly?"job_search":"resume_builder"); return; }
-              const ch = freshChat(t.mode);
-              setChats(prev=>[ch,...prev]); setActiveId(ch.id); setMode(t.mode);
-              setTimeout(()=>send(t.body,ch.id,t.mode,null),80);
-            };
-            return (
-              <button key={t.label} onClick={handleTool}
-                style={{padding:"7px 9px",borderRadius:8,border:"1.5px solid #edf0f3",
-                  background:"#fff",cursor:"pointer",textAlign:"left",fontSize:11.5,
-                  color:locked?"#ccc":"#555",fontWeight:500,transition:"all 0.12s"}}
-                onMouseEnter={e=>{if(!locked){e.currentTarget.style.background="#fff0f4";e.currentTarget.style.borderColor="#fcc";e.currentTarget.style.color=PINK;}}}
-                onMouseLeave={e=>{if(!locked){e.currentTarget.style.background="#fff";e.currentTarget.style.borderColor="#edf0f3";e.currentTarget.style.color="#555";}}}>
-                {t.label}{locked?" 🔒":""}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {/* User + quick actions */}
       <div style={{padding:"10px 12px 14px",borderTop:"1px solid #f5f7fa",flexShrink:0}}>
         {!PAID_PLANS.has(profile?.plan||"free") && (
@@ -779,6 +642,8 @@ export default function GenEChat() {
         .d1{animation:blink 1.2s infinite}.d2{animation:blink 1.2s 0.2s infinite}.d3{animation:blink 1.2s 0.4s infinite}
         @keyframes cur{0%,100%{opacity:1}50%{opacity:0}}
         .streaming-msg::after{content:"▋";color:${PINK};animation:cur 0.7s infinite;margin-left:2px;font-size:13px}
+        .msg-wrap:hover .edit-btn{opacity:1!important}
+        .edit-btn:hover{color:${PINK}!important;background:rgba(232,24,93,0.1)!important}
         .desktop-sb{display:flex!important}
         .mob-btn{display:none!important}
         .sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:199;backdrop-filter:blur(2px)}
@@ -789,7 +654,6 @@ export default function GenEChat() {
       `}</style>
 
       {upgrade && <UpgradeModal feature={upgrade} onClose={()=>setUpgrade(false)} onUpgrade={()=>{setUpgrade(false);nav("/pricing");}}/>}
-      {saveModal && <SaveResumeModal defaultText={saveModal.text} saving={saving} onClose={()=>setSaveModal(null)} onSave={saveResume}/>}
       {renaming && <RenameModal chat={chats.find(c=>c.id===renaming)} onSave={t=>renameChat(renaming,t)} onClose={()=>setRenaming(null)}/>}
       {ctx && <CtxMenu x={ctx.x} y={ctx.y} onRename={()=>setRenaming(ctx.id)} onDelete={()=>deleteChat(ctx.id)} onClose={()=>setCtx(null)}/>}
       {savedToast && (
@@ -924,53 +788,54 @@ export default function GenEChat() {
                       )}
                       <div style={{maxWidth:"80%",display:"flex",flexDirection:"column",alignItems:msg.role==="user"?"flex-end":"flex-start",gap:5}}>
                         {msg.imagePreview&&<img src={msg.imagePreview} alt="" style={{maxWidth:220,maxHeight:160,objectFit:"cover",borderRadius:11,border:"1px solid #f0f0f0"}}/>}
+                        <div className="msg-wrap" style={{position:"relative"}}>
+                        {/* Edit pencil — shows on hover for user messages */}
+                        {msg.role==="user" && editIdx!==i && (
+                          <button onClick={()=>startEdit(i, msg.text)}
+                            className="edit-btn"
+                            title="Edit message"
+                            style={{position:"absolute",top:6,left:-32,width:24,height:24,
+                              opacity:0,background:"rgba(0,0,0,0.06)",border:"none",
+                              borderRadius:7,cursor:"pointer",color:"#888",fontSize:13,
+                              display:"flex",alignItems:"center",justifyContent:"center",
+                              transition:"opacity 0.15s",zIndex:10}}>
+                            ✎
+                          </button>
+                        )}
                         <div style={{padding:"12px 16px",borderRadius:16,fontSize:14,lineHeight:1.7,
                           ...(msg.role==="user"
                             ?{background:`linear-gradient(135deg,${PINK},#d01450)`,color:"#fff",borderBottomRightRadius:4,boxShadow:`0 4px 16px ${PINK}35`}
                             :{background:"#fff",color:"#111",border:"1px solid rgba(0,0,0,0.06)",borderBottomLeftRadius:4,boxShadow:"0 1px 4px rgba(0,0,0,0.05)"})
                         }}>
-                          <div className={msg.role==="user"?"md-user":("md-ai"+(msg.streaming?" streaming-msg":""))}>
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.text}</ReactMarkdown>
-                          </div>
-
-                          {/* ── PDF download link (from server) ── */}
-                          {msg.pdf && PAID_PLANS.has(profile?.plan||"free") && (
-                            <a href={`${API}${msg.pdf}`} target="_blank" rel="noopener noreferrer"
-                              style={{display:"inline-flex",alignItems:"center",gap:6,marginTop:12,
-                                padding:"7px 14px",background:"rgba(255,255,255,0.18)",color:"#fff",
-                                borderRadius:9,fontSize:12,fontWeight:700,textDecoration:"none",
-                                border:"1px solid rgba(255,255,255,0.3)"}}>
-                              ↓ Download Resume PDF
-                            </a>
-                          )}
-
-                          {/* ── Resume action buttons (Image + Save to Vault) ── */}
-                          {msg.role==="assistant" && !msg.streaming &&
-                           msg.text?.includes("##") && msg.text?.length > 400 && (
-                            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:12}}>
-                              <button onClick={()=>downloadResumeImage(msg.text)}
-                                style={{display:"inline-flex",alignItems:"center",gap:5,
-                                  padding:"6px 13px",background:"#f0fdf4",border:"1px solid #86efac",
-                                  color:"#15803d",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer",
-                                  transition:"all 0.13s"}}
-                                onMouseEnter={e=>{e.currentTarget.style.background="#dcfce7";}}
-                                onMouseLeave={e=>{e.currentTarget.style.background="#f0fdf4";}}>
-                                🖼️ Download as Image
-                              </button>
-                              {PAID_PLANS.has(profile?.plan||"free") && (
-                                <button onClick={()=>setSaveModal({text:msg.text})}
-                                  style={{display:"inline-flex",alignItems:"center",gap:5,
-                                    padding:"6px 13px",background:"#eff6ff",border:"1px solid #93c5fd",
-                                    borderRadius:8,cursor:"pointer",fontSize:12,color:"#1d4ed8",fontWeight:700,
-                                    transition:"all 0.13s"}}
-                                  onMouseEnter={e=>{e.currentTarget.style.background="#dbeafe";}}
-                                  onMouseLeave={e=>{e.currentTarget.style.background="#eff6ff";}}>
-                                  💾 Save to Vault
+                          {/* Edit mode for user messages */}
+                          {msg.role==="user" && editIdx===i ? (
+                            <div>
+                              <textarea autoFocus value={editText} onChange={e=>setEditText(e.target.value)}
+                                onKeyDown={e=>{ if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();saveEdit(activeId,i);} if(e.key==="Escape")cancelEdit(); }}
+                                style={{width:"100%",minHeight:60,background:"rgba(255,255,255,0.15)",
+                                  border:"1px solid rgba(255,255,255,0.4)",borderRadius:9,
+                                  padding:"7px 11px",color:"#fff",fontSize:14,lineHeight:1.55,
+                                  fontFamily:"inherit",resize:"vertical",outline:"none"}}/>
+                              <div style={{display:"flex",gap:6,marginTop:6,justifyContent:"flex-end"}}>
+                                <button onClick={cancelEdit}
+                                  style={{padding:"4px 10px",background:"rgba(255,255,255,0.15)",
+                                    border:"1px solid rgba(255,255,255,0.3)",borderRadius:7,
+                                    color:"#fff",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                                  Cancel
                                 </button>
-                              )}
+                                <button onClick={()=>saveEdit(activeId,i)}
+                                  style={{padding:"4px 12px",background:"#fff",border:"none",
+                                    borderRadius:7,color:PINK,fontSize:11,fontWeight:700,
+                                    cursor:"pointer",fontFamily:"inherit"}}>
+                                  Send ↑
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className={msg.role==="user"?"md-user":("md-ai"+(msg.streaming?" streaming-msg":""))}>
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.text}</ReactMarkdown>
                             </div>
                           )}
-
                           {msg.role==="assistant"&&msg.jobs?.length>0&&(
                             <div style={{marginTop:16,display:"flex",flexDirection:"column",gap:8}}>
                               {msg.jobs.map(j=>(
@@ -987,6 +852,7 @@ export default function GenEChat() {
                             </div>
                           )}
                         </div>
+                        </div>{/* close msg-wrap */}
                       </div>
                     </div>
                   ))}
