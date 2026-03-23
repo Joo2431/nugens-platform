@@ -163,16 +163,28 @@ export default function PricingPage({ profile }) {
       <div style={S.h1}>DigiHub Pricing</div>
       <div style={S.sub}>Choose the right plan for your digital goals</div>
 
-      {/* Tab switcher */}
-      <div style={{ display:"flex", justifyContent:"center", marginBottom:32 }}>
-        <div style={{ background:"#0a1628", border:`1px solid ${B}`, borderRadius:12, padding:4, display:"flex", gap:4 }}>
-          {["business","individual"].map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{ padding:"8px 24px", background:tab===t?BLUE:"none", color:tab===t?"#fff":"#445", border:"none", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>
-              {t === "business" ? "🏢 Business" : "👤 Individual"}
-            </button>
-          ))}
+      {/* Tab switcher — locked to user_type when profile exists */}
+      {!profile?.user_type || profile.user_type === "unknown" ? (
+        <div style={{ display:"flex", justifyContent:"center", marginBottom:32 }}>
+          <div style={{ background:"#0a1628", border:`1px solid ${B}`, borderRadius:12, padding:4, display:"flex", gap:4 }}>
+            {["business","individual"].map(t => (
+              <button key={t} onClick={() => setTab(t)} style={{ padding:"8px 24px", background:tab===t?BLUE:"none", color:tab===t?"#fff":"#445", border:"none", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>
+                {t === "business" ? "🏢 Business" : "👤 Individual"}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div style={{ display:"flex", justifyContent:"center", marginBottom:32 }}>
+          <div style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"8px 24px",
+            background:"#0a1628", border:`1px solid ${B}`, borderRadius:12 }}>
+            <span style={{ fontSize:14 }}>{tab==="business" ? "🏢" : "👤"}</span>
+            <span style={{ fontSize:13, fontWeight:700, color:BLUE }}>
+              {tab==="business" ? "Business Plans" : "Individual Plans"}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Billing toggle */}
       {tab === "business" && (

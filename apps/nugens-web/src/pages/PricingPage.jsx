@@ -427,20 +427,37 @@ export default function PricingPage() {
             {loadingCurrency ? "Detecting your location…" : `Prices shown in ${currency.code}. All plans include a free trial.`}
           </p>
 
-          {/* Individual / Business toggle */}
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
-            <div style={{ display: "flex", background: "#f3f4f6", borderRadius: 9, padding: 3, gap: 2 }}>
-              {["individual", "business"].map(t => (
-                <button key={t} className="tab-pill" onClick={() => setTab(t)} style={{
-                  background: tab === t ? "#fff" : "transparent",
-                  color: tab === t ? "#0a0a0a" : "#6b7280",
-                  boxShadow: tab === t ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
-                }}>
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
-                </button>
-              ))}
+          {/* Individual / Business toggle
+              - Not logged in → show toggle (public marketing page)
+              - Logged in, user_type known → lock to their type, hide toggle
+              - Logged in, no user_type → show toggle  */}
+          {user && profile?.user_type && profile.user_type !== "unknown" ? (
+            /* Logged-in: show locked badge */
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8,
+                padding: "7px 20px", background: "#f3f4f6", borderRadius: 9,
+                fontSize: 13, fontWeight: 600, color: "#0a0a0a" }}>
+                {tab === "business" ? "🏢" : "👤"}
+                <span>{tab === "business" ? "Business Plans" : "Individual Plans"}</span>
+                <span style={{ fontSize: 11, color: "#9ca3af", fontWeight: 400 }}>· based on your account</span>
+              </div>
             </div>
-          </div>
+          ) : (
+            /* Not logged in OR no user_type: show full toggle */
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
+              <div style={{ display: "flex", background: "#f3f4f6", borderRadius: 9, padding: 3, gap: 2 }}>
+                {["individual", "business"].map(t => (
+                  <button key={t} className="tab-pill" onClick={() => setTab(t)} style={{
+                    background: tab === t ? "#fff" : "transparent",
+                    color: tab === t ? "#0a0a0a" : "#6b7280",
+                    boxShadow: tab === t ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                  }}>
+                    {t.charAt(0).toUpperCase() + t.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Monthly / Yearly toggle */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
@@ -556,7 +573,7 @@ export default function PricingPage() {
             { q: "How does location-based pricing work?", a: "We detect your country and show prices in your local currency. All plans are the same quality worldwide — pricing adjusts to be fair for every market." },
             { q: "Can I switch plans anytime?", a: "Yes. Upgrade or downgrade at any time. Unused days are credited to your next billing cycle." },
             { q: "What payment methods do you accept?", a: "We accept all major cards, UPI, net banking (India), and international payment methods via Razorpay." },
-            { q: "Is there a team plan?", a: "Yes — switch to the Business tab above. Business plans include team seats and collaboration tools across all Nugens products." },
+            { q: "Is there a team plan?", a: "Yes — Business plans include team seats and collaboration tools across all Nugens products. Sign up or log in with a business account to see business pricing." },
           ].map(({ q, a }, i) => (
             <Reveal key={q} delay={i * 60}>
               <div style={{ padding: "20px 0", borderBottom: `1px solid ${B}` }}>

@@ -151,15 +151,28 @@ export default function Pricing({ profile }) {
         <div style={{ fontSize:14, color:MUTED }}>Certifications, exclusive courses, and real-time AI guidance — built for your career.</div>
       </div>
 
-      <div style={{ display:"flex", justifyContent:"center", marginBottom:40 }}>
-        <div style={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:12, padding:4, display:"flex", gap:4 }}>
-          {["individual","business"].map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{ padding:"9px 28px", background:tab===t?PINK:"none", color:tab===t?"#fff":MUTED, border:"none", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>
-              {t === "individual" ? "👤 Individual" : "🏢 Business"}
-            </button>
-          ))}
+      {/* Show toggle only when user_type is not locked */}
+      {!profile?.user_type || profile.user_type === "unknown" ? (
+        <div style={{ display:"flex", justifyContent:"center", marginBottom:40 }}>
+          <div style={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:12, padding:4, display:"flex", gap:4 }}>
+            {["individual","business"].map(t => (
+              <button key={t} onClick={() => setTab(t)} style={{ padding:"9px 28px", background:tab===t?PINK:"none", color:tab===t?"#fff":MUTED, border:"none", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>
+                {t === "individual" ? "👤 Individual" : "🏢 Business"}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div style={{ display:"flex", justifyContent:"center", marginBottom:40 }}>
+          <div style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"9px 24px",
+            background:CARD, border:`1px solid ${BORDER}`, borderRadius:12 }}>
+            <span style={{ fontSize:14 }}>{tab==="business" ? "🏢" : "👤"}</span>
+            <span style={{ fontSize:13, fontWeight:700, color:PINK }}>
+              {tab==="business" ? "Business Plans" : "Individual Plans"}
+            </span>
+          </div>
+        </div>
+      )}
 
       {success && (
         <div style={{ background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:12, padding:"14px 24px", maxWidth:500, margin:"0 auto 28px", textAlign:"center", color:GREEN, fontWeight:700 }}>

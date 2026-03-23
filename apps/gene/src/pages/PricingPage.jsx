@@ -126,17 +126,29 @@ export default function PricingPage() {
         </p>
       </div>
 
-      {/* Tab toggle */}
-      <div style={{display:"flex",justifyContent:"center",marginBottom:36}}>
-        <div style={{display:"flex",background:"#111",border:`1px solid ${B}`,borderRadius:10,padding:3}}>
-          {[["individual","👤 Individual"],["business","🏢 Business"]].map(([id,lbl])=>(
-            <button key={id} onClick={()=>setTab(id)}
-              style={{padding:"8px 24px",borderRadius:8,border:"none",background:tab===id?PINK:"transparent",color:tab===id?"#fff":"#555",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit",transition:"all 0.14s"}}>
-              {lbl}
-            </button>
-          ))}
+      {/* Tab toggle — only show when user_type is not locked */}
+      {!profile?.user_type || profile.user_type === "unknown" ? (
+        <div style={{display:"flex",justifyContent:"center",marginBottom:36}}>
+          <div style={{display:"flex",background:"#111",border:`1px solid ${B}`,borderRadius:10,padding:3}}>
+            {[["individual","👤 Individual"],["business","🏢 Business"]].map(([id,lbl])=>(
+              <button key={id} onClick={()=>setTab(id)}
+                style={{padding:"8px 24px",borderRadius:8,border:"none",background:tab===id?PINK:"transparent",color:tab===id?"#fff":"#555",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit",transition:"all 0.14s"}}>
+                {lbl}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div style={{display:"flex",justifyContent:"center",marginBottom:36}}>
+          <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"8px 20px",
+            background:"#111",border:`1px solid ${B}`,borderRadius:10}}>
+            <span style={{fontSize:14}}>{tab==="business"?"🏢":"👤"}</span>
+            <span style={{fontSize:13,fontWeight:600,color:PINK}}>
+              {tab==="business"?"Business Plans":"Individual Plans"}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Plans */}
       <div style={{display:"flex",gap:20,justifyContent:"center",flexWrap:"wrap",maxWidth:960,margin:"0 auto 40px"}}>
