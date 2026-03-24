@@ -300,30 +300,7 @@ The user is in INTERVIEW PREP mode.
 The user wants a CAREER READINESS SCORE.
 - Ask about skills, experience, and target role if not already provided.
 - Score them 0–100 with: Strength Areas, Skill Gaps, Risk Factors, and a 30-Day Action Plan.`,
-  CAREER: "",
-  BUSINESS: `
-You are GEN-E Business Intelligence AI — a powerful HR, hiring, workforce and business tool assistant built for founders, managers and business teams.
-
-YOU ARE IN BUSINESS MODE. You MUST help with ALL of these business tools without restriction:
-
-1. JD GENERATOR — Create comprehensive job descriptions when asked. Include: role overview, responsibilities, required skills, nice-to-have skills, experience level, salary range (Indian market), and 8-10 interview questions tailored to the role.
-
-2. HIRING INTELLIGENCE — When asked for hiring intelligence or hiring strategy for a role: provide required skill breakdown by category, market salary ranges by experience tier (fresher/junior/mid/senior/lead), key red flags to screen for, sourcing channels, evaluation framework, and full hiring timeline.
-
-3. TEAM SKILL MAP — Analyse team composition when provided. Identify: individual strengths, collective skill gaps vs company goals, skill overlaps/redundancies, and a prioritised training roadmap with specific resources.
-
-4. WORKFORCE PLANNING — Create phase-by-phase hiring roadmaps based on company stage and growth goals. Cover: priority hires by quarter, budget estimates, org structure recommendations, and build-vs-hire decisions.
-
-5. SALARY BENCHMARK — Provide detailed Indian market salary data for any role: ranges by experience tier, city variations, industry premiums, variable pay norms, equity expectations, and negotiation guidance.
-
-6. INTERVIEW AI — Generate complete interview kits for any role and level: screening questions, technical/functional questions, behavioural questions (STAR format), case/scenario questions, and evaluation rubric with scoring criteria.
-
-STYLE IN BUSINESS MODE:
-- Be direct and data-driven. Founders and managers want actionable intel, not career coaching.
-- Use structured output with clear sections and headers.
-- Always include numbers: salary ranges, timelines, headcounts, percentages.
-- India market context is default unless another market is specified.
-- Never refuse a business tool request.`
+  CAREER: ""
 };
 
 /* ── UTILS ── */
@@ -341,7 +318,6 @@ function detectMode(message) {
   if (m.includes("[mode:resume]"))    return "RESUME";
   if (m.includes("[mode:interview]")) return "INTERVIEW";
   if (m.includes("[mode:scoring]"))   return "SCORING";
-  if (m.includes("[mode:business]"))  return "BUSINESS";
   return "CAREER";
 }
 
@@ -351,7 +327,6 @@ function cleanMessage(message) {
     .replace(/\[MODE:INTERVIEW\]/gi, "")
     .replace(/\[MODE:SCORING\]/gi, "")
     .replace(/\[MODE:CAREER\]/gi, "")
-    .replace(/\[MODE:BUSINESS\]/gi, "")
     .trim();
 }
 
@@ -529,7 +504,7 @@ app.post("/api/chat", requireAuth, checkUsage, async (req, res) => {
   /* ══ FEATURE GATES ══ */
 
   // ATS Resume Builder → Pro only (monthly + yearly)
-  if (mode === "RESUME" && !["monthly","yearly","admin","hx_ind_starter","hx_ind_premium","hx_ind_pro","hx_ind_yearly","hx_biz_starter","hx_biz_premium","hx_biz_pro","hx_biz_yearly","ng_ind_starter","ng_ind_premium","ng_ind_pro","ng_biz_starter","ng_biz_premium","ng_biz_pro","gene_monthly","gene_yearly","gene_biz_starter","gene_biz_pro"].includes(plan)) {
+  if (mode === "RESUME" && plan === "free") {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     const send = (obj) => res.write("data: " + JSON.stringify(obj) + "\n\n");
@@ -540,7 +515,7 @@ app.post("/api/chat", requireAuth, checkUsage, async (req, res) => {
   }
 
   // Advanced Interview Prep → Pro only (monthly + yearly)
-  if (mode === "INTERVIEW" && !["monthly","yearly","admin","hx_ind_starter","hx_ind_premium","hx_ind_pro","hx_ind_yearly","hx_biz_starter","hx_biz_premium","hx_biz_pro","hx_biz_yearly","ng_ind_starter","ng_ind_premium","ng_ind_pro","ng_biz_starter","ng_biz_premium","ng_biz_pro","gene_monthly","gene_yearly","gene_biz_starter","gene_biz_pro"].includes(plan)) {
+  if (mode === "INTERVIEW" && plan === "free") {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     const send = (obj) => res.write("data: " + JSON.stringify(obj) + "\n\n");
@@ -552,7 +527,7 @@ app.post("/api/chat", requireAuth, checkUsage, async (req, res) => {
 
   // Job Match Analysis → Yearly only
   const isJobQuery = detectJobIntent(clean);
-  if (isJobQuery && plan !== "yearly" && plan !== "admin") {
+  if (isJobQuery && plan !== "yearly") {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     const sendG = (obj) => res.write("data: " + JSON.stringify(obj) + "\n\n");
@@ -992,24 +967,10 @@ async function fetchLiveJobs(query, location, remote) {
 function detectJobIntent(message) {
   const m = message.toLowerCase();
   const triggers = [
-    // Core job search phrases
     "find job", "search job", "find me job", "job for me", "job openings",
     "job listing", "show job", "any job", "find opening", "job vacancies",
-    "job in ", "jobs in ", "find work", "job search",
+    "job in ", "jobs in ", "hiring", "find work", "job search",
     "look for job", "job near", "find position", "open position",
-    // Extended triggers (natural language)
-    "job roles matching", "roles matching", "matching my profile",
-    "live openings", "live jobs", "job match", "current openings",
-    "available positions", "hiring now", "companies hiring",
-    "open roles", "job opportunities", "career opportunities",
-    "opportunities in", "find opportunities", "show me jobs",
-    "get me jobs", "latest jobs", "recent openings", "new job",
-    "apply for", "where can i apply", "who is hiring",
-    "jobs for me", "jobs matching", "suitable jobs",
-    "relevant jobs", "recommend jobs", "suggest jobs",
-    "software jobs", "developer jobs", "engineer jobs",
-    "marketing jobs", "sales jobs", "design jobs", "data jobs",
-    "remote jobs", "fresher jobs", "entry level jobs",
   ];
   return triggers.some(t => m.includes(t));
 }
@@ -1391,10 +1352,14 @@ app.post("/api/mini-chat", requireAuth, async (req, res) => {
       { role: "user", content: message },
     ];
 
+    // Allow callers to request more tokens for bulk/complex tasks (default 420, max 3000)
+    const requestedTokens = parseInt(req.body.max_tokens) || 420;
+    const safeTokens = Math.min(Math.max(requestedTokens, 120), 3000);
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "system", content: systemPrompt }, ...messages],
-      max_tokens: 420,
+      max_tokens: safeTokens,
       temperature: 0.65,
     });
 
@@ -1403,7 +1368,7 @@ app.post("/api/mini-chat", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("[Mini chat] error:", err.message);
     try {
-      const fallback = await callGroq(systemPrompt, [{ role:"user", content:message }], 420);
+      const fallback = await callGroq(systemPrompt, [{ role:"user", content:message }], safeTokens);
       res.json({ reply: fallback });
     } catch(e2) {
       res.status(500).json({ error: "Something went wrong. Please try again." });

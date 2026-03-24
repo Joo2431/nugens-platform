@@ -1,190 +1,177 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 
-const BLUE = "#0284c7";
-const BG   = "#06101a";
-const CARD = "#0a1628";
-const B    = "#1a2030";
-const API  = import.meta.env.VITE_GEN_E_API_URL || "https://nugens-platform.onrender.com";
+const PINK   = "#e8185d";
+const BLUE   = "#0284c7";
+const BG     = "#f8f9fb";
+const CARD   = "#ffffff";
+const BORDER = "#e8eaed";
+const TEXT   = "#111827";
+const MUTED  = "#6b7280";
+const API    = import.meta.env.VITE_GEN_E_API_URL || "https://nugens-platform.onrender.com";
 
 const PLATFORMS = ["Instagram","LinkedIn","Twitter/X","Facebook","YouTube","Pinterest"];
 const TONES     = ["Professional","Casual & Fun","Inspirational","Educational","Promotional","Storytelling"];
 const MONTHS    = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const DAYS      = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 
-const TODAY      = new Date();
-const THIS_MONTH = TODAY.getMonth();
-const THIS_YEAR  = TODAY.getFullYear();
+const TODAY = new Date();
+function getDaysInMonth(y,m){ return new Date(y,m+1,0).getDate(); }
+function getFirstDay(y,m){ return (new Date(y,m,1).getDay()+6)%7; }
 
-function getDaysInMonth(y, m) { return new Date(y, m+1, 0).getDate(); }
-function getFirstDay(y, m)    { return (new Date(y, m, 1).getDay() + 6) % 7; }
+// Maps week+day to an actual calendar date (week 1 = days 1-7, etc.)
+function weekDayToDate(year, month, week, dayName) {
+  const dayMap = { Monday:1,Tuesday:2,Wednesday:3,Thursday:4,Friday:5,Saturday:6,Sunday:7,
+                   Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6,Sun:7 };
+  const targetDay = dayMap[dayName] || 1;
+  const startDay  = (week-1)*7 + 1; // day of month to start search
+  const daysInMo  = getDaysInMonth(year,month);
+  for (let d = startDay; d <= Math.min(startDay+6, daysInMo); d++) {
+    const dow = new Date(year, month, d).getDay();
+    const adj = dow===0?7:dow; // 1=Mon ... 7=Sun
+    if (adj === targetDay) return d;
+  }
+  // fallback: first available day in week range
+  return Math.min(startDay, daysInMo);
+}
 
 export default function ContentPlanner({ profile }) {
-  const [viewMonth,  setViewMonth]  = useState(THIS_MONTH);
-  const [viewYear,   setViewYear]   = useState(THIS_YEAR);
+  const [viewMonth,  setViewMonth]  = useState(TODAY.getMonth());
+  const [viewYear,   setViewYear]   = useState(TODAY.getFullYear());
   const [topic,      setTopic]      = useState("");
   const [platform,   setPlatform]   = useState("Instagram");
   const [tone,       setTone]       = useState("Professional");
-  const [industry,   setIndustry]   = useState(profile?.industry || "");
+  const [industry,   setIndustry]   = useState(profile?.industry||"");
   const [loading,    setLoading]    = useState(false);
   const [plan,       setPlan]       = useState(null);
-  const [scheduled,  setScheduled]  = useState({});  // { "YYYY-M-D": [posts] }
+  const [scheduled,  setScheduled]  = useState({});
   const [selected,   setSelected]   = useState(null);
   const [addModal,   setAddModal]   = useState(false);
   const [newPostText,setNewPostText]= useState("");
   const [calLoading, setCalLoading] = useState(true);
   const [saving,     setSaving]     = useState(false);
 
-  const daysInMonth = getDaysInMonth(viewYear, viewMonth);
-  const firstDay    = getFirstDay(viewYear, viewMonth);
+  const daysInMonth = getDaysInMonth(viewYear,viewMonth);
+  const firstDay    = getFirstDay(viewYear,viewMonth);
 
-  // ── Load calendar posts for current user from Supabase ───────
+  // Load calendar posts from Supabase
   useEffect(() => {
-    if (!profile?.id) { setCalLoading(false); return; }
+    if (!profile?.id){ setCalLoading(false); return; }
     const monthStr = `${viewYear}-${viewMonth+1}`;
-    supabase
-      .from("dh_calendar_posts")
-      .select("*")
-      .eq("user_id", profile.id)
-      .like("calendar_key", `${monthStr}-%`)
-      .order("created_at", { ascending: true })
-      .then(({ data }) => {
-        const grouped = {};
-        (data||[]).forEach(p => {
-          if (!grouped[p.calendar_key]) grouped[p.calendar_key] = [];
-          grouped[p.calendar_key].push(p);
-        });
-        setScheduled(grouped);
-        setCalLoading(false);
+    supabase.from("dh_calendar_posts").select("*")
+      .eq("user_id",profile.id).like("calendar_key",`${monthStr}-%`)
+      .order("created_at",{ascending:true})
+      .then(({data})=>{
+        const g = {};
+        (data||[]).forEach(p=>{ if(!g[p.calendar_key])g[p.calendar_key]=[]; g[p.calendar_key].push(p); });
+        setScheduled(g); setCalLoading(false);
       });
-  }, [profile?.id, viewMonth, viewYear]);
+  },[profile?.id,viewMonth,viewYear]);
 
   const generatePlan = async () => {
     if (!topic.trim()) return;
     setLoading(true); setPlan(null);
     try {
-      const res = await fetch(`${API}/api/mini-chat`, {
+      const { data:{ session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const res = await fetch(`${API}/api/mini-chat`,{
         method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({
-          message:`Create a 4-week content calendar for ${platform} for a ${industry||"business"} brand.\nTone: ${tone}\nTheme/Topic: ${topic}\n\nReturn exactly 12 post ideas in this JSON format (array only, no extra text):\n[{"week":1,"day":"Monday","type":"post type","caption":"full caption text","hashtags":"#tag1 #tag2","tip":"posting tip"}]\nInclude 3 posts per week across different days.`,
-          userType: profile?.user_type || "individual",
-          product: "digihub"
-        })
+        headers:{"Content-Type":"application/json",...(token?{Authorization:`Bearer ${token}`}:{})},
+        body:JSON.stringify({
+          message:`Create a 4-week content calendar for ${platform} for a ${industry||"business"} brand.\nTone: ${tone}\nTheme/Topic: ${topic}\n\nReturn exactly 12 post ideas as a JSON array only (no extra text):\n[{"week":1,"day":"Monday","type":"post type","caption":"full caption text","hashtags":"#tag1 #tag2","tip":"posting tip"}]\nInclude 3 posts per week, spread across different days of the week.`,
+          product:"digihub", userType:profile?.user_type||"individual", max_tokens:1800,
+        }),
       });
       const d = await res.json();
-      const txt = (d?.reply || d?.message || "[]").replace(/```json|```/g,"").trim();
-      try { setPlan(JSON.parse(txt)); }
-      catch { setPlan([{ week:1, day:"Monday", type:"Brand Post", caption:txt.slice(0,300), hashtags:"#business", tip:"Post at 9am" }]); }
-    } catch { setPlan([]); }
+      if (!res.ok||d.error) throw new Error(d.error||"Failed");
+      const txt = (d?.reply||d?.message||"[]").replace(/```json|```/g,"").trim();
+      const arrStart = txt.indexOf("["); const arrEnd = txt.lastIndexOf("]");
+      const posts = arrStart>-1 ? JSON.parse(txt.slice(arrStart,arrEnd+1)) : [];
+      setPlan(posts);
+
+      // ── AUTO-PLACE on calendar ──────────────────────────────
+      if (posts.length > 0 && profile?.id) {
+        const toInsert = posts.map(p => {
+          const day  = weekDayToDate(viewYear, viewMonth, p.week||1, p.day||"Monday");
+          const key  = `${viewYear}-${viewMonth+1}-${day}`;
+          return { user_id:profile.id, calendar_key:key, post_type:p.type||"Post",
+                   caption:p.caption, hashtags:p.hashtags||"", platform,
+                   tip:p.tip||"", week_num:p.week||1, day_name:p.day||"" };
+        });
+        const { data:saved } = await supabase.from("dh_calendar_posts").insert(toInsert).select();
+        if (saved?.length) {
+          const grouped = {...scheduled};
+          saved.forEach(p=>{ if(!grouped[p.calendar_key])grouped[p.calendar_key]=[]; grouped[p.calendar_key].push(p); });
+          setScheduled(grouped);
+        }
+      }
+    } catch(e) {
+      console.error("Planner gen error:", e);
+      setPlan([]);
+    }
     setLoading(false);
   };
 
-  // ── Save a post to a calendar day ───────────────────────────
-  const addToCalendar = async (post, day) => {
-    if (!profile?.id) return;
-    const key = `${viewYear}-${viewMonth+1}-${day}`;
-    setSaving(true);
-    const { data: saved } = await supabase
-      .from("dh_calendar_posts")
-      .insert({
-        user_id:      profile.id,
-        calendar_key: key,
-        post_type:    post.type   || "Post",
-        caption:      post.caption,
-        hashtags:     post.hashtags || "",
-        platform:     post.platform || platform,
-        tip:          post.tip     || "",
-        week_num:     post.week    || 1,
-        day_name:     post.day     || "",
-      })
-      .select().single();
-    if (saved) {
-      setScheduled(s => ({ ...s, [key]: [...(s[key]||[]), saved] }));
-    }
-    setSaving(false);
-  };
-
-  // ── Remove post from calendar ────────────────────────────────
   const removeFromCalendar = async (key, postId) => {
-    await supabase.from("dh_calendar_posts").delete().eq("id", postId);
-    setScheduled(s => ({ ...s, [key]: (s[key]||[]).filter(p => p.id !== postId) }));
+    await supabase.from("dh_calendar_posts").delete().eq("id",postId);
+    setScheduled(s=>({...s,[key]:(s[key]||[]).filter(p=>p.id!==postId)}));
   };
 
-  // ── Add manual post to selected day ─────────────────────────
   const addManualPost = async () => {
-    if (!newPostText.trim() || !selected || !profile?.id) return;
-    const key = `${viewYear}-${viewMonth+1}-${selected}`;
+    if (!newPostText.trim()||!selected||!profile?.id) return;
     setSaving(true);
-    const { data: saved } = await supabase
-      .from("dh_calendar_posts")
-      .insert({ user_id:profile.id, calendar_key:key, post_type:"Manual", caption:newPostText.trim(), platform, hashtags:"" })
+    const key = `${viewYear}-${viewMonth+1}-${selected}`;
+    const {data:saved} = await supabase.from("dh_calendar_posts")
+      .insert({user_id:profile.id,calendar_key:key,post_type:"Manual",caption:newPostText.trim(),platform,hashtags:""})
       .select().single();
-    if (saved) setScheduled(s => ({ ...s, [key]: [...(s[key]||[]), saved] }));
-    setNewPostText(""); setAddModal(false);
-    setSaving(false);
-  };
-
-  const S = {
-    page:  { minHeight:"100vh", background:BG, padding:"32px 40px", fontFamily:"'Plus Jakarta Sans',sans-serif" },
-    h1:    { fontSize:26, fontWeight:800, color:"#fff", letterSpacing:"-0.04em", marginBottom:4 },
-    sub:   { fontSize:13, color:"#445", marginBottom:32 },
-    grid:  { display:"grid", gridTemplateColumns:"1fr 380px", gap:28 },
-    card:  { background:CARD, border:`1px solid ${B}`, borderRadius:14, padding:24 },
-    label: { fontSize:11, fontWeight:700, color:"#445", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6, display:"block" },
-    sel:   { width:"100%", background:"#0d1624", border:`1px solid ${B}`, borderRadius:8, padding:"9px 12px", color:"#ccc", fontSize:13, marginBottom:16, fontFamily:"inherit", outline:"none", boxSizing:"border-box" },
-    inp:   { width:"100%", background:"#0d1624", border:`1px solid ${B}`, borderRadius:8, padding:"9px 12px", color:"#ccc", fontSize:13, marginBottom:16, fontFamily:"inherit", outline:"none", boxSizing:"border-box" },
-    dayCell: (hasPost, isToday) => ({
-      background: hasPost ? `${BLUE}18` : "#0d1624",
-      border: isToday ? `1.5px solid ${BLUE}` : `1px solid ${B}`,
-      borderRadius:8, minHeight:68, padding:4, cursor:"pointer", position:"relative", transition:"all 0.13s"
-    }),
+    if (saved) setScheduled(s=>({...s,[key]:[...(s[key]||[]),saved]}));
+    setNewPostText(""); setAddModal(false); setSaving(false);
   };
 
   return (
-    <div style={S.page}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');`}</style>
-      <div style={S.h1}>◈ Content Planner</div>
-      <div style={S.sub}>Generate AI content plans and schedule posts to your calendar. All posts are saved to your account.</div>
+    <div style={{minHeight:"100vh",background:BG,padding:"32px 36px",fontFamily:"'Plus Jakarta Sans',sans-serif",color:TEXT}}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap'); input:focus,select:focus,textarea:focus{border-color:${PINK}!important;outline:none}`}</style>
 
-      <div style={S.grid}>
+      <div style={{marginBottom:28}}>
+        <h1 style={{fontWeight:800,fontSize:22,color:TEXT,letterSpacing:"-0.04em",margin:0}}>◈ Content Planner</h1>
+        <p style={{color:MUTED,fontSize:13,marginTop:5}}>Generate AI content plans — auto-placed on your calendar and saved to your account.</p>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 340px",gap:24}}>
         {/* ── Calendar ── */}
         <div>
-          {/* Month navigation */}
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-            <button onClick={()=>{ if(viewMonth===0){setViewMonth(11);setViewYear(y=>y-1);}else setViewMonth(m=>m-1); }}
-              style={{ background:"#0d1624", border:`1px solid ${B}`, borderRadius:8, color:"#ccc", fontSize:14, padding:"6px 14px", cursor:"pointer", fontFamily:"inherit" }}>←</button>
-            <div style={{ fontSize:16, fontWeight:700, color:"#fff" }}>{MONTHS[viewMonth]} {viewYear}</div>
-            <button onClick={()=>{ if(viewMonth===11){setViewMonth(0);setViewYear(y=>y+1);}else setViewMonth(m=>m+1); }}
-              style={{ background:"#0d1624", border:`1px solid ${B}`, borderRadius:8, color:"#ccc", fontSize:14, padding:"6px 14px", cursor:"pointer", fontFamily:"inherit" }}>→</button>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+            <button onClick={()=>{if(viewMonth===0){setViewMonth(11);setViewYear(y=>y-1);}else setViewMonth(m=>m-1);}}
+              style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:8,color:TEXT,fontSize:14,padding:"6px 14px",cursor:"pointer",fontFamily:"inherit"}}>←</button>
+            <div style={{fontSize:16,fontWeight:700,color:TEXT}}>{MONTHS[viewMonth]} {viewYear}</div>
+            <button onClick={()=>{if(viewMonth===11){setViewMonth(0);setViewYear(y=>y+1);}else setViewMonth(m=>m+1);}}
+              style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:8,color:TEXT,fontSize:14,padding:"6px 14px",cursor:"pointer",fontFamily:"inherit"}}>→</button>
           </div>
 
-          {/* Day headers */}
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:4, marginBottom:4 }}>
-            {DAYS.map(d=><div key={d} style={{ textAlign:"center", fontSize:10, fontWeight:700, color:"#445", padding:"4px 0" }}>{d}</div>)}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:4}}>
+            {DAYS.map(d=><div key={d} style={{textAlign:"center",fontSize:10,fontWeight:700,color:MUTED,padding:"4px 0"}}>{d}</div>)}
           </div>
 
-          {/* Calendar grid */}
           {calLoading ? (
-            <div style={{ textAlign:"center", padding:40, color:"#445", fontSize:13 }}>Loading calendar…</div>
+            <div style={{textAlign:"center",padding:40,color:MUTED,fontSize:13}}>Loading calendar…</div>
           ) : (
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:4 }}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4}}>
               {Array(firstDay).fill(null).map((_,i)=><div key={`e${i}`}/>)}
               {Array(daysInMonth).fill(null).map((_,i)=>{
                 const day = i+1;
                 const key = `${viewYear}-${viewMonth+1}-${day}`;
-                const dayPosts = scheduled[key] || [];
-                const isToday = day===TODAY.getDate() && viewMonth===TODAY.getMonth() && viewYear===TODAY.getFullYear();
+                const dayPosts = scheduled[key]||[];
+                const isToday = day===TODAY.getDate()&&viewMonth===TODAY.getMonth()&&viewYear===TODAY.getFullYear();
                 return (
-                  <div key={day} style={S.dayCell(dayPosts.length>0, isToday)}
-                    onClick={()=>setSelected(day)}>
-                    <div style={{ fontSize:10, fontWeight:700, color:isToday?BLUE:"#445", marginBottom:3, padding:"1px 3px" }}>{day}</div>
+                  <div key={day} onClick={()=>setSelected(day)}
+                    style={{background:dayPosts.length>0?`${BLUE}08`:CARD,border:isToday?`2px solid ${BLUE}`:`1px solid ${BORDER}`,borderRadius:8,minHeight:68,padding:4,cursor:"pointer",position:"relative",transition:"all 0.13s"}}>
+                    <div style={{fontSize:10,fontWeight:700,color:isToday?BLUE:MUTED,marginBottom:3,padding:"1px 3px"}}>{day}</div>
                     {dayPosts.slice(0,2).map((p,pi)=>(
-                      <div key={pi} style={{ fontSize:9, background:`${BLUE}25`, color:BLUE, borderRadius:4, padding:"1px 4px", marginBottom:2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                        {p.caption?.slice(0,18)||p.post_type}
+                      <div key={pi} style={{fontSize:9,background:`${PINK}12`,color:PINK,borderRadius:4,padding:"1px 4px",marginBottom:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                        {p.caption?.slice(0,16)||p.post_type}
                       </div>
                     ))}
-                    {dayPosts.length>2&&<div style={{ fontSize:9, color:"#445" }}>+{dayPosts.length-2} more</div>}
+                    {dayPosts.length>2&&<div style={{fontSize:9,color:MUTED}}>+{dayPosts.length-2}</div>}
                   </div>
                 );
               })}
@@ -193,44 +180,36 @@ export default function ContentPlanner({ profile }) {
 
           {/* Selected day detail */}
           {selected && (
-            <div style={{ ...S.card, marginTop:20 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-                <div style={{ fontSize:14, fontWeight:700, color:"#fff" }}>
-                  {MONTHS[viewMonth]} {selected}, {viewYear}
-                  <span style={{ fontSize:11, color:"#445", fontWeight:400, marginLeft:8 }}>
-                    ({(scheduled[`${viewYear}-${viewMonth+1}-${selected}`]||[]).length} posts)
-                  </span>
+            <div style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:14,padding:20,marginTop:16,boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                <div style={{fontSize:14,fontWeight:700,color:TEXT}}>
+                  {MONTHS[viewMonth]} {selected}
+                  <span style={{fontSize:11,color:MUTED,fontWeight:400,marginLeft:8}}>({(scheduled[`${viewYear}-${viewMonth+1}-${selected}`]||[]).length} posts)</span>
                 </div>
-                <div style={{ display:"flex", gap:8 }}>
+                <div style={{display:"flex",gap:8}}>
                   <button onClick={()=>setAddModal(true)}
-                    style={{ padding:"6px 14px", background:`${BLUE}20`, border:`1px solid ${BLUE}40`, borderRadius:7, color:BLUE, fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
-                    + Add Post
-                  </button>
+                    style={{padding:"6px 14px",background:`${BLUE}10`,border:`1px solid ${BLUE}30`,borderRadius:7,color:BLUE,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>+ Add Post</button>
                   <button onClick={()=>setSelected(null)}
-                    style={{ background:"none", border:`1px solid ${B}`, borderRadius:7, color:"#445", fontSize:12, cursor:"pointer", padding:"6px 10px", fontFamily:"inherit" }}>
-                    ✕
-                  </button>
+                    style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:7,color:MUTED,fontSize:12,cursor:"pointer",padding:"6px 10px",fontFamily:"inherit"}}>✕</button>
                 </div>
               </div>
-              {(scheduled[`${viewYear}-${viewMonth+1}-${selected}`]||[]).length === 0 ? (
-                <div style={{ fontSize:12, color:"#334", textAlign:"center", padding:"16px 0" }}>
-                  No posts on this day. Add one or generate a plan and click a post to schedule it.
-                </div>
-              ) : (
+              {(scheduled[`${viewYear}-${viewMonth+1}-${selected}`]||[]).length===0?(
+                <div style={{fontSize:12,color:MUTED,textAlign:"center",padding:"12px 0"}}>No posts on this day. Generate a plan or add manually.</div>
+              ):(
                 (scheduled[`${viewYear}-${viewMonth+1}-${selected}`]||[]).map(p=>(
-                  <div key={p.id} style={{ background:"#0d1624", borderRadius:10, padding:"10px 14px", marginBottom:8 }}>
-                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-                      <div style={{ flex:1 }}>
-                        <div style={{ display:"flex", gap:6, marginBottom:5 }}>
-                          <span style={{ fontSize:9, fontWeight:700, color:BLUE, background:`${BLUE}20`, padding:"2px 7px", borderRadius:4 }}>{p.post_type||"Post"}</span>
-                          {p.platform&&<span style={{ fontSize:9, color:"#445", background:"#0a1628", padding:"2px 7px", borderRadius:4 }}>{p.platform}</span>}
+                  <div key={p.id} style={{background:BG,borderRadius:10,padding:"10px 14px",marginBottom:8}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                      <div style={{flex:1}}>
+                        <div style={{display:"flex",gap:6,marginBottom:5}}>
+                          <span style={{fontSize:9,fontWeight:700,color:BLUE,background:`${BLUE}15`,padding:"2px 7px",borderRadius:4}}>{p.post_type||"Post"}</span>
+                          {p.platform&&<span style={{fontSize:9,color:MUTED,background:`${BORDER}`,padding:"2px 7px",borderRadius:4}}>{p.platform}</span>}
                         </div>
-                        <div style={{ fontSize:13, color:"#bbb", lineHeight:1.6 }}>{p.caption}</div>
-                        {p.hashtags&&<div style={{ fontSize:11, color:`${BLUE}80`, marginTop:4 }}>{p.hashtags}</div>}
-                        {p.tip&&<div style={{ fontSize:11, color:"#334", marginTop:4, fontStyle:"italic" }}>💡 {p.tip}</div>}
+                        <div style={{fontSize:13,color:TEXT,lineHeight:1.6}}>{p.caption}</div>
+                        {p.hashtags&&<div style={{fontSize:11,color:BLUE,marginTop:4}}>{p.hashtags}</div>}
+                        {p.tip&&<div style={{fontSize:11,color:MUTED,marginTop:4,fontStyle:"italic"}}>💡 {p.tip}</div>}
                       </div>
-                      <button onClick={()=>removeFromCalendar(`${viewYear}-${viewMonth+1}-${selected}`, p.id)}
-                        style={{ background:"none", border:"none", color:"#ef4444", fontSize:14, cursor:"pointer", marginLeft:8, lineHeight:1 }}>✕</button>
+                      <button onClick={()=>removeFromCalendar(`${viewYear}-${viewMonth+1}-${selected}`,p.id)}
+                        style={{background:"none",border:"none",color:"#ef4444",fontSize:14,cursor:"pointer",marginLeft:8}}>✕</button>
                     </div>
                   </div>
                 ))
@@ -239,21 +218,19 @@ export default function ContentPlanner({ profile }) {
           )}
 
           {/* Add manual post modal */}
-          {addModal && (
-            <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.7)", zIndex:900, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}
-              onClick={e=>{ if(e.target===e.currentTarget) setAddModal(false); }}>
-              <div style={{ background:CARD, border:`1px solid ${B}`, borderRadius:16, padding:24, width:"100%", maxWidth:440 }}>
-                <div style={{ fontSize:15, fontWeight:700, color:"#fff", marginBottom:16 }}>
-                  Add post to {MONTHS[viewMonth]} {selected}
-                </div>
+          {addModal&&(
+            <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:900,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}
+              onClick={e=>{if(e.target===e.currentTarget)setAddModal(false);}}>
+              <div style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:16,padding:24,width:"100%",maxWidth:440,boxShadow:"0 16px 48px rgba(0,0,0,0.15)"}}>
+                <div style={{fontSize:15,fontWeight:700,color:TEXT,marginBottom:16}}>Add post to {MONTHS[viewMonth]} {selected}</div>
                 <textarea value={newPostText} onChange={e=>setNewPostText(e.target.value)} rows={4}
                   placeholder="Write your post caption…"
-                  style={{ ...S.inp, resize:"vertical", minHeight:90 }}/>
-                <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
+                  style={{width:"100%",padding:"10px 14px",background:BG,border:`1.5px solid ${BORDER}`,borderRadius:9,color:TEXT,fontSize:13,fontFamily:"inherit",resize:"vertical",outline:"none",boxSizing:"border-box",marginBottom:16}}/>
+                <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
                   <button onClick={()=>setAddModal(false)}
-                    style={{ padding:"9px 18px", background:"transparent", border:`1px solid ${B}`, borderRadius:8, color:"#445", fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>Cancel</button>
+                    style={{padding:"9px 18px",background:"transparent",border:`1px solid ${BORDER}`,borderRadius:8,color:MUTED,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
                   <button onClick={addManualPost} disabled={!newPostText.trim()||saving}
-                    style={{ padding:"9px 22px", background:BLUE, border:"none", borderRadius:8, color:"#fff", fontSize:13, fontWeight:700, cursor:saving?"not-allowed":"pointer", fontFamily:"inherit" }}>
+                    style={{padding:"9px 22px",background:PINK,border:"none",borderRadius:8,color:"#fff",fontSize:13,fontWeight:700,cursor:saving?"not-allowed":"pointer",fontFamily:"inherit"}}>
                     {saving?"Saving…":"Add to Calendar"}
                   </button>
                 </div>
@@ -264,52 +241,45 @@ export default function ContentPlanner({ profile }) {
 
         {/* ── AI Generator Panel ── */}
         <div>
-          <div style={S.card}>
-            <div style={{ fontSize:14, fontWeight:700, color:"#fff", marginBottom:16 }}>⚡ Generate AI Plan</div>
-            <label style={S.label}>Platform</label>
-            <select value={platform} onChange={e=>setPlatform(e.target.value)} style={S.sel}>
+          <div style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:14,padding:24,boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
+            <div style={{fontWeight:700,fontSize:14,color:TEXT,marginBottom:16}}>⚡ Generate AI Plan</div>
+            <label style={{fontSize:11,fontWeight:700,color:MUTED,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:6,display:"block"}}>Platform</label>
+            <select value={platform} onChange={e=>setPlatform(e.target.value)}
+              style={{width:"100%",background:BG,border:`1.5px solid ${BORDER}`,borderRadius:8,padding:"9px 12px",color:TEXT,fontSize:13,marginBottom:14,fontFamily:"inherit",outline:"none"}}>
               {PLATFORMS.map(p=><option key={p}>{p}</option>)}
             </select>
-            <label style={S.label}>Tone</label>
-            <select value={tone} onChange={e=>setTone(e.target.value)} style={S.sel}>
+            <label style={{fontSize:11,fontWeight:700,color:MUTED,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:6,display:"block"}}>Tone</label>
+            <select value={tone} onChange={e=>setTone(e.target.value)}
+              style={{width:"100%",background:BG,border:`1.5px solid ${BORDER}`,borderRadius:8,padding:"9px 12px",color:TEXT,fontSize:13,marginBottom:14,fontFamily:"inherit",outline:"none"}}>
               {TONES.map(t=><option key={t}>{t}</option>)}
             </select>
-            <label style={S.label}>Industry</label>
-            <input value={industry} onChange={e=>setIndustry(e.target.value)} placeholder="e.g. Fashion, Food, Tech…" style={S.inp}/>
-            <label style={S.label}>Theme / Topic *</label>
-            <input value={topic} onChange={e=>setTopic(e.target.value)} placeholder="e.g. Diwali sale, New product launch…" style={{ ...S.inp, marginBottom:16 }}/>
+            <label style={{fontSize:11,fontWeight:700,color:MUTED,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:6,display:"block"}}>Industry</label>
+            <input value={industry} onChange={e=>setIndustry(e.target.value)} placeholder="e.g. Fashion, Food, Tech…"
+              style={{width:"100%",background:BG,border:`1.5px solid ${BORDER}`,borderRadius:8,padding:"9px 12px",color:TEXT,fontSize:13,marginBottom:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+            <label style={{fontSize:11,fontWeight:700,color:MUTED,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:6,display:"block"}}>Theme / Topic *</label>
+            <input value={topic} onChange={e=>setTopic(e.target.value)} placeholder="e.g. Diwali sale, New product launch…"
+              style={{width:"100%",background:BG,border:`1.5px solid ${BORDER}`,borderRadius:8,padding:"9px 12px",color:TEXT,fontSize:13,marginBottom:16,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
             <button onClick={generatePlan} disabled={!topic.trim()||loading}
-              style={{ width:"100%", padding:"12px 0", background:loading?`${BLUE}60`:BLUE, color:"#fff", border:"none", borderRadius:9, fontSize:13, fontWeight:700, cursor:loading?"not-allowed":"pointer", fontFamily:"inherit" }}>
-              {loading?"Generating…":"⚡ Generate 12 Posts"}
+              style={{width:"100%",padding:"12px 0",background:loading?`${PINK}60`:PINK,color:"#fff",border:"none",borderRadius:9,fontSize:13,fontWeight:700,cursor:loading?"not-allowed":"pointer",fontFamily:"inherit"}}>
+              {loading?"Generating…":"⚡ Generate & Auto-Place"}
             </button>
+            {loading&&<div style={{fontSize:11,color:MUTED,textAlign:"center",marginTop:8}}>Generating and placing on calendar…</div>}
           </div>
 
-          {/* Generated plan */}
-          {plan && plan.length > 0 && (
-            <div style={{ marginTop:16 }}>
-              <div style={{ fontSize:12, color:"#445", marginBottom:10 }}>
-                Click any post to add it to the currently selected day {selected ? `(${MONTHS[viewMonth]} ${selected})` : "(select a day first)"}.
+          {/* Generated plan preview */}
+          {plan&&plan.length>0&&(
+            <div style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:14,padding:16,marginTop:16,boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
+              <div style={{fontWeight:700,fontSize:13,color:TEXT,marginBottom:10}}>
+                ✓ {plan.length} posts generated & placed on calendar
               </div>
-              <div style={{ display:"flex", flexDirection:"column", gap:8, maxHeight:500, overflowY:"auto" }}>
-                {plan.map((p,i)=>(
-                  <div key={i} onClick={()=>selected ? addToCalendar(p, selected) : alert("Click a day on the calendar first")}
-                    style={{ ...S.card, cursor:"pointer", borderColor:saving?B:`${BLUE}40`, transition:"all 0.13s", padding:14 }}
-                    onMouseEnter={e=>e.currentTarget.style.borderColor=BLUE}
-                    onMouseLeave={e=>e.currentTarget.style.borderColor=`${BLUE}40`}>
-                    <div style={{ display:"flex", gap:7, marginBottom:6 }}>
-                      <span style={{ fontSize:9, fontWeight:700, color:BLUE, background:`${BLUE}20`, padding:"2px 7px", borderRadius:4 }}>Week {p.week}</span>
-                      <span style={{ fontSize:9, color:"#445", background:"#0d1624", padding:"2px 7px", borderRadius:4 }}>{p.day}</span>
-                      <span style={{ fontSize:9, color:"#445", background:"#0d1624", padding:"2px 7px", borderRadius:4 }}>{p.type}</span>
-                    </div>
-                    <div style={{ fontSize:12, color:"#bbb", lineHeight:1.6 }}>{p.caption?.slice(0,120)}{p.caption?.length>120?"…":""}</div>
-                    <div style={{ fontSize:11, color:`${BLUE}80`, marginTop:4 }}>{p.hashtags}</div>
-                    {p.tip&&<div style={{ fontSize:10, color:"#334", marginTop:4, fontStyle:"italic" }}>💡 {p.tip}</div>}
-                    <div style={{ fontSize:10, color:BLUE, fontWeight:600, marginTop:6 }}>
-                      {selected ? `+ Add to ${MONTHS[viewMonth]} ${selected}` : "Select a day to add →"}
-                    </div>
-                  </div>
-                ))}
+              <div style={{fontSize:12,color:MUTED,lineHeight:1.6}}>
+                Click any day on the calendar to see and manage the posts.
               </div>
+            </div>
+          )}
+          {plan&&plan.length===0&&(
+            <div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:10,padding:14,marginTop:14,fontSize:12,color:"#dc2626"}}>
+              Generation failed. Please check your internet connection and try again.
             </div>
           )}
         </div>

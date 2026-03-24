@@ -1,257 +1,203 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 
-const BLUE = "#0284c7";
-const BG   = "#06101a";
-const CARD = "#0a1628";
-const B    = "#1a2030";
-const PINK = "#e8185d";
+const PINK   = "#e8185d";
+const BLUE   = "#0284c7";
+const BG     = "#f8f9fb";
+const CARD   = "#ffffff";
+const BORDER = "#e8eaed";
+const TEXT   = "#111827";
+const MUTED  = "#6b7280";
 
-const PLATFORMS = ["Instagram","LinkedIn","Twitter/X","Facebook","YouTube","Pinterest","WhatsApp Business"];
-const STATUS_COLORS = { scheduled:"#0284c7", published:"#22c55e", draft:"#6b7280", failed:"#ef4444" };
+const PLATFORMS    = ["Instagram","LinkedIn","Twitter/X","Facebook","YouTube","Pinterest","WhatsApp Business"];
+const STATUS_COLOR = { scheduled:"#0284c7", published:"#16a34a", draft:"#6b7280", failed:"#ef4444" };
 
-function formatDate(ts) {
+function fmtDate(ts) {
   if (!ts) return "";
-  return new Date(ts).toLocaleString("en-IN", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" });
+  return new Date(ts).toLocaleString("en-IN",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
 }
 
-export default function ContentScheduler({ profile }) {
-  const [posts,     setPosts]     = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [showNew,   setShowNew]   = useState(false);
-  const [submitting,setSubmitting]= useState(false);
-  const [filter,    setFilter]    = useState("all");
-  const [newPost,   setNewPost]   = useState({ platform:"Instagram", caption:"", scheduled_at:"", hashtags:"", status:"scheduled" });
-  const [editId,    setEditId]    = useState(null);
+const PLATFORM_ICON = {Instagram:"📸",LinkedIn:"💼","Twitter/X":"🐦",Facebook:"📘",YouTube:"▶️",Pinterest:"📌","WhatsApp Business":"💬"};
 
-  // Load from Supabase
+export default function ContentScheduler({ profile }) {
+  const [posts,      setPosts]      = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [showForm,   setShowForm]   = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [filter,     setFilter]     = useState("all");
+  const [editId,     setEditId]     = useState(null);
+  const [form,       setForm]       = useState({ platform:"Instagram", caption:"", scheduled_at:"", hashtags:"", status:"scheduled" });
+
   useEffect(() => {
-    if (!profile?.id) { setLoading(false); return; }
-    supabase
-      .from("dh_scheduled_posts")
-      .select("*")
-      .eq("user_id", profile.id)
-      .order("scheduled_at", { ascending: true })
-      .then(({ data }) => { setPosts(data || []); setLoading(false); });
-  }, [profile?.id]);
+    if (!profile?.id){ setLoading(false); return; }
+    supabase.from("dh_scheduled_posts").select("*")
+      .eq("user_id",profile.id).order("scheduled_at",{ascending:true})
+      .then(({data})=>{ setPosts(data||[]); setLoading(false); });
+  },[profile?.id]);
 
   const savePost = async () => {
-    if (!newPost.caption.trim() || !newPost.scheduled_at || !profile?.id) return;
+    if (!form.caption.trim()||!form.scheduled_at||!profile?.id) return;
     setSubmitting(true);
     try {
       if (editId) {
-        // Update existing
-        const { data: updated } = await supabase
-          .from("dh_scheduled_posts")
-          .update({ platform:newPost.platform, content:newPost.caption, hashtags:newPost.hashtags, scheduled_at:newPost.scheduled_at, status:newPost.status })
-          .eq("id", editId).eq("user_id", profile.id)
-          .select().single();
-        if (updated) setPosts(ps => ps.map(p => p.id===editId ? updated : p));
+        const {data:u} = await supabase.from("dh_scheduled_posts")
+          .update({platform:form.platform,content:form.caption,hashtags:form.hashtags,scheduled_at:form.scheduled_at,status:form.status})
+          .eq("id",editId).eq("user_id",profile.id).select().single();
+        if (u) setPosts(ps=>ps.map(p=>p.id===editId?u:p));
         setEditId(null);
       } else {
-        // Insert new
-        const { data: saved } = await supabase
-          .from("dh_scheduled_posts")
-          .insert({ user_id:profile.id, platform:newPost.platform, content:newPost.caption, hashtags:newPost.hashtags, scheduled_at:newPost.scheduled_at, status:newPost.status })
+        const {data:s} = await supabase.from("dh_scheduled_posts")
+          .insert({user_id:profile.id,platform:form.platform,content:form.caption,hashtags:form.hashtags,scheduled_at:form.scheduled_at,status:form.status})
           .select().single();
-        if (saved) setPosts(ps => [saved, ...ps]);
-        // Track analytics
-        supabase.from("dh_analytics_events").insert({ user_id:profile.id, event_type:"post_scheduled", platform:newPost.platform }).then(()=>{});
+        if (s) setPosts(ps=>[s,...ps]);
+        supabase.from("dh_analytics_events").insert({user_id:profile.id,event_type:"post_scheduled",platform:form.platform}).then(()=>{});
       }
-      setNewPost({ platform:"Instagram", caption:"", scheduled_at:"", hashtags:"", status:"scheduled" });
-      setShowNew(false);
-    } catch(e) { console.error("Schedule save error:", e.message); alert("Could not save. Please try again."); }
-    finally { setSubmitting(false); }
+      setForm({platform:"Instagram",caption:"",scheduled_at:"",hashtags:"",status:"scheduled"});
+      setShowForm(false);
+    } catch(e){ alert("Could not save. Please try again."); }
+    setSubmitting(false);
   };
 
   const deletePost = async (id) => {
-    await supabase.from("dh_scheduled_posts").delete().eq("id", id);
-    setPosts(ps => ps.filter(p => p.id !== id));
+    await supabase.from("dh_scheduled_posts").delete().eq("id",id);
+    setPosts(ps=>ps.filter(p=>p.id!==id));
   };
 
   const updateStatus = async (id, status) => {
-    await supabase.from("dh_scheduled_posts").update({ status }).eq("id", id);
-    setPosts(ps => ps.map(p => p.id===id ? { ...p, status } : p));
-    if (status === "published" && profile?.id) {
-      supabase.from("dh_analytics_events").insert({ user_id:profile.id, event_type:"post_published", platform: posts.find(p=>p.id===id)?.platform }).then(()=>{});
-    }
+    await supabase.from("dh_scheduled_posts").update({status}).eq("id",id);
+    setPosts(ps=>ps.map(p=>p.id===id?{...p,status}:p));
   };
 
   const startEdit = (post) => {
     setEditId(post.id);
-    setNewPost({ platform:post.platform, caption:post.content||"", scheduled_at:post.scheduled_at?.slice(0,16)||"", hashtags:post.hashtags||"", status:post.status });
-    setShowNew(true);
-    window.scrollTo({ top:0, behavior:"smooth" });
+    setForm({platform:post.platform,caption:post.content||"",scheduled_at:post.scheduled_at?.slice(0,16)||"",hashtags:post.hashtags||"",status:post.status});
+    setShowForm(true);
   };
 
-  const filtered = filter==="all" ? posts : posts.filter(p => p.status===filter || p.platform?.toLowerCase()===filter.toLowerCase());
+  const filtered = filter==="all" ? posts : posts.filter(p=>p.status===filter||p.platform?.toLowerCase()===filter.toLowerCase());
+  const stats = { total:posts.length, scheduled:posts.filter(p=>p.status==="scheduled").length, published:posts.filter(p=>p.status==="published").length, draft:posts.filter(p=>p.status==="draft").length };
 
-  const stats = {
-    total:     posts.length,
-    scheduled: posts.filter(p=>p.status==="scheduled").length,
-    published: posts.filter(p=>p.status==="published").length,
-    draft:     posts.filter(p=>p.status==="draft").length,
-  };
-
-  const S = {
-    page: { minHeight:"100vh", background:BG, padding:"32px 40px", fontFamily:"'Plus Jakarta Sans',sans-serif" },
-    card: { background:CARD, border:`1px solid ${B}`, borderRadius:14, padding:20 },
-    inp:  { width:"100%", background:"#0d1624", border:`1px solid ${B}`, borderRadius:8, padding:"9px 12px", color:"#ccc", fontSize:13, fontFamily:"inherit", outline:"none", boxSizing:"border-box" },
-    sel:  { width:"100%", background:"#0d1624", border:`1px solid ${B}`, borderRadius:8, padding:"9px 12px", color:"#ccc", fontSize:13, fontFamily:"inherit", outline:"none" },
-    label:{ fontSize:11, fontWeight:700, color:"#445", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:5, display:"block" },
-  };
+  const inp = { width:"100%", background:BG, border:`1.5px solid ${BORDER}`, borderRadius:8, padding:"9px 12px", color:TEXT, fontSize:13, fontFamily:"inherit", outline:"none", boxSizing:"border-box" };
+  const lbl = { fontSize:11, fontWeight:700, color:MUTED, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:6, display:"block" };
 
   return (
-    <div style={S.page}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');`}</style>
+    <div style={{minHeight:"100vh",background:BG,padding:"32px 36px",fontFamily:"'Plus Jakarta Sans',sans-serif",color:TEXT}}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap'); input:focus,select:focus,textarea:focus{border-color:${PINK}!important;outline:none}`}</style>
 
-      {/* Header */}
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:28 }}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:28}}>
         <div>
-          <div style={{ fontSize:26, fontWeight:800, color:"#fff", letterSpacing:"-0.04em", marginBottom:4 }}>⊞ Content Scheduler</div>
-          <div style={{ fontSize:13, color:"#445" }}>Schedule posts across platforms. All posts are saved to your account.</div>
+          <h1 style={{fontWeight:800,fontSize:22,color:TEXT,letterSpacing:"-0.04em",margin:0}}>⊞ Content Scheduler</h1>
+          <p style={{color:MUTED,fontSize:13,marginTop:5}}>Schedule posts across platforms. All saved to your account.</p>
         </div>
-        <button onClick={()=>{ setEditId(null); setNewPost({ platform:"Instagram", caption:"", scheduled_at:"", hashtags:"", status:"scheduled" }); setShowNew(v=>!v); }}
-          style={{ padding:"10px 20px", background:BLUE, color:"#fff", border:"none", borderRadius:9, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
-          {showNew ? "✕ Cancel" : "+ Schedule Post"}
+        <button onClick={()=>{setEditId(null);setForm({platform:"Instagram",caption:"",scheduled_at:"",hashtags:"",status:"scheduled"});setShowForm(v=>!v);}}
+          style={{padding:"10px 20px",background:PINK,color:"#fff",border:"none",borderRadius:9,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+          {showForm?"✕ Cancel":"+ Schedule Post"}
         </button>
       </div>
 
-      {/* Stats bar */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:24 }}>
-        {[
-          { label:"Total",     value:stats.total,     color:"#ccc"     },
-          { label:"Scheduled", value:stats.scheduled, color:BLUE       },
-          { label:"Published", value:stats.published, color:"#22c55e"  },
-          { label:"Drafts",    value:stats.draft,     color:"#6b7280"  },
-        ].map(s=>(
-          <div key={s.label} style={{ ...S.card, textAlign:"center", padding:"14px" }}>
-            <div style={{ fontSize:24, fontWeight:800, color:s.color }}>{s.value}</div>
-            <div style={{ fontSize:11, color:"#445", marginTop:3 }}>{s.label}</div>
+      {/* Stats */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}>
+        {[{label:"Total",value:stats.total,color:TEXT},{label:"Scheduled",value:stats.scheduled,color:BLUE},{label:"Published",value:stats.published,color:"#16a34a"},{label:"Drafts",value:stats.draft,color:MUTED}].map(s=>(
+          <div key={s.label} style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:12,padding:"14px 18px",boxShadow:"0 1px 3px rgba(0,0,0,0.04)",textAlign:"center"}}>
+            <div style={{fontSize:22,fontWeight:800,color:s.color}}>{s.value}</div>
+            <div style={{fontSize:11,color:MUTED,marginTop:3}}>{s.label}</div>
           </div>
         ))}
       </div>
 
-      {/* New/Edit post form */}
-      {showNew && (
-        <div style={{ ...S.card, marginBottom:24 }}>
-          <div style={{ fontSize:14, fontWeight:700, color:"#fff", marginBottom:16 }}>
-            {editId ? "✏️ Edit Post" : "📅 New Scheduled Post"}
-          </div>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:12 }}>
-            <div><label style={S.label}>Platform</label>
-              <select value={newPost.platform} onChange={e=>setNewPost(p=>({...p,platform:e.target.value}))} style={S.sel}>
-                {PLATFORMS.map(pl=><option key={pl}>{pl}</option>)}
+      {/* Form */}
+      {showForm&&(
+        <div style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:14,padding:24,marginBottom:24,boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
+          <div style={{fontWeight:700,fontSize:14,color:TEXT,marginBottom:16}}>{editId?"✏️ Edit Post":"📅 New Scheduled Post"}</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:14}}>
+            <div><label style={lbl}>Platform</label>
+              <select value={form.platform} onChange={e=>setForm(f=>({...f,platform:e.target.value}))} style={inp}>
+                {PLATFORMS.map(p=><option key={p}>{p}</option>)}
               </select>
             </div>
-            <div><label style={S.label}>Schedule Date & Time</label>
-              <input type="datetime-local" value={newPost.scheduled_at} onChange={e=>setNewPost(p=>({...p,scheduled_at:e.target.value}))} style={S.inp}/>
+            <div><label style={lbl}>Date & Time</label>
+              <input type="datetime-local" value={form.scheduled_at} onChange={e=>setForm(f=>({...f,scheduled_at:e.target.value}))} style={inp}/>
             </div>
-            <div><label style={S.label}>Status</label>
-              <select value={newPost.status} onChange={e=>setNewPost(p=>({...p,status:e.target.value}))} style={S.sel}>
-                <option value="scheduled">Scheduled</option>
-                <option value="draft">Draft</option>
+            <div><label style={lbl}>Status</label>
+              <select value={form.status} onChange={e=>setForm(f=>({...f,status:e.target.value}))} style={inp}>
+                <option value="scheduled">Scheduled</option><option value="draft">Draft</option>
               </select>
             </div>
           </div>
-          <div style={{ marginBottom:12 }}>
-            <label style={S.label}>Caption</label>
-            <textarea value={newPost.caption} onChange={e=>setNewPost(p=>({...p,caption:e.target.value}))} rows={4}
-              placeholder="Write your post caption here…"
-              style={{ ...S.inp, resize:"vertical", minHeight:90 }}/>
+          <div style={{marginBottom:12}}>
+            <label style={lbl}>Caption</label>
+            <textarea value={form.caption} onChange={e=>setForm(f=>({...f,caption:e.target.value}))} rows={4}
+              placeholder="Write your post caption…" style={{...inp,resize:"vertical",minHeight:90}}/>
           </div>
-          <div style={{ marginBottom:16 }}>
-            <label style={S.label}>Hashtags</label>
-            <input value={newPost.hashtags} onChange={e=>setNewPost(p=>({...p,hashtags:e.target.value}))}
-              placeholder="#brand #marketing #post"
-              style={S.inp}/>
+          <div style={{marginBottom:16}}>
+            <label style={lbl}>Hashtags</label>
+            <input value={form.hashtags} onChange={e=>setForm(f=>({...f,hashtags:e.target.value}))} placeholder="#brand #marketing" style={inp}/>
           </div>
-          <div style={{ display:"flex", justifyContent:"flex-end", gap:10 }}>
-            <button onClick={()=>{ setShowNew(false); setEditId(null); }}
-              style={{ padding:"9px 20px", background:"transparent", border:`1px solid ${B}`, borderRadius:8, color:"#445", fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
-              Cancel
-            </button>
-            <button onClick={savePost} disabled={!newPost.caption.trim()||!newPost.scheduled_at||submitting}
-              style={{ padding:"9px 24px", background:submitting?`${BLUE}60`:BLUE, color:"#fff", border:"none", borderRadius:8, fontSize:13, fontWeight:700, cursor:submitting?"not-allowed":"pointer", fontFamily:"inherit" }}>
-              {submitting ? "Saving…" : editId ? "Update Post" : "Schedule Post"}
+          <div style={{display:"flex",justifyContent:"flex-end",gap:10}}>
+            <button onClick={()=>setShowForm(false)}
+              style={{padding:"9px 20px",background:"transparent",border:`1px solid ${BORDER}`,borderRadius:8,color:MUTED,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+            <button onClick={savePost} disabled={!form.caption.trim()||!form.scheduled_at||submitting}
+              style={{padding:"9px 24px",background:submitting?`${PINK}60`:PINK,color:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:700,cursor:submitting?"not-allowed":"pointer",fontFamily:"inherit"}}>
+              {submitting?"Saving…":editId?"Update Post":"Schedule Post"}
             </button>
           </div>
         </div>
       )}
 
-      {/* Filter pills */}
-      <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
-        {["all","scheduled","published","draft",...PLATFORMS.slice(0,4)].map(f=>(
+      {/* Filters */}
+      <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>
+        {["all","scheduled","published","draft","Instagram","LinkedIn","Facebook"].map(f=>(
           <button key={f} onClick={()=>setFilter(f)}
-            style={{ padding:"5px 13px", borderRadius:20, fontSize:11, fontWeight:600, cursor:"pointer", border:"none", fontFamily:"inherit",
-              background:filter===f?BLUE:"#0d1624", color:filter===f?"#fff":"#445" }}>
-            {f === "all" ? "All" : f.charAt(0).toUpperCase()+f.slice(1)}
+            style={{padding:"5px 13px",borderRadius:20,fontSize:11,fontWeight:600,cursor:"pointer",border:"none",fontFamily:"inherit",
+              background:filter===f?PINK:`${BORDER}`,color:filter===f?"#fff":MUTED,transition:"all 0.13s"}}>
+            {f==="all"?"All Posts":f.charAt(0).toUpperCase()+f.slice(1)}
           </button>
         ))}
       </div>
 
-      {/* Posts list */}
-      {loading && <div style={{ color:"#445", fontSize:13, padding:"32px 0", textAlign:"center" }}>Loading scheduled posts…</div>}
-
-      {!loading && filtered.length === 0 && (
-        <div style={{ ...S.card, textAlign:"center", padding:"40px 24px" }}>
-          <div style={{ fontSize:24, marginBottom:12 }}>📅</div>
-          <div style={{ fontSize:15, fontWeight:700, color:"#fff", marginBottom:6 }}>
-            {filter==="all" ? "No posts scheduled yet" : `No ${filter} posts`}
-          </div>
-          <div style={{ fontSize:13, color:"#445" }}>Click "+ Schedule Post" to add your first post.</div>
+      {/* Posts */}
+      {loading&&<div style={{color:MUTED,fontSize:13,textAlign:"center",padding:"32px 0"}}>Loading…</div>}
+      {!loading&&filtered.length===0&&(
+        <div style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:14,padding:"40px 24px",textAlign:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
+          <div style={{fontSize:22,marginBottom:12}}>📅</div>
+          <div style={{fontSize:15,fontWeight:700,color:TEXT,marginBottom:6}}>{filter==="all"?"No posts scheduled yet":`No ${filter} posts`}</div>
+          <div style={{fontSize:13,color:MUTED}}>Click "+ Schedule Post" to add your first post.</div>
         </div>
       )}
-
-      <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
         {filtered.map(post=>(
-          <div key={post.id} style={{ ...S.card, display:"grid", gridTemplateColumns:"auto 1fr auto", gap:16, alignItems:"start" }}>
-            {/* Platform badge */}
-            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6, minWidth:70 }}>
-              <div style={{ width:38, height:38, borderRadius:10, background:`${BLUE}15`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>
-                {{"Instagram":"📸","LinkedIn":"💼","Twitter/X":"🐦","Facebook":"📘","YouTube":"▶️","Pinterest":"📌","WhatsApp Business":"💬"}[post.platform]||"📱"}
+          <div key={post.id} style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:12,padding:"16px 20px",display:"grid",gridTemplateColumns:"auto 1fr auto",gap:16,alignItems:"start",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,minWidth:60}}>
+              <div style={{width:36,height:36,borderRadius:9,background:`${BLUE}10`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>
+                {PLATFORM_ICON[post.platform]||"📱"}
               </div>
-              <span style={{ fontSize:10, color:"#445", fontWeight:600, textAlign:"center" }}>{post.platform}</span>
+              <span style={{fontSize:9.5,color:MUTED,fontWeight:600,textAlign:"center"}}>{post.platform}</span>
             </div>
-
-            {/* Content */}
             <div>
-              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
-                <span style={{ fontSize:11, fontWeight:700, color:STATUS_COLORS[post.status]||"#445", background:`${STATUS_COLORS[post.status]||"#445"}15`, padding:"2px 8px", borderRadius:5, textTransform:"uppercase", letterSpacing:"0.05em" }}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                <span style={{fontSize:10,fontWeight:700,color:STATUS_COLOR[post.status]||MUTED,background:`${STATUS_COLOR[post.status]||MUTED}12`,padding:"2px 8px",borderRadius:5,textTransform:"uppercase",letterSpacing:"0.05em"}}>
                   {post.status}
                 </span>
-                <span style={{ fontSize:11, color:"#445" }}>📅 {formatDate(post.scheduled_at)}</span>
+                <span style={{fontSize:11,color:MUTED}}>📅 {fmtDate(post.scheduled_at)}</span>
               </div>
-              <div style={{ fontSize:13.5, color:"#bbb", lineHeight:1.65, marginBottom:post.hashtags?6:0 }}>
-                {(post.content||"").length > 200 ? (post.content||"").slice(0,200)+"…" : (post.content||"")}
+              <div style={{fontSize:13.5,color:TEXT,lineHeight:1.65,marginBottom:post.hashtags?5:0}}>
+                {(post.content||"").length>200?(post.content||"").slice(0,200)+"…":(post.content||"")}
               </div>
-              {post.hashtags && (
-                <div style={{ fontSize:12, color:`${BLUE}90` }}>{post.hashtags}</div>
-              )}
+              {post.hashtags&&<div style={{fontSize:11.5,color:BLUE}}>{post.hashtags}</div>}
             </div>
-
-            {/* Actions */}
-            <div style={{ display:"flex", flexDirection:"column", gap:6, alignItems:"flex-end" }}>
-              {post.status === "scheduled" && (
+            <div style={{display:"flex",flexDirection:"column",gap:6,alignItems:"flex-end"}}>
+              {post.status==="scheduled"&&(
                 <button onClick={()=>updateStatus(post.id,"published")}
-                  style={{ padding:"5px 12px", background:"#22c55e20", border:"1px solid #22c55e40", borderRadius:7, color:"#22c55e", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap" }}>
-                  ✓ Mark Published
-                </button>
+                  style={{padding:"5px 12px",background:"#f0fdf4",border:"1px solid #86efac",borderRadius:7,color:"#16a34a",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>✓ Published</button>
               )}
-              {post.status === "draft" && (
+              {post.status==="draft"&&(
                 <button onClick={()=>updateStatus(post.id,"scheduled")}
-                  style={{ padding:"5px 12px", background:`${BLUE}20`, border:`1px solid ${BLUE}40`, borderRadius:7, color:BLUE, fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
-                  Schedule
-                </button>
+                  style={{padding:"5px 12px",background:`${BLUE}10`,border:`1px solid ${BLUE}30`,borderRadius:7,color:BLUE,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Schedule</button>
               )}
               <button onClick={()=>startEdit(post)}
-                style={{ padding:"5px 12px", background:"transparent", border:`1px solid ${B}`, borderRadius:7, color:"#445", fontSize:11, cursor:"pointer", fontFamily:"inherit" }}>
-                ✏️ Edit
-              </button>
+                style={{padding:"5px 12px",background:"transparent",border:`1px solid ${BORDER}`,borderRadius:7,color:MUTED,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>✏️ Edit</button>
               <button onClick={()=>deletePost(post.id)}
-                style={{ padding:"5px 12px", background:"transparent", border:"1px solid #ef444430", borderRadius:7, color:"#ef4444", fontSize:11, cursor:"pointer", fontFamily:"inherit" }}>
-                Delete
-              </button>
+                style={{padding:"5px 12px",background:"transparent",border:"1px solid #fecaca",borderRadius:7,color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Delete</button>
             </div>
           </div>
         ))}
