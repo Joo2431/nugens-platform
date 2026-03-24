@@ -4,8 +4,6 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { NG_LOGO } from "../lib/logo";
-import MyCareerProfile, { buildContextString } from "./MyCareerProfile";
-import ExportChatButton from "./ExportChatButton";
 
 const API   = import.meta.env.VITE_GEN_E_API_URL || "https://nugens-platform.onrender.com";
 const PINK  = "#e8185d";
@@ -248,6 +246,48 @@ function FeatureCard({ f, plan, onTrigger }) {
   );
 }
 
+function SaveResumeModal({ defaultText, saving, onClose, onSave }) {
+  const [title,   setTitle]   = useState("My Resume");
+  const [role,    setRole]    = useState("");
+  const [company, setCompany] = useState("");
+  const inp = { width:"100%",padding:"9px 12px",border:"1.5px solid #e8ecf0",borderRadius:9,
+    fontSize:13,outline:"none",fontFamily:"inherit",transition:"border 0.15s",boxSizing:"border-box",background:"#fafbfc" };
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:900,
+      display:"flex",alignItems:"center",justifyContent:"center",padding:20}}
+      onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div style={{background:"#fff",borderRadius:18,padding:"28px 24px",maxWidth:380,
+        width:"100%",boxShadow:"0 32px 80px rgba(0,0,0,0.2)"}}>
+        <div style={{fontWeight:800,fontSize:17,color:"#111",marginBottom:4}}>💾 Save to Resume Vault</div>
+        <div style={{fontSize:12.5,color:"#aaa",marginBottom:20}}>Name this version so you can find it later.</div>
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          {[["Resume Title *",title,setTitle,"e.g. Resume v1 — TCS"],
+            ["Target Role (optional)",role,setRole,"e.g. Software Engineer"],
+            ["Target Company (optional)",company,setCompany,"e.g. Google, TCS, any startup"]
+          ].map(([lbl,val,set,ph])=>(
+            <div key={lbl}>
+              <label style={{fontSize:11.5,fontWeight:600,color:"#555",display:"block",marginBottom:4}}>{lbl}</label>
+              <input value={val} onChange={e=>set(e.target.value)} placeholder={ph} style={inp}
+                onFocus={e=>e.target.style.borderColor=PINK} onBlur={e=>e.target.style.borderColor="#e8ecf0"}/>
+            </div>
+          ))}
+        </div>
+        <div style={{display:"flex",gap:10,marginTop:20}}>
+          <button onClick={onClose}
+            style={{flex:1,padding:"10px 0",background:"#f5f7fa",border:"none",borderRadius:9,
+              fontWeight:600,fontSize:13,color:"#888",cursor:"pointer"}}>Cancel</button>
+          <button onClick={()=>onSave({title:title||"My Resume",target_role:role,target_company:company,content_md:defaultText})}
+            disabled={saving||!title.trim()}
+            style={{flex:2,padding:"10px 0",background:saving?"#f0f0f0":PINK,border:"none",
+              borderRadius:9,fontWeight:700,fontSize:13,color:saving?"#aaa":"#fff",cursor:saving?"wait":"pointer"}}>
+            {saving?"Saving…":"Save Resume →"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RenameModal({chat,onSave,onClose}){
   const [v,setV]=useState(chat?.title||"");
   return(
@@ -301,11 +341,12 @@ export default function GenEChat() {
   const [lang,       setLang]       = useState(()=>localStorage.getItem("gene-lang")||"en");
   const [langOpen,   setLangOpen]   = useState(false);
   const [savedToast, setSavedToast] = useState(false);
+  const [saveModal,  setSaveModal]  = useState(null);
+  const [saving,     setSaving]     = useState(false);
   const [ctx,        setCtx]        = useState(null);
   const [renaming,   setRenaming]   = useState(null);
   const [editIdx,    setEditIdx]    = useState(null);
   const [editText,   setEditText]   = useState("");
-  const [profileOpen,setProfileOpen]= useState(false);
 
   const bottomRef   = useRef(null);
   const inputRef    = useRef(null);
@@ -419,7 +460,154 @@ export default function GenEChat() {
     return session?.access_token||null;
   };
 
-  const stageFile = file => {
+  /* ── Lazy-load jsPDF from CDN ── */
+  const getJsPDF = () => new Promise((res, rej) => {
+    if (window.jspdf?.jsPDF) { res(window.jspdf.jsPDF); return; }
+    if (document.getElementById("jspdf-script")) {
+      const iv = setInterval(() => { if (window.jspdf?.jsPDF) { clearInterval(iv); res(window.jspdf.jsPDF); }}, 80);
+      return;
+    }
+    const s = document.createElement("script"); s.id = "jspdf-script";
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+    s.onload = () => { setTimeout(() => res(window.jspdf?.jsPDF), 100); };
+    s.onerror = () => rej(new Error("jsPDF failed to load"));
+    document.head.appendChild(s);
+  });
+
+  /* ── Download resume as professional PDF ── */
+  const downloadResumePDF = async (txt) => {
+    try {
+      const JsPDF = await getJsPDF();
+      const doc = new JsPDF({ orientation:"portrait", unit:"mm", format:"a4" });
+
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const margin = 18;
+      const contentW = pageW - margin * 2;
+      let y = margin;
+
+      // ── Header ──────────────────────────────────────────────
+      doc.setFillColor(232, 24, 93);
+      doc.rect(0, 0, pageW, 22, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.setTextColor(255, 255, 255);
+      doc.text("GEN-E AI", margin, 13);
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.text("AI-Generated Resume  ·  nugens.in.net", margin + 32, 13);
+      // Date top right
+      doc.text(new Date().toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"}), pageW - margin, 13, { align:"right" });
+      y = 32;
+
+      // ── Parse and render markdown ────────────────────────────
+      const lines = txt.split("
+");
+      for (let i = 0; i < lines.length; i++) {
+        const raw = lines[i];
+        const line = raw.trim();
+        if (!line) { y += 3; continue; }
+
+        // Page break check
+        if (y > pageH - 20) {
+          doc.addPage();
+          y = margin;
+        }
+
+        if (line.startsWith("## ")) {
+          // Section heading
+          const heading = line.replace(/^## /, "").toUpperCase();
+          y += 4;
+          doc.setDrawColor(232, 24, 93);
+          doc.setLineWidth(0.4);
+          doc.line(margin, y, pageW - margin, y);
+          y += 5;
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8.5);
+          doc.setTextColor(232, 24, 93);
+          doc.text(heading, margin, y);
+          y += 6;
+          doc.setTextColor(30, 30, 30);
+
+        } else if (line.startsWith("### ")) {
+          // Sub heading
+          const subhead = line.replace(/^### /, "");
+          y += 2;
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          doc.setTextColor(17, 17, 17);
+          doc.text(subhead, margin, y);
+          y += 5;
+
+        } else if (line.startsWith("- ") || line.startsWith("• ")) {
+          // Bullet point
+          const bullet = line.replace(/^[-•] /, "").replace(/\*\*(.+?)\*\*/g, "$1");
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9.5);
+          doc.setTextColor(55, 65, 81);
+          doc.text("•", margin + 2, y);
+          const wrapped = doc.splitTextToSize(bullet, contentW - 8);
+          doc.text(wrapped, margin + 7, y);
+          y += wrapped.length * 5 + 1;
+
+        } else if (line.startsWith("**") && line.endsWith("**")) {
+          // Bold standalone line
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(9.5);
+          doc.setTextColor(17, 17, 17);
+          doc.text(line.replace(/\*\*/g, ""), margin, y);
+          y += 5.5;
+
+        } else {
+          // Normal paragraph
+          const cleanLine = line.replace(/\*\*(.+?)\*\*/g, "$1");
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9.5);
+          doc.setTextColor(55, 65, 81);
+          const wrapped = doc.splitTextToSize(cleanLine, contentW);
+          doc.text(wrapped, margin, y);
+          y += wrapped.length * 5 + 1;
+        }
+      }
+
+      // ── Footer ───────────────────────────────────────────────
+      const totalPages = doc.internal.getNumberOfPages();
+      for (let p = 1; p <= totalPages; p++) {
+        doc.setPage(p);
+        doc.setFontSize(7);
+        doc.setTextColor(180, 180, 180);
+        doc.text(`Generated by Gen-E AI  ·  nugens.in.net  ·  Page ${p} of ${totalPages}`,
+          pageW / 2, pageH - 8, { align: "center" });
+      }
+
+      doc.save("resume-gene.pdf");
+    } catch(e) {
+      console.error("PDF failed:", e);
+      alert("PDF export failed: " + e.message);
+    }
+  };
+
+  /* ── Save resume to vault (Pro only) ── */
+  const saveResume = async ({title,target_role,target_company,content_md}) => {
+    setSaving(true);
+    try {
+      const {data:{session}} = await supabase.auth.getSession();
+      const res = await fetch(`${API}/api/resumes`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json",...(session?{Authorization:`Bearer ${session.access_token}`}:{})},
+        body:JSON.stringify({title,target_role,target_company,content_md}),
+      });
+      const data = await res.json();
+      if(res.status===403){setUpgrade("resume_builder");setSaveModal(null);return;}
+      if(!res.ok) throw new Error(data.detail||data.error||"Save failed");
+      setSaveModal(null);
+      setSavedToast(true);
+      setTimeout(()=>setSavedToast(false),3000);
+    } catch(e){alert("Could not save resume: "+e.message);}
+    finally{setSaving(false);}
+  };
+
+    const stageFile = file => {
     if(!file) return; setShowAttach(false);
     const plan = profile?.plan||"free";
     if(plan==="free"){ setUpgrade("resume_review"); return; }
@@ -480,7 +668,7 @@ export default function GenEChat() {
     try {
       const token=await getToken(); await wakeServer();
       patch(chatId,c=>({...c,messages:[...c.messages,{role:"assistant",text:"",streaming:true}]}));
-      const res=await fetch(`${API}/api/chat`,{method:"POST",headers:{"Content-Type":"application/json",...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify({message:`[MODE:${chatMode}] ${buildContextString(profile)}${msg}`,history:hist,session_id:chatId,mode:chatMode,lang})});
+      const res=await fetch(`${API}/api/chat`,{method:"POST",headers:{"Content-Type":"application/json",...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify({message:`[MODE:${chatMode}] ${msg}`,history:hist,session_id:chatId,mode:chatMode,lang})});
       if(res.status===403){const d=await res.json().catch(()=>({}));patch(chatId,c=>({...c,messages:c.messages.filter(m=>!m.streaming).slice(0,-1)}));setUpgrade("limit");setBusy(false);return;}
       if(!res.ok||!res.body) throw new Error("Server error "+res.status);
       const reader=res.body.getReader(); const decoder=new TextDecoder();
@@ -567,6 +755,62 @@ export default function GenEChat() {
         })}
       </div>
 
+      {/* Nav links + Quick Tools */}
+      <div style={{padding:"10px 12px 6px",borderTop:"1px solid #f5f7fa",flexShrink:0}}>
+        <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:10}}>
+          {[
+            {icon:"📄",label:"Resume Vault",path:"/resumes",pro:true},
+            {icon:"📊",label:"Job Tracker",path:"/jobs",pro:false},
+          ].map(item=>{
+            const locked = item.pro && !PAID_PLANS.has(profile?.plan||"free");
+            return (
+              <button key={item.path}
+                onClick={()=>locked?setUpgrade("resume_builder"):nav(item.path)}
+                style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",
+                  background:"none",border:"1.5px solid #edf0f3",borderRadius:9,
+                  cursor:"pointer",textAlign:"left",fontSize:12,
+                  color:locked?"#ccc":"#555",fontWeight:500,transition:"all 0.12s"}}
+                onMouseEnter={e=>{if(!locked){e.currentTarget.style.background="#fff0f4";e.currentTarget.style.borderColor="#fcc";e.currentTarget.style.color=PINK;}}}
+                onMouseLeave={e=>{if(!locked){e.currentTarget.style.background="none";e.currentTarget.style.borderColor="#edf0f3";e.currentTarget.style.color="#555";}}}>
+                <span>{item.icon}</span>
+                <span style={{flex:1}}>{item.label}</span>
+                {locked && <span style={{fontSize:10}}>🔒</span>}
+              </button>
+            );
+          })}
+        </div>
+        <div style={{fontSize:10,fontWeight:700,color:"#d0d5dd",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:6}}>Quick Tools</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:5,marginBottom:10}}>
+          {[
+            {label:"ATS Resume",  mode:"RESUME",    body:"Help me build an ATS-optimised resume. Ask me what role I'm targeting.", pro:true},
+            {label:"Career Plan", mode:"CAREER",    body:"Create a detailed personalised career roadmap for my situation.",         pro:false},
+            {label:"Skill Gap",   mode:"CAREER",    body:"Do a skill gap analysis. Ask me my current role and target role first.", pro:false},
+            {label:"Mock Interview",mode:"INTERVIEW",body:"Start a mock interview. Ask me the role I am targeting first.",           pro:true},
+            {label:"Score Me",    mode:"SCORING",   body:"Give me a full career readiness score with strengths, gaps and 30-day plan.",pro:false},
+            {label:"Job Match",   mode:"CAREER",    body:"Find the best job roles matching my profile and search for live openings.",  yearly:true},
+          ].map(t=>{
+            const plan = profile?.plan||"free";
+            const locked = (t.pro && !PAID_PLANS.has(plan)) || (t.yearly && plan!=="yearly" && plan!=="admin");
+            const handleTool = () => {
+              if(locked){ setUpgrade(t.yearly?"job_search":"resume_builder"); return; }
+              const ch = freshChat(t.mode);
+              setChats(prev=>[ch,...prev]); setActiveId(ch.id); setMode(t.mode);
+              setTimeout(()=>send(t.body,ch.id,t.mode,null),80);
+            };
+            return (
+              <button key={t.label} onClick={handleTool}
+                style={{padding:"7px 9px",borderRadius:8,border:"1.5px solid #edf0f3",
+                  background:"#fff",cursor:"pointer",textAlign:"left",fontSize:11.5,
+                  color:locked?"#ccc":"#555",fontWeight:500,transition:"all 0.12s"}}
+                onMouseEnter={e=>{if(!locked){e.currentTarget.style.background="#fff0f4";e.currentTarget.style.borderColor="#fcc";e.currentTarget.style.color=PINK;}}}
+                onMouseLeave={e=>{if(!locked){e.currentTarget.style.background="#fff";e.currentTarget.style.borderColor="#edf0f3";e.currentTarget.style.color="#555";}}}>
+                {t.label}{locked?" 🔒":""}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* User + quick actions */}
       <div style={{padding:"10px 12px 14px",borderTop:"1px solid #f5f7fa",flexShrink:0}}>
         {!PAID_PLANS.has(profile?.plan||"free") && (
@@ -639,14 +883,8 @@ export default function GenEChat() {
         @media(max-width:720px){.mob-btn{display:flex!important}.desktop-sb{display:none!important}}
       `}</style>
 
-      {profileOpen && (
-        <MyCareerProfile
-          profile={profile}
-          onClose={()=>setProfileOpen(false)}
-          onSaved={()=>{ setProfileOpen(false); if(user) loadProfile(user.id); }}
-        />
-      )}
       {upgrade && <UpgradeModal feature={upgrade} onClose={()=>setUpgrade(false)} onUpgrade={()=>{setUpgrade(false);nav("/pricing");}}/>}
+      {saveModal && <SaveResumeModal defaultText={saveModal.text} saving={saving} onClose={()=>setSaveModal(null)} onSave={saveResume}/>}
       {renaming && <RenameModal chat={chats.find(c=>c.id===renaming)} onSave={t=>renameChat(renaming,t)} onClose={()=>setRenaming(null)}/>}
       {ctx && <CtxMenu x={ctx.x} y={ctx.y} onRename={()=>setRenaming(ctx.id)} onDelete={()=>deleteChat(ctx.id)} onClose={()=>setCtx(null)}/>}
       {savedToast && (
@@ -740,15 +978,6 @@ export default function GenEChat() {
                   </button>
                 )}
                 <PlanBadge plan={profile?.plan||"free"}/>
-                {active?.messages?.length > 0 && (
-                  <ExportChatButton chat={active} profile={profile} />
-                )}
-                <button onClick={()=>setProfileOpen(true)} title="My Career Profile"
-                  style={{padding:"4px 10px",background:"#f8fafb",border:"1.5px solid #edf0f3",borderRadius:9,cursor:"pointer",fontSize:11.5,fontWeight:600,color:"#888",transition:"all 0.13s",display:"flex",alignItems:"center",gap:4}}
-                  onMouseEnter={e=>{e.currentTarget.style.borderColor=PINK;e.currentTarget.style.color=PINK;e.currentTarget.style.background="#fff0f4";}}
-                  onMouseLeave={e=>{e.currentTarget.style.borderColor="#edf0f3";e.currentTarget.style.color="#888";e.currentTarget.style.background="#f8fafb";}}>
-                  👤 Profile
-                </button>
                 <LanguagePicker lang={lang} setLang={setLang} open={langOpen} setOpen={setLangOpen}/>
                 <button onClick={newChat} style={{width:30,height:30,background:"#f8fafb",border:"1.5px solid #edf0f3",borderRadius:9,cursor:"pointer",color:"#bbb",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1,transition:"all 0.13s"}}
                   onMouseEnter={e=>{e.currentTarget.style.borderColor=PINK;e.currentTarget.style.color=PINK;e.currentTarget.style.background="#fff0f4";}}
@@ -798,6 +1027,45 @@ export default function GenEChat() {
                           <div className={msg.role==="user"?"md-user":("md-ai"+(msg.streaming?" streaming-msg":""))}>
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.text}</ReactMarkdown>
                           </div>
+
+                          {/* ── PDF download link (from server) ── */}
+                          {msg.pdf && PAID_PLANS.has(profile?.plan||"free") && (
+                            <a href={`${API}${msg.pdf}`} target="_blank" rel="noopener noreferrer"
+                              style={{display:"inline-flex",alignItems:"center",gap:6,marginTop:12,
+                                padding:"7px 14px",background:"rgba(255,255,255,0.18)",color:"#fff",
+                                borderRadius:9,fontSize:12,fontWeight:700,textDecoration:"none",
+                                border:"1px solid rgba(255,255,255,0.3)"}}>
+                              ↓ Download Resume PDF
+                            </a>
+                          )}
+
+                          {/* ── Resume/document action buttons — PDF + Save to Vault ── */}
+                          {msg.role==="assistant" && !msg.streaming &&
+                           msg.text?.includes("##") && msg.text?.length > 300 && (
+                            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:12}}>
+                              <button onClick={()=>downloadResumePDF(msg.text)}
+                                style={{display:"inline-flex",alignItems:"center",gap:5,
+                                  padding:"6px 13px",background:"#f0fdf4",border:"1px solid #86efac",
+                                  color:"#15803d",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer",
+                                  transition:"all 0.13s"}}
+                                onMouseEnter={e=>{e.currentTarget.style.background="#dcfce7";}}
+                                onMouseLeave={e=>{e.currentTarget.style.background="#f0fdf4";}}>
+                                📄 Download as PDF
+                              </button>
+                              {(PAID_PLANS.has(profile?.plan||"free") || (profile?.plan||"free")==="admin") && (
+                                <button onClick={()=>setSaveModal({text:msg.text})}
+                                  style={{display:"inline-flex",alignItems:"center",gap:5,
+                                    padding:"6px 13px",background:"#eff6ff",border:"1px solid #93c5fd",
+                                    borderRadius:8,cursor:"pointer",fontSize:12,color:"#1d4ed8",fontWeight:700,
+                                    transition:"all 0.13s"}}
+                                  onMouseEnter={e=>{e.currentTarget.style.background="#dbeafe";}}
+                                  onMouseLeave={e=>{e.currentTarget.style.background="#eff6ff";}}>
+                                  💾 Save to Vault
+                                </button>
+                              )}
+                            </div>
+                          )}
+
                           {msg.role==="assistant"&&msg.jobs?.length>0&&(
                             <div style={{marginTop:16,display:"flex",flexDirection:"column",gap:8}}>
                               {msg.jobs.map(j=>(

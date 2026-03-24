@@ -156,7 +156,7 @@ async function logChat({ userId, sessionId, role, message, mode }) {
 }
 
 /* ── PLAN CONFIG ── */
-// Covers all plans from all platforms (Nugens Web, Gen-E, HyperX, DigiHub, Units)
+// Covers all plans from all platforms (NuGens Web, Gen-E, HyperX, DigiHub, Units)
 // amount = paise (INR × 100). profilePlan = value written to profiles.plan column.
 const PLAN_CONFIG = {
   // ── Gen-E plans ───────────────────────────────────────────────────
@@ -165,7 +165,7 @@ const PLAN_CONFIG = {
   gene_monthly: { amount: 9900,    currency: "INR", label: "Gen-E Pro Monthly",  durationDays: 30,  profilePlan: "gene_monthly" },
   gene_yearly:  { amount: 69900,   currency: "INR", label: "Gen-E Pro Yearly",   durationDays: 365, profilePlan: "gene_yearly"  },
 
-  // ── Nugens Suite — Individual ─────────────────────────────────────
+  // ── NuGens Suite — Individual ─────────────────────────────────────
   individual_starter_monthly: { amount: 9900,    currency: "INR", label: "Suite Starter Monthly",  durationDays: 30,  profilePlan: "ng_ind_starter" },
   individual_starter_yearly:  { amount: 79900,   currency: "INR", label: "Suite Starter Yearly",   durationDays: 365, profilePlan: "ng_ind_starter" },
   individual_premium_monthly: { amount: 19900,   currency: "INR", label: "Suite Premium Monthly",  durationDays: 30,  profilePlan: "ng_ind_premium" },
@@ -173,7 +173,7 @@ const PLAN_CONFIG = {
   individual_pro_monthly:     { amount: 29900,   currency: "INR", label: "Suite Pro Monthly",      durationDays: 30,  profilePlan: "ng_ind_pro"     },
   individual_pro_yearly:      { amount: 249900,  currency: "INR", label: "Suite Pro Yearly",       durationDays: 365, profilePlan: "ng_ind_pro"     },
 
-  // ── Nugens Suite — Business ───────────────────────────────────────
+  // ── NuGens Suite — Business ───────────────────────────────────────
   business_starter_monthly: { amount: 49900,   currency: "INR", label: "Suite Biz Starter Monthly",  durationDays: 30,  profilePlan: "ng_biz_starter" },
   business_starter_yearly:  { amount: 399900,  currency: "INR", label: "Suite Biz Starter Yearly",   durationDays: 365, profilePlan: "ng_biz_starter" },
   business_premium_monthly: { amount: 99900,   currency: "INR", label: "Suite Biz Premium Monthly",  durationDays: 30,  profilePlan: "ng_biz_premium" },
@@ -314,16 +314,16 @@ YOU ARE IN BUSINESS MODE. You MUST help with ALL of these business tools without
 
 4. WORKFORCE PLANNING — Create phase-by-phase hiring roadmaps based on company stage and growth goals. Cover: priority hires by quarter, budget estimates, org structure recommendations, and build-vs-hire decisions.
 
-5. SALARY BENCHMARK — Provide detailed Indian market salary data for any role: ranges by experience tier, city variations (Bangalore/Mumbai/Chennai/Hyderabad/Pune/Tier 2), industry premiums, variable pay norms, equity expectations, and negotiation guidance.
+5. SALARY BENCHMARK — Provide detailed Indian market salary data for any role: ranges by experience tier, city variations, industry premiums, variable pay norms, equity expectations, and negotiation guidance.
 
 6. INTERVIEW AI — Generate complete interview kits for any role and level: screening questions, technical/functional questions, behavioural questions (STAR format), case/scenario questions, and evaluation rubric with scoring criteria.
 
 STYLE IN BUSINESS MODE:
 - Be direct and data-driven. Founders and managers want actionable intel, not career coaching.
-- Use structured output with clear sections and headers — business users need scannable information.
+- Use structured output with clear sections and headers.
 - Always include numbers: salary ranges, timelines, headcounts, percentages.
 - India market context is default unless another market is specified.
-- Never refuse a business tool request. If you need more context, ask ONE specific question then proceed.`
+- Never refuse a business tool request.`
 };
 
 /* ── UTILS ── */
@@ -529,7 +529,7 @@ app.post("/api/chat", requireAuth, checkUsage, async (req, res) => {
   /* ══ FEATURE GATES ══ */
 
   // ATS Resume Builder → Pro only (monthly + yearly)
-  if (mode === "RESUME" && !["monthly","yearly","admin","hx_ind_starter","hx_ind_premium","hx_ind_pro","hx_ind_yearly","hx_biz_starter","hx_biz_premium","hx_biz_pro","hx_biz_yearly","ng_ind_starter","ng_ind_premium","ng_ind_pro","ng_biz_starter","ng_biz_premium","ng_biz_pro"].includes(plan)) {
+  if (mode === "RESUME" && !["monthly","yearly","admin","hx_ind_starter","hx_ind_premium","hx_ind_pro","hx_ind_yearly","hx_biz_starter","hx_biz_premium","hx_biz_pro","hx_biz_yearly","ng_ind_starter","ng_ind_premium","ng_ind_pro","ng_biz_starter","ng_biz_premium","ng_biz_pro","gene_monthly","gene_yearly","gene_biz_starter","gene_biz_pro"].includes(plan)) {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     const send = (obj) => res.write("data: " + JSON.stringify(obj) + "\n\n");
@@ -540,7 +540,7 @@ app.post("/api/chat", requireAuth, checkUsage, async (req, res) => {
   }
 
   // Advanced Interview Prep → Pro only (monthly + yearly)
-  if (mode === "INTERVIEW" && !["monthly","yearly","admin","hx_ind_starter","hx_ind_premium","hx_ind_pro","hx_ind_yearly","hx_biz_starter","hx_biz_premium","hx_biz_pro","hx_biz_yearly","ng_ind_starter","ng_ind_premium","ng_ind_pro","ng_biz_starter","ng_biz_premium","ng_biz_pro"].includes(plan)) {
+  if (mode === "INTERVIEW" && !["monthly","yearly","admin","hx_ind_starter","hx_ind_premium","hx_ind_pro","hx_ind_yearly","hx_biz_starter","hx_biz_premium","hx_biz_pro","hx_biz_yearly","ng_ind_starter","ng_ind_premium","ng_ind_pro","ng_biz_starter","ng_biz_premium","ng_biz_pro","gene_monthly","gene_yearly","gene_biz_starter","gene_biz_pro"].includes(plan)) {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     const send = (obj) => res.write("data: " + JSON.stringify(obj) + "\n\n");
@@ -992,10 +992,24 @@ async function fetchLiveJobs(query, location, remote) {
 function detectJobIntent(message) {
   const m = message.toLowerCase();
   const triggers = [
+    // Core job search phrases
     "find job", "search job", "find me job", "job for me", "job openings",
     "job listing", "show job", "any job", "find opening", "job vacancies",
-    "job in ", "jobs in ", "hiring", "find work", "job search",
+    "job in ", "jobs in ", "find work", "job search",
     "look for job", "job near", "find position", "open position",
+    // Extended triggers (natural language)
+    "job roles matching", "roles matching", "matching my profile",
+    "live openings", "live jobs", "job match", "current openings",
+    "available positions", "hiring now", "companies hiring",
+    "open roles", "job opportunities", "career opportunities",
+    "opportunities in", "find opportunities", "show me jobs",
+    "get me jobs", "latest jobs", "recent openings", "new job",
+    "apply for", "where can i apply", "who is hiring",
+    "jobs for me", "jobs matching", "suitable jobs",
+    "relevant jobs", "recommend jobs", "suggest jobs",
+    "software jobs", "developer jobs", "engineer jobs",
+    "marketing jobs", "sales jobs", "design jobs", "data jobs",
+    "remote jobs", "fresher jobs", "entry level jobs",
   ];
   return triggers.some(t => m.includes(t));
 }
