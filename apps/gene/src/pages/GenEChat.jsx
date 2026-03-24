@@ -501,8 +501,7 @@ export default function GenEChat() {
       y = 32;
 
       // ── Parse and render markdown ────────────────────────────
-      const lines = txt.split("
-");
+      const lines = txt.split("\n");
       for (let i = 0; i < lines.length; i++) {
         const raw = lines[i];
         const line = raw.trim();
