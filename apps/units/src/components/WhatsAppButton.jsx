@@ -5,7 +5,7 @@
  */
 import React, { useState } from "react";
 
-const WA_NUMBER = "919342386606"; // ← Replace with your WhatsApp business number (no + or spaces)
+const WA_NUMBER = "919XXXXXXXXX"; // ← Replace with your WhatsApp business number (no + or spaces)
 const WA_MESSAGE_UNITS   = "Hi! I saw your Units production services on nugens.in.net. I'd like to enquire about booking.";
 const WA_MESSAGE_GENERAL = "Hi! I came across Nugens and would like to know more about your services.";
 
@@ -28,7 +28,7 @@ export function WhatsAppButton({ message, label = "Chat on WhatsApp" }) {
         .wa-btn:hover { animation: none; }
       `}</style>
 
-      <div style={{ position:"fixed", bottom:24, right:24, zIndex:800, display:"flex", alignItems:"center", gap:10 }}>
+      <div style={{ position:"fixed", bottom:24, right:24, zIndex:10000, display:"flex", alignItems:"center", gap:10 }}>
 
         {/* Tooltip */}
         {showTooltip && (
