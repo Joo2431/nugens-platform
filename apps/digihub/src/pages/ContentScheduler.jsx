@@ -46,15 +46,16 @@ export default function ContentScheduler({ profile }) {
         if (u) setPosts(ps=>ps.map(p=>p.id===editId?u:p));
         setEditId(null);
       } else {
-        const {data:s} = await supabase.from("dh_scheduled_posts")
-          .insert({user_id:profile.id,platform:form.platform,content:form.caption,hashtags:form.hashtags,scheduled_at:form.scheduled_at,status:form.status})
+        const {data:s, error:schErr} = await supabase.from("dh_scheduled_posts")
+          .insert({user_id:profile.id,platform:form.platform,content:form.caption,hashtags:form.hashtags,scheduled_at:new Date(form.scheduled_at).toISOString(),status:form.status})
           .select().single();
+        if (schErr) { console.error("Scheduler insert error:", schErr); throw new Error(schErr.message); }
         if (s) setPosts(ps=>[s,...ps]);
         supabase.from("dh_analytics_events").insert({user_id:profile.id,event_type:"post_scheduled",platform:form.platform}).then(()=>{});
       }
       setForm({platform:"Instagram",caption:"",scheduled_at:"",hashtags:"",status:"scheduled"});
       setShowForm(false);
-    } catch(e){ alert("Could not save. Please try again."); }
+    } catch(e){ console.error("Save error:", e); alert("Could not save: " + e.message + "\n\nRun the SQL fix in Supabase if tables are missing."); }
     setSubmitting(false);
   };
 

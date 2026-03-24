@@ -98,7 +98,8 @@ export default function ContentPlanner({ profile }) {
                    caption:p.caption, hashtags:p.hashtags||"", platform,
                    tip:p.tip||"", week_num:p.week||1, day_name:p.day||"" };
         });
-        const { data:saved } = await supabase.from("dh_calendar_posts").insert(toInsert).select();
+        const { data:saved, error:insErr } = await supabase.from("dh_calendar_posts").insert(toInsert).select();
+        if (insErr) { console.error("Calendar insert error:", insErr); throw new Error(insErr.message); }
         if (saved?.length) {
           const grouped = {...scheduled};
           saved.forEach(p=>{ if(!grouped[p.calendar_key])grouped[p.calendar_key]=[]; grouped[p.calendar_key].push(p); });
@@ -107,6 +108,7 @@ export default function ContentPlanner({ profile }) {
       }
     } catch(e) {
       console.error("Planner gen error:", e);
+      alert("Generation/save failed: " + e.message + "\n\nMake sure you have run the SQL to create the tables in Supabase.");
       setPlan([]);
     }
     setLoading(false);
@@ -121,9 +123,10 @@ export default function ContentPlanner({ profile }) {
     if (!newPostText.trim()||!selected||!profile?.id) return;
     setSaving(true);
     const key = `${viewYear}-${viewMonth+1}-${selected}`;
-    const {data:saved} = await supabase.from("dh_calendar_posts")
+    const {data:saved, error:manErr} = await supabase.from("dh_calendar_posts")
       .insert({user_id:profile.id,calendar_key:key,post_type:"Manual",caption:newPostText.trim(),platform,hashtags:""})
       .select().single();
+    if (manErr) { console.error("Manual post error:", manErr); alert("Save failed: " + manErr.message); setSaving(false); return; }
     if (saved) setScheduled(s=>({...s,[key]:[...(s[key]||[]),saved]}));
     setNewPostText(""); setAddModal(false); setSaving(false);
   };

@@ -61,11 +61,12 @@ export default function PromptSpace({ profile }) {
   const saveToLibrary = async () => {
     if (!generated||!profile?.id) return;
     setSaving(true);
-    const {data:row} = await supabase.from("dh_prompt_library").insert({
+    const {data:row, error:saveErr} = await supabase.from("dh_prompt_library").insert({
       user_id:profile.id, user_name:(profile?.full_name||"User").split(" ")[0],
       user_plan:profile?.plan||"free", category, platform, style:pStyle,
       topic:topic.slice(0,80), prompt_text:generated, is_public:true, likes_count:0,
     }).select().single();
+    if (saveErr) { console.error("Prompt save error:", saveErr); alert("Save failed: " + saveErr.message); setSaving(false); return; }
     if (row){ setFeed(f=>[row,...f]); setSaved(true); setTimeout(()=>setSaved(false),3000); }
     setSaving(false);
   };
