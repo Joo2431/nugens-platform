@@ -5,7 +5,7 @@
  */
 import React, { useState } from "react";
 
-const WA_NUMBER = "919XXXXXXXXX"; // ← Replace with your WhatsApp business number (no + or spaces)
+const WA_NUMBER = "919342386606"; // ← Replace with your WhatsApp business number (no + or spaces)
 const WA_MESSAGE_UNITS   = "Hi! I saw your Units production services on nugens.in.net. I'd like to enquire about booking.";
 const WA_MESSAGE_GENERAL = "Hi! I came across Nugens and would like to know more about your services.";
 
