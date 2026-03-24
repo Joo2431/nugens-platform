@@ -28,7 +28,7 @@ export function WhatsAppButton({ message, label = "Chat on WhatsApp" }) {
         .wa-btn:hover { animation: none; }
       `}</style>
 
-      <div style={{ position:"fixed", bottom:92, right:24, zIndex:800, display:"flex", alignItems:"center", gap:10 }}>
+      <div style={{ position:"fixed", bottom:24, left:24, zIndex:800, display:"flex", alignItems:"center", gap:10 }}>
 
         {/* Tooltip */}
         {showTooltip && (
