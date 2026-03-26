@@ -119,12 +119,25 @@ async function checkUsage(req, res, next) {
     .from("profiles").select("plan, questions_used").eq("id", req.user.id).single();
 
   if (error || !profile) {
-    await supabase.from("profiles").upsert({
-      id: req.user.id, email: req.user.email,
-      full_name: req.user.user_metadata?.full_name || "",
-      plan: "free", questions_used: 0,
-    });
-    req.profile = { plan: "free", questions_used: 0 };
+    // Check if a profile row already exists (might have been a transient fetch error)
+    const { data: existing } = await supabase
+      .from("profiles").select("plan, questions_used").eq("id", req.user.id).single();
+
+    // NEVER overwrite admin plan — if existing is admin, keep it
+    if (existing?.plan === "admin") {
+      req.profile = existing;
+      return next();
+    }
+
+    // Only upsert if truly no profile row exists
+    if (!existing) {
+      await supabase.from("profiles").upsert({
+        id: req.user.id, email: req.user.email,
+        full_name: req.user.user_metadata?.full_name || "",
+        plan: "free", questions_used: 0,
+      });
+    }
+    req.profile = existing || { plan: "free", questions_used: 0 };
     return next();
   }
 
@@ -792,6 +805,13 @@ app.post("/api/subscription/verify", requireAuth, async (req, res) => {
   // not the full plan key (e.g. "individual_premium_monthly")
   const profilePlanValue = planConfig.profilePlan || plan;
 
+  // NEVER downgrade an admin account via subscription verify
+  const { data: currentProfile } = await supabase
+    .from("profiles").select("plan").eq("id", req.user.id).single();
+  if (currentProfile?.plan === "admin") {
+    return res.json({ success: true, plan: "admin", message: "Admin account — no change needed." });
+  }
+
   const { error } = await supabase.from("profiles").update({
     plan: profilePlanValue,
     subscription_id: razorpay_payment_id,
@@ -1352,14 +1372,10 @@ app.post("/api/mini-chat", requireAuth, async (req, res) => {
       { role: "user", content: message },
     ];
 
-    // Allow callers to request more tokens for bulk/complex tasks (default 420, max 3000)
-    const requestedTokens = parseInt(req.body.max_tokens) || 420;
-    const safeTokens = Math.min(Math.max(requestedTokens, 120), 3000);
-
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "system", content: systemPrompt }, ...messages],
-      max_tokens: safeTokens,
+      max_tokens: 420,
       temperature: 0.65,
     });
 
@@ -1368,7 +1384,7 @@ app.post("/api/mini-chat", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("[Mini chat] error:", err.message);
     try {
-      const fallback = await callGroq(systemPrompt, [{ role:"user", content:message }], safeTokens);
+      const fallback = await callGroq(systemPrompt, [{ role:"user", content:message }], 420);
       res.json({ reply: fallback });
     } catch(e2) {
       res.status(500).json({ error: "Something went wrong. Please try again." });
