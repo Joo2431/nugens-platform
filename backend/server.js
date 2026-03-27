@@ -1317,7 +1317,7 @@ app.post("/api/nudge/send", async (req, res) => {
 
 /* ── POST /api/mini-chat ── GEN-E Mini for all platforms ── */
 app.post("/api/mini-chat", requireAuth, async (req, res) => {
-  const { message, history = [], product, userType, goal, businessNeed } = req.body;
+  const { message, history = [], product, userType, goal, businessNeed, max_tokens: reqMaxTokens } = req.body;
   if (!message) return res.status(400).json({ error: "Message required" });
 
   const PRODUCT_IDENTITY = {
@@ -1401,10 +1401,11 @@ app.post("/api/mini-chat", requireAuth, async (req, res) => {
       { role: "user", content: message },
     ];
 
+    const miniMaxTokens = reqMaxTokens && reqMaxTokens > 420 ? Math.min(reqMaxTokens, 4000) : 420;
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "system", content: systemPrompt }, ...messages],
-      max_tokens: 420,
+      max_tokens: miniMaxTokens,
       temperature: 0.65,
     });
 
@@ -1413,7 +1414,7 @@ app.post("/api/mini-chat", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("[Mini chat] error:", err.message);
     try {
-      const fallback = await callGroq(systemPrompt, [{ role:"user", content:message }], 420);
+      const fallback = await callGroq(systemPrompt, [{ role:"user", content:message }], miniMaxTokens || 420);
       res.json({ reply: fallback });
     } catch(e2) {
       res.status(500).json({ error: "Something went wrong. Please try again." });
@@ -1756,6 +1757,49 @@ app.post('/api/digihub/enhance-prompt', async (req, res) => {
   }
 });
 
+
+/* ── POST /api/digihub-generate ── DigiHub JSON content generation ── */
+app.post("/api/digihub-generate", requireAuth, async (req, res) => {
+  const { message, max_tokens = 2000 } = req.body;
+  if (!message) return res.status(400).json({ error: "Message required" });
+
+  const systemPrompt = `You are a professional content generation AI for DigiHub, a digital marketing platform.
+Your ONLY job is to generate the JSON output exactly as requested in the prompt.
+CRITICAL RULES:
+- Output ONLY valid JSON — no preamble, no explanation, no markdown fences
+- Follow the exact JSON structure specified in the prompt
+- Generate complete, high-quality, India-relevant content
+- Never truncate or cut off the JSON output
+- All text content should be practical and ready to post`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user",   content: message },
+      ],
+      max_tokens: Math.min(max_tokens, 3000),
+      temperature: 0.75,
+      response_format: { type: "json_object" },
+    });
+    const text = response.choices[0]?.message?.content || "{}";
+    res.json({ reply: text });
+  } catch (err) {
+    console.error("[DigiHub generate] OpenAI error:", err.message);
+    // Groq fallback (no json_object mode, but still works)
+    try {
+      const fb = await callGroq(
+        systemPrompt,
+        [{ role:"user", content: message }],
+        Math.min(max_tokens, 3000)
+      );
+      res.json({ reply: fb });
+    } catch(e2) {
+      res.status(500).json({ error: "Generation failed. Please try again." });
+    }
+  }
+});
 app.get("/health", (req, res) =>
   res.json({ status: "ok", version: "GEN-E V6 — Streaming + Jobs + Multi-AI" })
 );

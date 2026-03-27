@@ -1,33 +1,25 @@
 /**
- * DigiHub — Brand Voice Setup
- * One-time brand configuration that personalises all AI content generation.
- * Saves to localStorage + Supabase profiles (industry field).
+ * DigiHub — Brand Voice Setup (Full Page)
+ * Saves brand configuration to localStorage + Supabase.
+ * Used by all AI tools to generate on-brand content.
  */
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { supabase } from "../lib/supabase";
 
+const PINK   = "#e8185d";
 const BLUE   = "#0284c7";
-const BG     = "#06101a";
-const CARD   = "#0a1628";
-const B      = "#1a2030";
-const MUTED  = "#6b7280";
-const TEXT   = "#e2e8f0";
 const GREEN  = "#16a34a";
+const BG     = "#f8f9fb";
+const CARD   = "#ffffff";
+const BORDER = "#e8eaed";
+const TEXT   = "#111827";
+const MUTED  = "#6b7280";
 
 const INDUSTRIES = ["E-commerce / Retail","Restaurant / Food","Technology / SaaS","Fashion / Apparel","Real Estate","Healthcare / Wellness","Education / Coaching","Finance / Insurance","Travel / Hospitality","Manufacturing / Industrial","Creative / Agency","Personal Brand","Other"];
 const TONES      = ["Professional & Authoritative","Friendly & Approachable","Bold & Energetic","Inspirational & Motivational","Casual & Conversational","Elegant & Premium","Playful & Fun","Educational & Informative"];
 const AUDIENCES  = ["Young Adults (18–25)","Millennials (25–35)","Professionals (30–50)","Business Owners","Students","Parents","Seniors (50+)","Mixed / General"];
 const PLATFORMS  = ["Instagram","LinkedIn","Facebook","Twitter/X","YouTube","Pinterest","WhatsApp Business","Google Business"];
 const FREQ       = ["Daily","3–5 times/week","1–2 times/week","A few times a month"];
-
-const S = {
-  page:  { minHeight:"100vh", background:BG, padding:"32px 36px", fontFamily:"'Plus Jakarta Sans',sans-serif", color:TEXT },
-  card:  { background:CARD, border:`1px solid ${B}`, borderRadius:14, padding:"24px" },
-  label: { fontSize:11.5, fontWeight:700, color:MUTED, textTransform:"uppercase", letterSpacing:"0.06em", display:"block", marginBottom:6 },
-  inp:   { width:"100%", padding:"10px 13px", background:"#0d1f35", border:`1.5px solid ${B}`, borderRadius:9, color:TEXT, fontSize:13, fontFamily:"'Plus Jakarta Sans',sans-serif", outline:"none", boxSizing:"border-box", transition:"border 0.14s" },
-  sel:   { width:"100%", padding:"10px 13px", background:"#0d1f35", border:`1.5px solid ${B}`, borderRadius:9, color:TEXT, fontSize:13, fontFamily:"'Plus Jakarta Sans',sans-serif", outline:"none", cursor:"pointer" },
-  pill:  (active) => ({ padding:"7px 14px", borderRadius:20, fontSize:12, fontWeight:600, cursor:"pointer", border:`1px solid ${active?BLUE:B}`, background:active?`${BLUE}20`:"transparent", color:active?BLUE:MUTED, fontFamily:"'Plus Jakarta Sans',sans-serif", transition:"all 0.13s" }),
-};
 
 const KEY = "digihub-brand-voice";
 
@@ -50,165 +42,212 @@ export function buildBrandContext(voice) {
   return parts.length ? `[BRAND CONTEXT: ${parts.join(" | ")}]` : "";
 }
 
-export default function BrandVoiceSetup({ profile, onClose, onSaved }) {
-  const [voice, setVoice] = useState(() => {
-    const saved = loadBrandVoice();
-    return saved || {
-      brandName:    "",
-      industry:     profile?.industry || "",
-      tone:         "",
-      audience:     "",
-      usp:          "",
-      platforms:    [],
-      postFreq:     "",
-      brandKeywords:"",
-      avoidWords:   "",
-      emoji:        "moderate",
-    };
-  });
-  const [saving, setSaving] = useState(false);
-  const [saved,  setSaved]  = useState(false);
+function Section({ title, icon, children }) {
+  return (
+    <div style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:14,padding:24,boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
+      <div style={{fontWeight:700,fontSize:13,color:BLUE,marginBottom:18,display:"flex",alignItems:"center",gap:7}}>
+        <span style={{fontSize:15}}>{icon}</span> {title}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Label({ children }) {
+  return <label style={{fontSize:11,fontWeight:700,color:MUTED,textTransform:"uppercase",letterSpacing:"0.07em",display:"block",marginBottom:7}}>{children}</label>;
+}
+
+function Pill({ active, onClick, children }) {
+  return (
+    <button onClick={onClick}
+      style={{padding:"7px 14px",borderRadius:20,fontSize:12.5,fontWeight:600,cursor:"pointer",fontFamily:"inherit",
+        border:`1px solid ${active?BLUE:BORDER}`,
+        background:active?`${BLUE}12`:"transparent",
+        color:active?BLUE:MUTED,transition:"all 0.13s"}}>
+      {children}
+    </button>
+  );
+}
+
+const defaultVoice = (profile) => ({
+  brandName:"", industry:profile?.industry||"", tone:"", audience:"",
+  usp:"", platforms:[], postFreq:"", brandKeywords:"", avoidWords:"", emoji:"moderate",
+});
+
+export default function BrandVoiceSetup({ profile }) {
+  const [voice,   setVoice]  = useState(() => loadBrandVoice() || defaultVoice(profile));
+  const [saving,  setSaving] = useState(false);
+  const [saved,   setSaved]  = useState(false);
+  const [cleared, setCleared]= useState(false);
 
   const set = (k, v) => setVoice(f => ({ ...f, [k]: v }));
   const togglePlatform = (p) => setVoice(f => ({
-    ...f,
-    platforms: f.platforms.includes(p) ? f.platforms.filter(x=>x!==p) : [...f.platforms, p],
+    ...f, platforms: f.platforms.includes(p) ? f.platforms.filter(x=>x!==p) : [...f.platforms, p],
   }));
 
   const save = async () => {
     setSaving(true);
     localStorage.setItem(KEY, JSON.stringify(voice));
-    // Also save industry to Supabase
     try {
       const { data:{ session } } = await supabase.auth.getSession();
-      if (session && voice.industry) {
-        await supabase.from("profiles").update({ industry: voice.industry }).eq("id", session.user.id);
+      if (session?.user) {
+        await supabase.from("profiles")
+          .update({ industry: voice.industry, updated_at: new Date().toISOString() })
+          .eq("id", session.user.id);
       }
-    } catch(e) {}
+    } catch(e) { console.error("Supabase save:", e.message); }
     setSaving(false);
     setSaved(true);
-    setTimeout(() => { setSaved(false); onSaved?.(); }, 1500);
+    setTimeout(() => setSaved(false), 2500);
+  };
+
+  const clear = () => {
+    if (!window.confirm("Clear all brand voice settings?")) return;
+    localStorage.removeItem(KEY);
+    setVoice(defaultVoice(profile));
+    setCleared(true);
+    setTimeout(() => setCleared(false), 2000);
+  };
+
+  const inp = {
+    width:"100%", padding:"10px 13px", background:BG, border:`1.5px solid ${BORDER}`,
+    borderRadius:9, color:TEXT, fontSize:13, fontFamily:"inherit", outline:"none", boxSizing:"border-box",
   };
 
   return (
-    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.7)", zIndex:950, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}
-      onClick={e => { if(e.target===e.currentTarget) onClose?.(); }}>
+    <div style={{minHeight:"100vh",background:BG,padding:"32px 36px",fontFamily:"'Plus Jakarta Sans',sans-serif",color:TEXT}}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap'); input:focus,select:focus,textarea:focus{border-color:${BLUE}!important;outline:none}`}</style>
 
-      <div style={{ background:CARD, borderRadius:20, width:"100%", maxWidth:560, maxHeight:"90vh", overflowY:"auto", border:`1px solid ${B}`, boxShadow:"0 32px 80px rgba(0,0,0,0.5)", fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
-
-        {/* Header */}
-        <div style={{ padding:"20px 24px 16px", borderBottom:`1px solid ${B}`, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-          <div>
-            <div style={{ fontWeight:800, fontSize:16, color:TEXT }}>Brand Voice Setup</div>
-            <div style={{ fontSize:12, color:MUTED, marginTop:2 }}>All AI tools will use this to generate on-brand content.</div>
-          </div>
-          <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:MUTED, lineHeight:1 }}>×</button>
+      {/* Header */}
+      <div style={{marginBottom:28,display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
+        <div>
+          <h1 style={{fontWeight:800,fontSize:22,color:TEXT,letterSpacing:"-0.04em",margin:0}}>✦ Brand Voice</h1>
+          <p style={{color:MUTED,fontSize:13,marginTop:5}}>Set up your brand identity — all AI tools will use this to generate on-brand content.</p>
         </div>
+        <div style={{display:"flex",gap:10,alignItems:"center"}}>
+          {(saved||cleared) && (
+            <span style={{fontSize:12,fontWeight:700,color:saved?GREEN:"#d97706",background:saved?"#f0fdf4":"#fffbeb",padding:"6px 14px",borderRadius:8,border:`1px solid ${saved?"#bbf7d0":"#fde68a"}`}}>
+              {saved?"✓ Brand voice saved!":"✓ Cleared"}
+            </span>
+          )}
+          <button onClick={clear}
+            style={{padding:"9px 18px",background:"none",border:`1px solid ${BORDER}`,borderRadius:9,color:MUTED,fontSize:12.5,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+            🗑 Clear All
+          </button>
+          <button onClick={save} disabled={saving||!voice.brandName.trim()}
+            style={{padding:"9px 22px",background:saving?`${PINK}60`:PINK,border:"none",borderRadius:9,color:"#fff",fontSize:13,fontWeight:700,cursor:saving||!voice.brandName.trim()?"not-allowed":"pointer",fontFamily:"inherit",transition:"background 0.15s"}}>
+            {saving?"Saving…":"Save Brand Voice →"}
+          </button>
+        </div>
+      </div>
 
-        <div style={{ padding:"20px 24px", display:"flex", flexDirection:"column", gap:18 }}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,maxWidth:1100}}>
 
-          {/* Brand basics */}
-          <div style={S.card}>
-            <div style={{ fontWeight:700, fontSize:13, color:BLUE, marginBottom:14 }}>Brand Identity</div>
-            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+        {/* Left column */}
+        <div style={{display:"flex",flexDirection:"column",gap:20}}>
+
+          <Section title="Brand Identity" icon="🏢">
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
               <div>
-                <label style={S.label}>Brand / Business Name</label>
-                <input value={voice.brandName} onChange={e=>set("brandName",e.target.value)} placeholder="e.g. Nugens, StyleHouse, FreshBite" style={S.inp}
-                  onFocus={e=>e.target.style.borderColor=BLUE} onBlur={e=>e.target.style.borderColor=B}/>
+                <Label>Brand / Business Name *</Label>
+                <input value={voice.brandName} onChange={e=>set("brandName",e.target.value)}
+                  placeholder="e.g. Nugens, StyleHouse, FreshBite" style={inp}/>
               </div>
               <div>
-                <label style={S.label}>Industry</label>
-                <select value={voice.industry} onChange={e=>set("industry",e.target.value)} style={S.sel}>
+                <Label>Industry</Label>
+                <select value={voice.industry} onChange={e=>set("industry",e.target.value)}
+                  style={{...inp,cursor:"pointer"}}>
                   <option value="">— Select industry —</option>
                   {INDUSTRIES.map(i=><option key={i}>{i}</option>)}
                 </select>
               </div>
               <div>
-                <label style={S.label}>Your Unique Selling Point</label>
-                <input value={voice.usp} onChange={e=>set("usp",e.target.value)} placeholder="What makes you different in one sentence" style={S.inp}
-                  onFocus={e=>e.target.style.borderColor=BLUE} onBlur={e=>e.target.style.borderColor=B}/>
+                <Label>Your Unique Selling Point</Label>
+                <input value={voice.usp} onChange={e=>set("usp",e.target.value)}
+                  placeholder="What makes you different in one sentence" style={inp}/>
               </div>
             </div>
-          </div>
+          </Section>
 
-          {/* Voice & Audience */}
-          <div style={S.card}>
-            <div style={{ fontWeight:700, fontSize:13, color:BLUE, marginBottom:14 }}>Voice & Audience</div>
-            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+          <Section title="Content Rules" icon="📝">
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
               <div>
-                <label style={S.label}>Brand Tone</label>
-                <div style={{ display:"flex", flexWrap:"wrap", gap:7 }}>
-                  {TONES.map(t => (
-                    <button key={t} onClick={()=>set("tone",t)} style={S.pill(voice.tone===t)}>{t}</button>
-                  ))}
+                <Label>Always Mention (keywords, brand phrases)</Label>
+                <input value={voice.brandKeywords} onChange={e=>set("brandKeywords",e.target.value)}
+                  placeholder="e.g. premium quality, handcrafted, 10-year warranty" style={inp}/>
+              </div>
+              <div>
+                <Label>Avoid These Words / Topics</Label>
+                <input value={voice.avoidWords} onChange={e=>set("avoidWords",e.target.value)}
+                  placeholder="e.g. cheap, discount, competitor names" style={inp}/>
+              </div>
+            </div>
+          </Section>
+
+        </div>
+
+        {/* Right column */}
+        <div style={{display:"flex",flexDirection:"column",gap:20}}>
+
+          <Section title="Voice & Audience" icon="🎯">
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              <div>
+                <Label>Brand Tone</Label>
+                <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
+                  {TONES.map(t=><Pill key={t} active={voice.tone===t} onClick={()=>set("tone",t)}>{t}</Pill>)}
                 </div>
               </div>
               <div>
-                <label style={S.label}>Target Audience</label>
-                <div style={{ display:"flex", flexWrap:"wrap", gap:7 }}>
-                  {AUDIENCES.map(a => (
-                    <button key={a} onClick={()=>set("audience",a)} style={S.pill(voice.audience===a)}>{a}</button>
-                  ))}
+                <Label>Target Audience</Label>
+                <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
+                  {AUDIENCES.map(a=><Pill key={a} active={voice.audience===a} onClick={()=>set("audience",a)}>{a}</Pill>)}
                 </div>
               </div>
               <div>
-                <label style={S.label}>Emoji Usage</label>
-                <div style={{ display:"flex", gap:7 }}>
+                <Label>Emoji Usage</Label>
+                <div style={{display:"flex",gap:7}}>
                   {[["none","None"],["light","Light"],["moderate","Moderate"],["heavy","Heavy 🎉"]].map(([v,l])=>(
-                    <button key={v} onClick={()=>set("emoji",v)} style={S.pill(voice.emoji===v)}>{l}</button>
+                    <Pill key={v} active={voice.emoji===v} onClick={()=>set("emoji",v)}>{l}</Pill>
                   ))}
                 </div>
               </div>
             </div>
-          </div>
+          </Section>
 
-          {/* Platforms */}
-          <div style={S.card}>
-            <div style={{ fontWeight:700, fontSize:13, color:BLUE, marginBottom:14 }}>Active Platforms</div>
-            <div style={{ display:"flex", flexWrap:"wrap", gap:7, marginBottom:12 }}>
-              {PLATFORMS.map(p => (
-                <button key={p} onClick={()=>togglePlatform(p)} style={S.pill(voice.platforms.includes(p))}>{p}</button>
-              ))}
-            </div>
-            <div>
-              <label style={S.label}>Posting Frequency</label>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:7 }}>
-                {FREQ.map(f => (
-                  <button key={f} onClick={()=>set("postFreq",f)} style={S.pill(voice.postFreq===f)}>{f}</button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Keywords */}
-          <div style={S.card}>
-            <div style={{ fontWeight:700, fontSize:13, color:BLUE, marginBottom:14 }}>Content Rules</div>
-            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+          <Section title="Platforms & Frequency" icon="📱">
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
               <div>
-                <label style={S.label}>Always Mention (keywords, brand phrases)</label>
-                <input value={voice.brandKeywords} onChange={e=>set("brandKeywords",e.target.value)} placeholder="e.g. premium quality, handcrafted, 10-year warranty" style={S.inp}
-                  onFocus={e=>e.target.style.borderColor=BLUE} onBlur={e=>e.target.style.borderColor=B}/>
+                <Label>Active Platforms</Label>
+                <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
+                  {PLATFORMS.map(p=><Pill key={p} active={voice.platforms.includes(p)} onClick={()=>togglePlatform(p)}>{p}</Pill>)}
+                </div>
               </div>
               <div>
-                <label style={S.label}>Avoid These Words / Topics</label>
-                <input value={voice.avoidWords} onChange={e=>set("avoidWords",e.target.value)} placeholder="e.g. cheap, discount, competitor names" style={S.inp}
-                  onFocus={e=>e.target.style.borderColor=BLUE} onBlur={e=>e.target.style.borderColor=B}/>
+                <Label>Posting Frequency</Label>
+                <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
+                  {FREQ.map(f=><Pill key={f} active={voice.postFreq===f} onClick={()=>set("postFreq",f)}>{f}</Pill>)}
+                </div>
               </div>
             </div>
+          </Section>
+
+        </div>
+      </div>
+
+      {/* Bottom save bar */}
+      <div style={{marginTop:28,padding:"16px 24px",background:CARD,border:`1px solid ${BORDER}`,borderRadius:14,display:"flex",justifyContent:"space-between",alignItems:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
+        <div>
+          <div style={{fontSize:13,fontWeight:700,color:TEXT}}>
+            {voice.brandName ? `✓ ${voice.brandName} — ${voice.tone||"No tone set"} · ${voice.audience||"No audience set"}` : "Fill in your brand details above to get started"}
           </div>
-
+          <div style={{fontSize:11,color:MUTED,marginTop:2}}>
+            All DigiHub AI tools (Hashtag Gen, Bulk Generator, Content Planner) will use this brand context automatically.
+          </div>
         </div>
-
-        {/* Footer */}
-        <div style={{ padding:"16px 24px 20px", borderTop:`1px solid ${B}`, display:"flex", gap:10 }}>
-          <button onClick={onClose} style={{ flex:1, padding:"10px 0", background:"transparent", border:`1px solid ${B}`, borderRadius:9, fontSize:13, fontWeight:600, color:MUTED, cursor:"pointer", fontFamily:"inherit" }}>
-            Cancel
-          </button>
-          <button onClick={save} disabled={saving || !voice.brandName.trim()}
-            style={{ flex:2, padding:"10px 0", background:saved?GREEN:BLUE, border:"none", borderRadius:9, fontSize:13, fontWeight:700, color:"#fff", cursor:saving?"wait":"pointer", transition:"background 0.2s", fontFamily:"inherit" }}>
-            {saved ? "✓ Brand Voice Saved!" : saving ? "Saving…" : "Save Brand Voice →"}
-          </button>
-        </div>
+        <button onClick={save} disabled={saving||!voice.brandName.trim()}
+          style={{padding:"11px 28px",background:saving?`${PINK}60`:PINK,border:"none",borderRadius:10,color:"#fff",fontSize:13,fontWeight:700,cursor:saving||!voice.brandName.trim()?"not-allowed":"pointer",fontFamily:"inherit",whiteSpace:"nowrap",flexShrink:0,marginLeft:20}}>
+          {saving?"Saving…":"Save Brand Voice →"}
+        </button>
       </div>
     </div>
   );

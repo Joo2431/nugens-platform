@@ -74,17 +74,19 @@ Return ONLY valid JSON (no markdown, no extra text) with this exact structure:
 
 Generate exactly ${postCount} posts spread across the ${duration} with varied content types.`;
 
-      const res = await fetch(`${API}/api/mini-chat`, {
+      const { data:{ session: _sess } } = await supabase.auth.getSession();
+      const token = _sess?.access_token;
+      const res = await fetch(`${API}/api/digihub-generate`, {
         method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ message:prompt, product:"digihub", userType:profile?.user_type||"business", max_tokens:3000 }),
-        signal: AbortSignal.timeout(40000),
+        headers:{"Content-Type":"application/json",...(token?{Authorization:`Bearer ${token}`}:{})},
+        body: JSON.stringify({ message:prompt, max_tokens:3000 }),
+        signal: AbortSignal.timeout(50000),
       });
+      if (!res.ok) throw new Error("Server error " + res.status);
       const d = await res.json();
-      const raw = (d.reply||d.message||"").replace(/```json|```/g,"").trim();
-      const jsonMatch = raw.match(/[{][\s\S]*[}]/);
-      if (!jsonMatch) throw new Error("No JSON found");
-      const parsed = JSON.parse(jsonMatch[0]);
+      if (d.error) throw new Error(d.error);
+      const raw = (d.reply || "{}").replace(/```json|```/g,"").trim();
+      const parsed = JSON.parse(raw);
       setResult(parsed);
       setExpanded(new Set([0]));
     } catch(e) {

@@ -112,7 +112,7 @@ function AppShell() {
             <Route path="/pricing"   element={<PricingPage profile={profile} />} />
             <Route path="/hashtags"  element={<ProtectedRoute><HashtagGenerator profile={profile} user={user} /></ProtectedRoute>} />
             <Route path="/bulk"      element={<ProtectedRoute><BulkGenerator    profile={profile} user={user} /></ProtectedRoute>} />
-            <Route path="/brand"     element={<ProtectedRoute><BrandVoice       profile={profile} onClose={()=>window.history.back()} /></ProtectedRoute>} />
+            <Route path="/brand"     element={<ProtectedRoute><BrandVoice       profile={profile} /></ProtectedRoute>} />
             <Route path="*"          element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
