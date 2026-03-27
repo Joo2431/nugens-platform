@@ -33,7 +33,7 @@ function AppShell() {
   const [modeOverride, setModeOverride]= useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const isChatRoute  = location.pathname === "/" || location.pathname.startsWith("/chat");
+  const isChatRoute  = location.pathname === "/" || location.pathname.startsWith("/chat") || location.pathname.startsWith("/business-chat");
   const isFullscreen = ["/pricing", "/auth"].some(p => location.pathname.startsWith(p));
 
   const fetchProfile = async (uid) => {
@@ -119,7 +119,13 @@ function AppShell() {
               : <GenEChat profile={profile} />}
           </ProtectedRoute>
         } />
-        <Route path="/chat"          element={<ProtectedRoute><GenEChat profile={profile} /></ProtectedRoute>} />
+        <Route path="/chat" element={
+          <ProtectedRoute>
+            {userType === "business"
+              ? <Navigate to="/business-chat" replace />
+              : <GenEChat profile={profile} />}
+          </ProtectedRoute>
+        } />
         <Route path="/business-chat" element={<ProtectedRoute><BusinessChat /></ProtectedRoute>} />
         <Route path="*"              element={<Navigate to={userType==="business"?"/business":"/chat"} replace />} />
       </Routes>
