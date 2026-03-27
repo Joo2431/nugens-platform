@@ -1421,12 +1421,71 @@ app.post("/api/mini-chat", requireAuth, async (req, res) => {
   }
 });
 
-app.get("/health", (req, res) =>
-  res.json({ status: "ok", version: "GEN-E V6 \u2014 Streaming + Jobs + Multi-AI" })
-);
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`✅ Gen-E V4 running on port ${PORT}`));
+/* ── POST /api/business-chat ── Dedicated endpoint for BusinessChat UI ── */
+app.post("/api/business-chat", requireAuth, async (req, res) => {
+  const { message, history = [], tool = "jd", session_id } = req.body;
+  if (!message) return res.status(400).json({ error: "Message required" });
+
+  const TOOL_PROMPTS = {
+    jd:        "You are a JD Generator for Indian businesses. Generate complete, market-aligned job descriptions. Include: role overview, key responsibilities, required skills, nice-to-have skills, experience level, salary range in INR, and 8-10 role-specific interview questions. Always be thorough and specific.",
+    hiring:    "You are a Hiring Intelligence AI for Indian businesses. Provide full hiring strategy: skill breakdown by category, salary ranges by experience tier in INR, red flags to screen for, best sourcing channels in India (Naukri, LinkedIn, AngelList, referrals), and a step-by-step evaluation framework.",
+    team:      "You are a Team Skill Mapping AI. Analyse team composition, identify individual strengths, find collective skill gaps vs company goals, flag redundancies, and create a prioritised training roadmap with specific courses and resources.",
+    workforce: "You are a Workforce Planning AI for Indian startups. Create phase-by-phase hiring roadmaps based on company stage and growth targets. Cover: priority hires by quarter, budget estimates in INR, org structure options, build-vs-hire recommendations.",
+    salary:    "You are a Salary Benchmark AI for the Indian job market. Provide detailed salary data by role, city, experience tier, variable pay norms, equity expectations, and peer company benchmarks. Use INR. Cover major cities: Bangalore, Mumbai, Delhi, Hyderabad, Chennai, Pune, Coimbatore.",
+    interview: "You are an Interview Kit AI for businesses. Generate complete interview kits: screening questions, technical questions, STAR-format behavioural questions, case study scenarios, and a scoring rubric. Tailor to the specific role and company type.",
+  };
+
+  const systemPrompt = (TOOL_PROMPTS[tool] || TOOL_PROMPTS.jd) + `
+
+RULES:
+- Be specific, comprehensive, and India-market-aware.
+- Use structured output with headers and bullet points.
+- If essential context (role title, company info) is missing, ask ONE focused question.
+- ALWAYS provide substantive, actionable output — never refuse or say you cannot help.
+- Respond as a professional business consultant.`;
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  const send = (obj) => { try { res.write("data: " + JSON.stringify(obj) + "\n\n"); } catch {} };
+
+  try {
+    const stream = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...history.slice(-12),
+        { role: "user", content: message },
+      ],
+      max_tokens: 1800,
+      temperature: 0.7,
+      stream: true,
+    });
+
+    let fullText = "";
+    for await (const chunk of stream) {
+      if (res.destroyed) break;
+      const delta = chunk.choices[0]?.delta?.content || "";
+      if (delta) { fullText += delta; send({ chunk: delta }); }
+    }
+    send({ done: true });
+    res.end();
+  } catch (err) {
+    console.error("[Business chat] OpenAI error:", err.message);
+    try {
+      const systemMsgs = [{ role: "system", content: systemPrompt }, ...history.slice(-6), { role: "user", content: message }];
+      const fallback = await callGroq(systemPrompt, [...history.slice(-6), { role: "user", content: message }], 1800);
+      send({ chunk: fallback });
+      send({ done: true });
+      res.end();
+    } catch (e2) {
+      send({ error: "Unable to generate response. Please try again." });
+      send({ done: true });
+      if (!res.destroyed) res.end();
+    }
+  }
+});
 /* ═══════════════════════════════════════════════════════════
    GEN-E TOOL ENDPOINTS — Individual + Business
    ═══════════════════════════════════════════════════════════ */
@@ -1696,3 +1755,10 @@ app.post('/api/digihub/enhance-prompt', async (req, res) => {
     res.status(500).json({ error: 'Enhancement failed' });
   }
 });
+
+app.get("/health", (req, res) =>
+  res.json({ status: "ok", version: "GEN-E V6 — Streaming + Jobs + Multi-AI" })
+);
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`✅ Gen-E running on port ${PORT}`));

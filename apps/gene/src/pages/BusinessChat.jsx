@@ -84,6 +84,8 @@ export default function BusinessChat() {
   const [busy,       setBusy]       = useState(false);
   const [loading,    setLoading]    = useState(true);
   const [sideOpen,   setSideOpen]   = useState(true);
+  const [editIdx,    setEditIdx]    = useState(null);
+  const [editText,   setEditText]   = useState("");
 
   const bottomRef  = useRef(null);
   const inputRef   = useRef(null);
@@ -157,6 +159,21 @@ export default function BusinessChat() {
     });
   }, [user, save]);
 
+  const startEdit = (idx, text) => { setEditIdx(idx); setEditText(text); };
+
+  const saveEdit = (chatId, chatTool) => {
+    if (!editText.trim() || editIdx === null) return;
+    // Remove all messages from editIdx onward and resend
+    patch(chatId, c => ({
+      ...c,
+      messages: c.messages.slice(0, editIdx),
+      history:  c.history.slice(0, Math.max(0, editIdx - 1)),
+    }));
+    const txt = editText.trim();
+    setEditIdx(null); setEditText("");
+    setTimeout(() => sendMsg(txt, chatId, chatTool), 50);
+  };
+
   const startTool = (tool) => {
     const c = freshChat(tool.key); c.title = tool.label;
     setChats(p => [c, ...p]); setActiveId(c.id); setActiveTool(tool.key);
@@ -209,15 +226,14 @@ export default function BusinessChat() {
         return { ...c, messages: [...c.messages, { role:"assistant", text:"", streaming:true }] };
       });
 
-      const res = await fetch(`${API}/api/chat`, {
+      const res = await fetch(`${API}/api/business-chat`, {
         method:"POST",
         headers:{ "Content-Type":"application/json", ...(token ? { Authorization:`Bearer ${token}` } : {}) },
         body: JSON.stringify({
-          message:    `[MODE:BUSINESS] [TOOL:${cTool}] ${msg}`,
+          message:    msg,
           history:    hist,
+          tool:       cTool,
           session_id: cId,
-          mode:       "CAREER",
-          userType:   "business",
         }),
       });
 
@@ -425,20 +441,44 @@ export default function BusinessChat() {
                     <span style={{ fontSize:10.5, fontWeight:700, color:currentTool.color, textTransform:"uppercase", letterSpacing:"0.06em" }}>{currentTool.label}</span>
                   </div>
                 )}
-                <div style={{
-                  maxWidth:"80%",
-                  background: m.role === "user" ? PINK : CARD,
-                  color:      m.role === "user" ? "#fff" : TEXT,
-                  border:     m.role === "user" ? "none" : `1px solid ${BORD}`,
-                  borderRadius: m.role === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-                  padding:"13px 17px", fontSize:14, lineHeight:1.75, whiteSpace:"pre-wrap",
-                  boxShadow: m.role !== "user" ? "0 1px 3px rgba(0,0,0,0.05)" : "none",
-                }}>
-                  {m.streaming
-                    ? <span>{m.text || ""}<span style={{ display:"inline-block", width:7, height:14, background:currentTool.color, borderRadius:2, marginLeft:2, animation:"blink 0.9s steps(2,start) infinite", verticalAlign:"middle" }}/></span>
-                    : m.text
-                  }
-                </div>
+                {editIdx === i && m.role === "user" ? (
+                  <div style={{ maxWidth:"80%", display:"flex", flexDirection:"column", gap:6, alignItems:"flex-end" }}>
+                    <textarea value={editText} onChange={e=>setEditText(e.target.value)}
+                      autoFocus
+                      onKeyDown={e=>{ if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();saveEdit(activeId,activeTool);} if(e.key==="Escape") setEditIdx(null); }}
+                      style={{ width:400, minHeight:60, padding:"10px 14px", border:`1.5px solid ${currentTool.color}`, borderRadius:12, fontSize:13.5, fontFamily:"inherit", resize:"vertical", outline:"none", background:"#fef9ff" }}
+                    />
+                    <div style={{ display:"flex", gap:6 }}>
+                      <button onClick={()=>setEditIdx(null)} style={{ padding:"5px 14px", background:"none", border:`1px solid ${BORD}`, borderRadius:8, fontSize:12, color:MUTED, cursor:"pointer", fontFamily:"inherit" }}>Cancel</button>
+                      <button onClick={()=>saveEdit(activeId,activeTool)} style={{ padding:"5px 14px", background:PINK, border:"none", borderRadius:8, fontSize:12, fontWeight:700, color:"#fff", cursor:"pointer", fontFamily:"inherit" }}>Send</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{
+                    maxWidth:"80%",
+                    background: m.role === "user" ? PINK : CARD,
+                    color:      m.role === "user" ? "#fff" : TEXT,
+                    border:     m.role === "user" ? "none" : `1px solid ${BORD}`,
+                    borderRadius: m.role === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+                    padding:"13px 17px", fontSize:14, lineHeight:1.75, whiteSpace:"pre-wrap",
+                    boxShadow: m.role !== "user" ? "0 1px 3px rgba(0,0,0,0.05)" : "none",
+                    position:"relative",
+                  }}
+                    onMouseEnter={e=>{ if(m.role==="user") e.currentTarget.querySelector(".edit-btn")?.style && (e.currentTarget.querySelector(".edit-btn").style.opacity="1"); }}
+                    onMouseLeave={e=>{ if(m.role==="user") e.currentTarget.querySelector(".edit-btn")?.style && (e.currentTarget.querySelector(".edit-btn").style.opacity="0"); }}
+                  >
+                    {m.streaming
+                      ? <span>{m.text || ""}<span style={{ display:"inline-block", width:7, height:14, background:currentTool.color, borderRadius:2, marginLeft:2, animation:"blink 0.9s steps(2,start) infinite", verticalAlign:"middle" }}/></span>
+                      : m.text
+                    }
+                    {m.role === "user" && !m.streaming && (
+                      <button className="edit-btn" onClick={()=>startEdit(i,m.text)}
+                        style={{ position:"absolute", top:-8, right:-8, width:24, height:24, background:"#fff", border:`1px solid ${BORD}`, borderRadius:"50%", fontSize:11, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", opacity:0, transition:"opacity 0.15s", boxShadow:"0 1px 4px rgba(0,0,0,0.1)" }}>
+                        ✏️
+                      </button>
+                    )}
+                  </div>
+                )}
                 {m.role === "assistant" && !m.streaming && m.text && (
                   <button onClick={() => navigator.clipboard?.writeText(m.text)}
                     style={{ background:"none", border:"none", color:"#ccc", cursor:"pointer", fontSize:11, padding:"2px 6px", marginLeft:4, fontFamily:"inherit", transition:"color 0.13s" }}
