@@ -577,9 +577,16 @@ app.post("/api/chat", requireAuth, checkUsage, async (req, res) => {
   const langNote  = lang !== "en"
     ? `\n\n---\nLANGUAGE INSTRUCTION:\nYou MUST respond entirely in ${langName}. Every word of your reply must be in ${langName} — including labels, section headers, advice, and questions. Do not switch to English under any circumstance. Adapt career advice to be locally relevant (job market, companies, qualifications) where applicable.`
     : "";
-  const fullSystem = SYSTEM_PROMPT + (modeExtra ? "\n\n---\nCURRENT MODE:\n" + modeExtra : "") + langNote;
+
+  // BUSINESS mode: use ONLY the business prompt — never mix with the individual career prompt
+  // (individual prompt explicitly refuses non-career topics which would block business tools)
+  const fullSystem = mode === "BUSINESS"
+    ? MODE_ADDENDUM.BUSINESS + langNote
+    : SYSTEM_PROMPT + (modeExtra ? "\n\n---\nCURRENT MODE:\n" + modeExtra : "") + langNote;
+
   const convHistory = [...history.slice(-12), { role: "user", content: clean }];
-  const maxTokens  = ["RESUME", "SCORING", "INTERVIEW"].includes(mode) ? 1600 : 600;
+  const maxTokens  = mode === "BUSINESS" ? 1800
+    : ["RESUME", "SCORING", "INTERVIEW"].includes(mode) ? 1600 : 600;
 
   logChat({ userId: req.user?.id, sessionId: session_id, role: "user", message: clean, mode });
 
