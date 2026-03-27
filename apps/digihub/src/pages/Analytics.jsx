@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 
 const BLUE = "#0284c7";
-const BG   = "#06101a";
-const CARD = "#0a1628";
+const BG   = "#f8f9fb";
+const CARD = "#ffffff";
 const B    = "#1a2030";
 
 const PLATFORMS = ["All","Instagram","LinkedIn","Twitter/X","Facebook","YouTube"];
@@ -105,7 +105,7 @@ export default function Analytics({ profile }) {
                 </div>
                 <span style={{ fontSize:12, color:"#445" }}>{p.percent}%</span>
               </div>
-              <div style={{ height:5, background:"#0d1624", borderRadius:3, overflow:"hidden" }}>
+              <div style={{ height:5, background:"#f3f4f6", borderRadius:3, overflow:"hidden" }}>
                 <div style={{ height:"100%", width:`${p.percent}%`, background:p.color, borderRadius:3 }}/>
               </div>
               <div style={{ display:"flex", gap:12, marginTop:4 }}>
@@ -134,7 +134,7 @@ export default function Analytics({ profile }) {
             <div style={{ fontSize:13, fontWeight:600, color:"#ccc" }}>{p.reach.toLocaleString()}</div>
             <div style={{ fontSize:13, fontWeight:600, color:"#ccc" }}>{p.eng.toLocaleString()}</div>
             <div style={{ fontSize:13, fontWeight:600, color:"#22c55e" }}>{p.rate}</div>
-            <div style={{ fontSize:11, fontWeight:600, color:"#445", background:"#0d1624", border:`1px solid ${B}`, borderRadius:5, padding:"2px 8px", display:"inline-block" }}>{p.type}</div>
+            <div style={{ fontSize:11, fontWeight:600, color:"#445", background:"#f3f4f6", border:`1px solid ${B}`, borderRadius:5, padding:"2px 8px", display:"inline-block" }}>{p.type}</div>
           </div>
         ))}
       </div>

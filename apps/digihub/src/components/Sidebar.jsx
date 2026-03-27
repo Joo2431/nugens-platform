@@ -22,9 +22,6 @@ const BUSINESS_NAV = [
   { to:"/bulk",      icon:"⚡",  label:"Bulk Generator"  },
   { to:"/brand",     icon:"✦",  label:"Brand Voice"     },
   { to:"/analytics", icon:"⬟",  label:"Analytics"       },
-  { to:"/hashtags",  icon:"#",   label:"Hashtag Gen"     },
-  { to:"/bulk",      icon:"⚡",  label:"Bulk Generator"  },
-  { to:"/brand",     icon:"✦",  label:"Brand Voice"     },
   { to:"/pricing",   icon:"↑",  label:"Upgrade"         },
 ];
 const INDIVIDUAL_NAV = [

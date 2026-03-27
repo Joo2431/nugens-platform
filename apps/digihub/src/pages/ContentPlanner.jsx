@@ -19,19 +19,17 @@ const TODAY = new Date();
 function getDaysInMonth(y,m){ return new Date(y,m+1,0).getDate(); }
 function getFirstDay(y,m){ return (new Date(y,m,1).getDay()+6)%7; }
 
-// Maps week+day to an actual calendar date (week 1 = days 1-7, etc.)
 function weekDayToDate(year, month, week, dayName) {
   const dayMap = { Monday:1,Tuesday:2,Wednesday:3,Thursday:4,Friday:5,Saturday:6,Sunday:7,
                    Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6,Sun:7 };
   const targetDay = dayMap[dayName] || 1;
-  const startDay  = (week-1)*7 + 1; // day of month to start search
+  const startDay  = (week-1)*7 + 1;
   const daysInMo  = getDaysInMonth(year,month);
   for (let d = startDay; d <= Math.min(startDay+6, daysInMo); d++) {
     const dow = new Date(year, month, d).getDay();
-    const adj = dow===0?7:dow; // 1=Mon ... 7=Sun
+    const adj = dow===0?7:dow;
     if (adj === targetDay) return d;
   }
-  // fallback: first available day in week range
   return Math.min(startDay, daysInMo);
 }
 
@@ -54,7 +52,6 @@ export default function ContentPlanner({ profile }) {
   const daysInMonth = getDaysInMonth(viewYear,viewMonth);
   const firstDay    = getFirstDay(viewYear,viewMonth);
 
-  // Load calendar posts from Supabase
   useEffect(() => {
     if (!profile?.id){ setCalLoading(false); return; }
     const monthStr = `${viewYear}-${viewMonth+1}`;
@@ -67,6 +64,17 @@ export default function ContentPlanner({ profile }) {
         setScheduled(g); setCalLoading(false);
       });
   },[profile?.id,viewMonth,viewYear]);
+
+  const clearCalendar = async () => {
+    if (!profile?.id) return;
+    const monthStr = viewYear + "-" + String(viewMonth+1).padStart(2,"0");
+    if (!window.confirm("Clear all posts for this month? This cannot be undone.")) return;
+    await supabase.from("dh_calendar_posts").delete()
+      .eq("user_id", profile.id)
+      .like("calendar_key", monthStr + "-%");
+    setScheduled({});
+    setPlan([]);
+  };
 
   const generatePlan = async () => {
     if (!topic.trim()) return;
@@ -89,7 +97,6 @@ export default function ContentPlanner({ profile }) {
       const posts = arrStart>-1 ? JSON.parse(txt.slice(arrStart,arrEnd+1)) : [];
       setPlan(posts);
 
-      // ── AUTO-PLACE on calendar ──────────────────────────────
       if (posts.length > 0 && profile?.id) {
         const toInsert = posts.map(p => {
           const day  = weekDayToDate(viewYear, viewMonth, p.week||1, p.day||"Monday");
@@ -99,7 +106,7 @@ export default function ContentPlanner({ profile }) {
                    tip:p.tip||"", week_num:p.week||1, day_name:p.day||"" };
         });
         const { data:saved, error:insErr } = await supabase.from("dh_calendar_posts").insert(toInsert).select();
-        if (insErr) { console.error("Calendar insert error:", insErr); throw new Error(insErr.message); }
+        if (insErr) throw new Error(insErr.message);
         if (saved?.length) {
           const grouped = {...scheduled};
           saved.forEach(p=>{ if(!grouped[p.calendar_key])grouped[p.calendar_key]=[]; grouped[p.calendar_key].push(p); });
@@ -107,8 +114,8 @@ export default function ContentPlanner({ profile }) {
         }
       }
     } catch(e) {
-      console.error("Planner gen error:", e);
-      alert("Generation/save failed: " + e.message + "\n\nMake sure you have run the SQL to create the tables in Supabase.");
+      console.error("Planner error:", e);
+      alert("Generation failed: " + e.message);
       setPlan([]);
     }
     setLoading(false);
@@ -126,7 +133,7 @@ export default function ContentPlanner({ profile }) {
     const {data:saved, error:manErr} = await supabase.from("dh_calendar_posts")
       .insert({user_id:profile.id,calendar_key:key,post_type:"Manual",caption:newPostText.trim(),platform,hashtags:""})
       .select().single();
-    if (manErr) { console.error("Manual post error:", manErr); alert("Save failed: " + manErr.message); setSaving(false); return; }
+    if (manErr) { alert("Save failed: " + manErr.message); setSaving(false); return; }
     if (saved) setScheduled(s=>({...s,[key]:[...(s[key]||[]),saved]}));
     setNewPostText(""); setAddModal(false); setSaving(false);
   };
@@ -141,7 +148,8 @@ export default function ContentPlanner({ profile }) {
       </div>
 
       <div style={{display:"grid",gridTemplateColumns:"1fr 340px",gap:24}}>
-        {/* ── Calendar ── */}
+
+        {/* Calendar */}
         <div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
             <button onClick={()=>{if(viewMonth===0){setViewMonth(11);setViewYear(y=>y-1);}else setViewMonth(m=>m-1);}}
@@ -181,7 +189,6 @@ export default function ContentPlanner({ profile }) {
             </div>
           )}
 
-          {/* Selected day detail */}
           {selected && (
             <div style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:14,padding:20,marginTop:16,boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
@@ -196,16 +203,16 @@ export default function ContentPlanner({ profile }) {
                     style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:7,color:MUTED,fontSize:12,cursor:"pointer",padding:"6px 10px",fontFamily:"inherit"}}>✕</button>
                 </div>
               </div>
-              {(scheduled[`${viewYear}-${viewMonth+1}-${selected}`]||[]).length===0?(
+              {(scheduled[`${viewYear}-${viewMonth+1}-${selected}`]||[]).length===0 ? (
                 <div style={{fontSize:12,color:MUTED,textAlign:"center",padding:"12px 0"}}>No posts on this day. Generate a plan or add manually.</div>
-              ):(
+              ) : (
                 (scheduled[`${viewYear}-${viewMonth+1}-${selected}`]||[]).map(p=>(
                   <div key={p.id} style={{background:BG,borderRadius:10,padding:"10px 14px",marginBottom:8}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                       <div style={{flex:1}}>
                         <div style={{display:"flex",gap:6,marginBottom:5}}>
                           <span style={{fontSize:9,fontWeight:700,color:BLUE,background:`${BLUE}15`,padding:"2px 7px",borderRadius:4}}>{p.post_type||"Post"}</span>
-                          {p.platform&&<span style={{fontSize:9,color:MUTED,background:`${BORDER}`,padding:"2px 7px",borderRadius:4}}>{p.platform}</span>}
+                          {p.platform&&<span style={{fontSize:9,color:MUTED,background:BORDER,padding:"2px 7px",borderRadius:4}}>{p.platform}</span>}
                         </div>
                         <div style={{fontSize:13,color:TEXT,lineHeight:1.6}}>{p.caption}</div>
                         {p.hashtags&&<div style={{fontSize:11,color:BLUE,marginTop:4}}>{p.hashtags}</div>}
@@ -220,8 +227,7 @@ export default function ContentPlanner({ profile }) {
             </div>
           )}
 
-          {/* Add manual post modal */}
-          {addModal&&(
+          {addModal && (
             <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:900,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}
               onClick={e=>{if(e.target===e.currentTarget)setAddModal(false);}}>
               <div style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:16,padding:24,width:"100%",maxWidth:440,boxShadow:"0 16px 48px rgba(0,0,0,0.15)"}}>
@@ -242,34 +248,45 @@ export default function ContentPlanner({ profile }) {
           )}
         </div>
 
-        {/* ── AI Generator Panel ── */}
+        {/* AI Generator Panel */}
         <div>
           <div style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:14,padding:24,boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
             <div style={{fontWeight:700,fontSize:14,color:TEXT,marginBottom:16}}>⚡ Generate AI Plan</div>
+
             <label style={{fontSize:11,fontWeight:700,color:MUTED,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:6,display:"block"}}>Platform</label>
             <select value={platform} onChange={e=>setPlatform(e.target.value)}
               style={{width:"100%",background:BG,border:`1.5px solid ${BORDER}`,borderRadius:8,padding:"9px 12px",color:TEXT,fontSize:13,marginBottom:14,fontFamily:"inherit",outline:"none"}}>
               {PLATFORMS.map(p=><option key={p}>{p}</option>)}
             </select>
+
             <label style={{fontSize:11,fontWeight:700,color:MUTED,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:6,display:"block"}}>Tone</label>
             <select value={tone} onChange={e=>setTone(e.target.value)}
               style={{width:"100%",background:BG,border:`1.5px solid ${BORDER}`,borderRadius:8,padding:"9px 12px",color:TEXT,fontSize:13,marginBottom:14,fontFamily:"inherit",outline:"none"}}>
               {TONES.map(t=><option key={t}>{t}</option>)}
             </select>
+
             <label style={{fontSize:11,fontWeight:700,color:MUTED,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:6,display:"block"}}>Industry</label>
             <input value={industry} onChange={e=>setIndustry(e.target.value)} placeholder="e.g. Fashion, Food, Tech…"
               style={{width:"100%",background:BG,border:`1.5px solid ${BORDER}`,borderRadius:8,padding:"9px 12px",color:TEXT,fontSize:13,marginBottom:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+
             <label style={{fontSize:11,fontWeight:700,color:MUTED,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:6,display:"block"}}>Theme / Topic *</label>
             <input value={topic} onChange={e=>setTopic(e.target.value)} placeholder="e.g. Diwali sale, New product launch…"
               style={{width:"100%",background:BG,border:`1.5px solid ${BORDER}`,borderRadius:8,padding:"9px 12px",color:TEXT,fontSize:13,marginBottom:16,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
-            <button onClick={generatePlan} disabled={!topic.trim()||loading}
-              style={{width:"100%",padding:"12px 0",background:loading?`${PINK}60`:PINK,color:"#fff",border:"none",borderRadius:9,fontSize:13,fontWeight:700,cursor:loading?"not-allowed":"pointer",fontFamily:"inherit"}}>
-              {loading?"Generating…":"⚡ Generate & Auto-Place"}
-            </button>
+
+            <div style={{display:"flex",gap:8,marginBottom:0}}>
+              <button onClick={clearCalendar}
+                style={{padding:"10px 14px",background:"none",border:"1px solid #e8eaed",borderRadius:9,fontSize:12,fontWeight:600,color:"#6b7280",cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>
+                🗑 Clear Month
+              </button>
+              <button onClick={generatePlan} disabled={!topic.trim()||loading}
+                style={{flex:1,padding:"12px 0",background:loading?`${PINK}60`:PINK,color:"#fff",border:"none",borderRadius:9,fontSize:13,fontWeight:700,cursor:loading?"not-allowed":"pointer",fontFamily:"inherit"}}>
+                {loading?"Generating…":"⚡ Generate & Auto-Place"}
+              </button>
+            </div>
+
             {loading&&<div style={{fontSize:11,color:MUTED,textAlign:"center",marginTop:8}}>Generating and placing on calendar…</div>}
           </div>
 
-          {/* Generated plan preview */}
           {plan&&plan.length>0&&(
             <div style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:14,padding:16,marginTop:16,boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
               <div style={{fontWeight:700,fontSize:13,color:TEXT,marginBottom:10}}>
@@ -282,10 +299,11 @@ export default function ContentPlanner({ profile }) {
           )}
           {plan&&plan.length===0&&(
             <div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:10,padding:14,marginTop:14,fontSize:12,color:"#dc2626"}}>
-              Generation failed. Please check your internet connection and try again.
+              Generation failed. Please try again.
             </div>
           )}
         </div>
+
       </div>
     </div>
   );

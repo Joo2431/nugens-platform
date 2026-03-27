@@ -7,11 +7,11 @@ import { supabase } from "../lib/supabase";
 import { loadBrandVoice, buildBrandContext } from "./BrandVoiceSetup";
 
 const BLUE   = "#0284c7";
-const BG     = "#06101a";
-const CARD   = "#0a1628";
+const BG     = "#f8f9fb";
+const CARD   = "#ffffff";
 const B      = "#1a2030";
 const MUTED  = "#6b7280";
-const TEXT   = "#e2e8f0";
+const TEXT   = "#111827";
 const API    = import.meta.env.VITE_GEN_E_API_URL || "https://nugens-platform.onrender.com";
 
 const PLATFORMS = ["Instagram","LinkedIn","Twitter/X","Facebook","Pinterest","YouTube"];
@@ -57,12 +57,15 @@ Rules:
       const res = await fetch(`${API}/api/mini-chat`, {
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ message:prompt, product:"digihub", userType:profile?.user_type||"individual" }),
+        body: JSON.stringify({ message:prompt, product:"digihub", userType:profile?.user_type||"individual", max_tokens:3000 }),
         signal: AbortSignal.timeout(25000),
       });
       const d = await res.json();
-      const txt = (d.reply || d.message || "").replace(/```json|```/g,"").trim();
-      const parsed = JSON.parse(txt);
+      const raw = (d.reply || d.message || "").replace(/```json|```/g,"").trim();
+      // Robustly extract JSON object from response
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error("No JSON in response");
+      const parsed = JSON.parse(jsonMatch[0]);
       setResult(parsed);
     } catch(e) {
       setError("Generation failed. Please try again.");
@@ -118,7 +121,7 @@ Rules:
             <label style={{ fontSize:11, fontWeight:700, color:MUTED, textTransform:"uppercase", letterSpacing:"0.06em", display:"block", marginBottom:6 }}>Post Topic or Caption *</label>
             <textarea value={topic} onChange={e=>setTopic(e.target.value)} rows={3}
               placeholder="e.g. New product launch for our handmade jewellery collection this Diwali"
-              style={{ width:"100%", padding:"10px 13px", background:"#0d1f35", border:`1.5px solid ${B}`, borderRadius:9, color:TEXT, fontSize:13, fontFamily:"inherit", resize:"none", outline:"none", boxSizing:"border-box" }}
+              style={{ width:"100%", padding:"10px 13px", background:"#f3f4f6", border:`1.5px solid ${B}`, borderRadius:9, color:"#111827", fontSize:13, fontFamily:"inherit", resize:"none", outline:"none", boxSizing:"border-box" }}
               onFocus={e=>e.target.style.borderColor=BLUE} onBlur={e=>e.target.style.borderColor=B}
               onKeyDown={e=>{ if(e.key==="Enter"&&e.ctrlKey) generate(); }}/>
           </div>
@@ -127,14 +130,14 @@ Rules:
             <div>
               <label style={{ fontSize:11, fontWeight:700, color:MUTED, textTransform:"uppercase", letterSpacing:"0.06em", display:"block", marginBottom:6 }}>Platform</label>
               <select value={platform} onChange={e=>setPlatform(e.target.value)}
-                style={{ width:"100%", padding:"9px 12px", background:"#0d1f35", border:`1.5px solid ${B}`, borderRadius:9, color:TEXT, fontSize:13, fontFamily:"inherit", cursor:"pointer", outline:"none" }}>
+                style={{ width:"100%", padding:"9px 12px", background:"#f3f4f6", border:`1.5px solid ${B}`, borderRadius:9, color:"#111827", fontSize:13, fontFamily:"inherit", cursor:"pointer", outline:"none" }}>
                 {PLATFORMS.map(p=><option key={p}>{p}</option>)}
               </select>
             </div>
             <div>
               <label style={{ fontSize:11, fontWeight:700, color:MUTED, textTransform:"uppercase", letterSpacing:"0.06em", display:"block", marginBottom:6 }}>Niche (optional)</label>
               <select value={niche} onChange={e=>setNiche(e.target.value)}
-                style={{ width:"100%", padding:"9px 12px", background:"#0d1f35", border:`1.5px solid ${B}`, borderRadius:9, color:TEXT, fontSize:13, fontFamily:"inherit", cursor:"pointer", outline:"none" }}>
+                style={{ width:"100%", padding:"9px 12px", background:"#f3f4f6", border:`1.5px solid ${B}`, borderRadius:9, color:"#111827", fontSize:13, fontFamily:"inherit", cursor:"pointer", outline:"none" }}>
                 <option value="">Any niche</option>
                 {NICHES.map(n=><option key={n}>{n}</option>)}
               </select>
