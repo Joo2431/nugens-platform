@@ -200,7 +200,14 @@ export default function BusinessChat() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token || null;
       await wakeServer();
-      patch(cId, c => ({ ...c, messages: [...c.messages, { role:"assistant", text:"", streaming:true }] }));
+      // Small delay so user message state settles before streaming bubble appears
+      await new Promise(r => setTimeout(r, 50));
+      patch(cId, c => {
+        // Only add streaming bubble if one doesn't already exist
+        const hasStreaming = c.messages.some(m => m.streaming);
+        if (hasStreaming) return c;
+        return { ...c, messages: [...c.messages, { role:"assistant", text:"", streaming:true }] };
+      });
 
       const res = await fetch(`${API}/api/chat`, {
         method:"POST",
@@ -228,10 +235,11 @@ export default function BusinessChat() {
           } catch {}
         }
       }
+      const finalText = fullText || "Sorry, I could not generate a response. Please try again.";
       patch(cId, c => ({
         ...c,
-        messages: c.messages.map(m => m.streaming ? { role:"assistant", text:fullText || "No response. Please try again." } : m),
-        history:  [...c.history, { role:"assistant", content:fullText }],
+        messages: c.messages.map(m => m.streaming ? { role:"assistant", text:finalText } : m),
+        history:  [...c.history, { role:"assistant", content:finalText }],
       }));
     } catch (err) {
       patch(cId, c => ({
