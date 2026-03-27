@@ -10,6 +10,7 @@ const ResumesPage       = lazy(() => import("./pages/ResumesPage"));
 const JobTrackerPage    = lazy(() => import("./pages/JobTrackerPage"));
 const PricingPage       = lazy(() => import("./pages/PricingPage"));
 const BusinessDashboard = lazy(() => import("./pages/BusinessDashboard"));
+const BusinessChat       = lazy(() => import("./pages/BusinessChat"));
 
 const PINK = "#e8185d";
 
@@ -118,8 +119,9 @@ function AppShell() {
               : <GenEChat profile={profile} />}
           </ProtectedRoute>
         } />
-        <Route path="/chat" element={<ProtectedRoute><GenEChat profile={profile} /></ProtectedRoute>} />
-        <Route path="*"     element={<Navigate to="/chat" replace />} />
+        <Route path="/chat"          element={<ProtectedRoute><GenEChat profile={profile} /></ProtectedRoute>} />
+        <Route path="/business-chat" element={<ProtectedRoute><BusinessChat /></ProtectedRoute>} />
+        <Route path="*"              element={<Navigate to={userType==="business"?"/business":"/chat"} replace />} />
       </Routes>
     </Suspense>
   );
@@ -127,23 +129,14 @@ function AppShell() {
   // Other routes: outer Sidebar
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:"#f8f9fb", flexDirection:"column" }}>
-      {/* Mobile header for non-chat pages (resumes, jobs, business dashboard) */}
-      <div style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 16px", background:"#fff", borderBottom:"1px solid #f0f0f0", position:"sticky", top:0, zIndex:100, flexShrink:0 }}>
+      <div className="mobile-top-bar" style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 16px", background:"#fff", borderBottom:"1px solid #f0f0f0", position:"sticky", top:0, zIndex:100, flexShrink:0 }}>
         <button onClick={()=>setMobileMenuOpen(true)}
-          style={{ background:"none", border:"1px solid #edf0f3", borderRadius:8, padding:"6px 10px", cursor:"pointer", fontSize:18, color:"#e8185d", lineHeight:1 }}>
+          style={{ background:"none", border:"1px solid #f0f0f0", borderRadius:8, padding:"6px 10px", cursor:"pointer", fontSize:18, color:"#e8185d", lineHeight:1 }}>
           ☰
         </button>
-        <span style={{ fontWeight:800, fontSize:15, color:"#0a0a0a", letterSpacing:"-0.025em" }}>
-          Gen-<span style={{color:"#e8185d"}}>E</span>
-        </span>
-        <div style={{ marginLeft:"auto", display:"flex", gap:8 }}>
-          {["HyperX","DigiHub","Units"].map((a,i) => {
-            const urls = ["https://hyperx.nugens.in.net","https://digihub.nugens.in.net","https://units.nugens.in.net"];
-            const colors = ["#e8185d","#0284c7","#d97706"];
-            return <a key={a} href={urls[i]} style={{ fontSize:10, fontWeight:700, color:colors[i], textDecoration:"none", padding:"3px 8px", borderRadius:20, border:`1px solid ${colors[i]}25`, background:`${colors[i]}08` }}>{a}</a>;
-          })}
-        </div>
+        <span style={{ fontWeight:800, fontSize:15, color:"#111" }}>Gen-<span style={{color:"#e8185d"}}>E</span></span>
       </div>
+      <style>{`@media(min-width:768px){.mobile-top-bar{display:none!important}}`}</style>
       <div style={{ display:"flex", flex:1 }}>
       <Sidebar
         userType={userType}
@@ -165,12 +158,13 @@ function AppShell() {
             <Route path="/skill-gap"          element={<Navigate to="/chat?t=skill_gap" replace />} />
             <Route path="/simulate"           element={<Navigate to="/chat?t=simulate"  replace />} />
             <Route path="/roadmap"            element={<Navigate to="/chat?t=roadmap"   replace />} />
-            <Route path="/business/jd"        element={<Navigate to="/chat?t=jd"        replace />} />
-            <Route path="/business/hiring"    element={<Navigate to="/chat?t=hiring"    replace />} />
-            <Route path="/business/team"      element={<Navigate to="/chat?t=team"      replace />} />
-            <Route path="/business/workforce" element={<Navigate to="/chat?t=workforce" replace />} />
-            <Route path="/business/salary"    element={<Navigate to="/chat?t=salary"    replace />} />
-            <Route path="/business/interview" element={<Navigate to="/chat?t=interview" replace />} />
+            <Route path="/business/jd"        element={<Navigate to="/business-chat?t=jd"        replace />} />
+            <Route path="/business/hiring"    element={<Navigate to="/business-chat?t=hiring"    replace />} />
+            <Route path="/business/team"      element={<Navigate to="/business-chat?t=team"      replace />} />
+            <Route path="/business/workforce" element={<Navigate to="/business-chat?t=workforce" replace />} />
+            <Route path="/business/salary"    element={<Navigate to="/business-chat?t=salary"    replace />} />
+            <Route path="/business/interview" element={<Navigate to="/business-chat?t=interview" replace />} />
+            <Route path="/business/chat"      element={<Navigate to="/business-chat"             replace />} />
 
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="*" element={<Navigate to={userType === "business" ? "/business" : "/chat"} replace />} />

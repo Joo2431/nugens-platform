@@ -21,14 +21,14 @@ const IND_PLANS = [
     id:"hx_ind_premium_monthly", name:"Premium", price:{ monthly:299, yearly:null },
     tag:"Monthly Plan", color:PINK, popular:false, free:false,
     certLimit:2,
-    features:["All individual courses","2 certifications per year","Monthly exclusive course","Real-time AI guidance","Gen-E Mini support","Course progress tracking"],
+    features:["All individual courses","2 certifications per month","Monthly exclusive course","Real-time AI guidance","Gen-E Mini support","Course progress tracking"],
     cta:"Get Premium — ₹299/mo",
   },
   {
     id:"hx_ind_pro_monthly", name:"Pro", price:{ monthly:1299, yearly:null },
     tag:"Serious Learners", color:"#7c3aed", popular:true, free:false,
     certLimit:6,
-    features:["Everything in Premium","6 certifications per year","All exclusive courses","Priority AI guidance","Certificate with LinkedIn export","Early course access"],
+    features:["Everything in Premium","6 certifications per month","All exclusive courses","Priority AI guidance","Certificate with LinkedIn export","Early course access"],
     cta:"Go Pro — ₹1,299/mo",
   },
   {
@@ -45,21 +45,21 @@ const BIZ_PLANS = [
     id:"hx_biz_starter_monthly", name:"Starter", price:{ monthly:299, yearly:null },
     tag:"Teams starting out", color:MUTED, popular:false, free:false,
     certLimit:2,
-    features:["Access to free courses only","Business + Individual courses","2 certifications per year","Community access","Gen-E Mini support"],
+    features:["Access to free courses only","Business + Individual courses","2 certifications per month","Community access","Gen-E Mini support"],
     cta:"Get Starter — ₹299/mo",
   },
   {
     id:"hx_biz_premium_monthly", name:"Premium", price:{ monthly:699, yearly:null },
     tag:"Growing Teams", color:PINK, popular:true, free:false,
     certLimit:2,
-    features:["All business & individual courses","2 certifications per year","Monthly exclusive course","Real-time AI guidance","Team progress dashboard","Gen-E Mini support"],
+    features:["All business & individual courses","2 certifications per month","Monthly exclusive course","Real-time AI guidance","Team progress dashboard","Gen-E Mini support"],
     cta:"Get Premium — ₹699/mo",
   },
   {
     id:"hx_biz_pro_monthly", name:"Pro", price:{ monthly:1599, yearly:null },
     tag:"Scaling Businesses", color:"#7c3aed", popular:false, free:false,
     certLimit:6,
-    features:["Everything in Premium","6 certifications per year","All exclusive courses","Priority AI & team guidance","Team certification tracker","Early course access"],
+    features:["Everything in Premium","6 certifications per month","All exclusive courses","Priority AI & team guidance","Team certification tracker","Early course access"],
     cta:"Go Pro — ₹1,599/mo",
   },
   {
@@ -112,7 +112,7 @@ export default function Pricing({ profile }) {
         amount: order.amount,
         currency: "INR",
         order_id: order.id,
-        name: "HyperX by Nugens",
+        name: "HyperX by NuGens",
         description: `HyperX ${plan.name} — ${plan.price.yearly ? "Yearly" : "Monthly"}`,
         theme: { color: PINK },
         prefill: { name: profile?.full_name || "", email: profile?.email || "" },
@@ -215,7 +215,7 @@ export default function Pricing({ profile }) {
 
             <div style={{ background:`${plan.color}10`, border:`1px solid ${plan.color}30`, borderRadius:8, padding:"8px 12px", marginBottom:16, textAlign:"center" }}>
               <div style={{ fontSize:11, fontWeight:700, color:plan.color }}>
-                {plan.certLimit === 999 ? "∞ Unlimited Certifications" : plan.certLimit === 0 ? "No Certifications" : `${plan.certLimit} Certification${plan.certLimit > 1 ? "s" : ""} / year`}
+                {plan.certLimit === 999 ? "∞ Unlimited Certifications" : plan.certLimit === 0 ? "No Certifications" : `${plan.certLimit} Certification${plan.certLimit > 1 ? "s" : ""} / month`}
               </div>
             </div>
 
