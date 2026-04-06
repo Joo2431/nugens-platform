@@ -179,9 +179,9 @@ const PLAN_CONFIG = {
   gene_yearly:  { amount: 69900,   currency: "INR", label: "Gen-E Pro Yearly",   durationDays: 365, profilePlan: "gene_yearly"  },
 
   // ── NuGens Suite — Individual ─────────────────────────────────────
-  individual_starter_monthly: { amount: 1500000,    currency: "INR", label: "Suite Starter Monthly",  durationDays: 30,  profilePlan: "ng_ind_starter" },
+  individual_starter_monthly: { amount: 9900,    currency: "INR", label: "Suite Starter Monthly",  durationDays: 30,  profilePlan: "ng_ind_starter" },
   individual_starter_yearly:  { amount: 79900,   currency: "INR", label: "Suite Starter Yearly",   durationDays: 365, profilePlan: "ng_ind_starter" },
-  individual_premium_monthly: { amount: 19900,   currency: "INR", label: "Suite Premium Monthly",  durationDays: 30,  profilePlan: "ng_ind_premium" },
+  individual_premium_monthly: { amount: 1500000,   currency: "INR", label: "Suite Premium Monthly",  durationDays: 30,  profilePlan: "ng_ind_premium" },
   individual_premium_yearly:  { amount: 149900,  currency: "INR", label: "Suite Premium Yearly",   durationDays: 365, profilePlan: "ng_ind_premium" },
   individual_pro_monthly:     { amount: 29900,   currency: "INR", label: "Suite Pro Monthly",      durationDays: 30,  profilePlan: "ng_ind_pro"     },
   individual_pro_yearly:      { amount: 249900,  currency: "INR", label: "Suite Pro Yearly",       durationDays: 365, profilePlan: "ng_ind_pro"     },
