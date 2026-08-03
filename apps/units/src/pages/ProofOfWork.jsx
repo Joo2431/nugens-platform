@@ -15,6 +15,31 @@
  */
 import React, { useState, useRef, useEffect } from "react";
 
+/* FIX — fonts: the previous version loaded Fraunces from Google's servers
+   (first via CSS @import, then via a <link> tag — neither actually fixes
+   this). The real issue: browsers with strict privacy shields (Brave's
+   "Aggressive" fingerprinting protection, uBlock Origin with certain
+   filter lists, some corporate networks) block requests to
+   fonts.googleapis.com / fonts.gstatic.com at the network level — no
+   amount of changing *how* you ask for the font fixes that, since the
+   request itself never leaves the browser.
+   The actual fix: self-host the font files so there's no external
+   request at all. This uses the @fontsource npm package, which bundles
+   the real font files into your own build — same font, zero network
+   dependency, works identically for every visitor regardless of their
+   browser/privacy settings.
+   REQUIRED — run this before building:
+     npm install @fontsource/fraunces @fontsource/plus-jakarta-sans
+*/
+import "@fontsource/fraunces/500.css";
+import "@fontsource/fraunces/500-italic.css";
+import "@fontsource/fraunces/600.css";
+import "@fontsource/plus-jakarta-sans/400.css";
+import "@fontsource/plus-jakarta-sans/500.css";
+import "@fontsource/plus-jakarta-sans/600.css";
+import "@fontsource/plus-jakarta-sans/700.css";
+import "@fontsource/plus-jakarta-sans/800.css";
+
 import poster1      from "../assets/units samples/posters/1.jpg";
 import posterG1     from "../assets/units samples/posters/g1.jpg";
 import posterG2     from "../assets/units samples/posters/g2.jpg";
@@ -137,7 +162,7 @@ function SectionHeading({ eyebrow, title, sub }) {
     <Reveal>
       <div style={{ marginBottom: 28 }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: GOLD, marginBottom: 10 }}>{eyebrow}</div>
-        <h2 style={{ fontFamily: "'Fraunces',serif", fontWeight: 600, fontSize: "clamp(24px,3vw,36px)", letterSpacing: "-0.02em", margin: 0, color: CREAM }}>{title}</h2>
+        <h2 style={{ fontFamily: "'Fraunces',Georgia,'Times New Roman',serif", fontWeight: 600, fontSize: "clamp(24px,3vw,36px)", letterSpacing: "-0.02em", margin: 0, color: CREAM }}>{title}</h2>
         {sub && <p style={{ color: MUTED, fontSize: 14.5, marginTop: 10, maxWidth: 560, lineHeight: 1.6 }}>{sub}</p>}
       </div>
     </Reveal>
@@ -186,8 +211,14 @@ function PlayCard({ title, tag, streamId }) {
     }}>
       <div style={{ aspectRatio: "9/16", position: "relative", background: "linear-gradient(200deg,#241b10,#0d0a06)" }}>
         {playing && ready ? (
+          // FIX — video playback: removed the "?autoplay=true" param. Some
+          // browsers/Cloudflare Stream configurations still block autoplay
+          // even after a genuine click, which can look exactly like "the
+          // video doesn't play." Without it, Cloudflare's own player loads
+          // with its native play button visible — one guaranteed-reliable
+          // extra click instead of a silent failure.
           <iframe
-            src={`https://${CLOUDFLARE_STREAM_DOMAIN}/${streamId}/iframe?autoplay=true`}
+            src={`https://${CLOUDFLARE_STREAM_DOMAIN}/${streamId}/iframe`}
             style={{ width: "100%", height: "100%", border: "none", display: "block" }}
             allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
             allowFullScreen
@@ -220,7 +251,15 @@ function PlayCard({ title, tag, streamId }) {
       </div>
       <div style={{ padding: "13px 15px 15px" }}>
         <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: GOLD, display: "block", marginBottom: 4 }}>{tag}</span>
-        <div style={{ fontSize: 13.5, fontWeight: 700, color: CREAM }}>{title}</div>
+        <div style={{ fontSize: 13.5, fontWeight: 700, color: CREAM, marginBottom: ready ? 6 : 0 }}>{title}</div>
+        {/* Guaranteed fallback — always works even if the embedded iframe
+            fails silently (e.g. Cloudflare "require signed URLs" enabled). */}
+        {ready && (
+          <a href={`https://${CLOUDFLARE_STREAM_DOMAIN}/${streamId}/watch`} target="_blank" rel="noopener noreferrer"
+            style={{ fontSize: 10.5, color: MUTED_DIM, textDecoration: "none" }}>
+            Not playing? Open directly ↗
+          </a>
+        )}
       </div>
     </div>
   );
@@ -248,9 +287,8 @@ export default function ProofOfWork() {
   const testReady = TESTIMONIAL.streamId && !TESTIMONIAL.streamId.startsWith("PASTE_STREAM_ID");
 
   return (
-    <div style={{ background: BG, color: CREAM, fontFamily: "'Plus Jakarta Sans', sans-serif", minHeight: "100vh", position: "relative", overflowX: "hidden" }}>
+    <div style={{ background: BG, color: CREAM, fontFamily: "'Plus Jakarta Sans',-apple-system,'Segoe UI',sans-serif", minHeight: "100vh", position: "relative", overflowX: "hidden" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         .pow-piece{ transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s; }
         .pow-piece:hover{ transform: translateY(-4px); border-color: ${GOLD}; box-shadow: 0 16px 40px rgba(212,168,67,0.08); }
         .pow-play-btn{ transition: transform 0.2s; }
@@ -295,7 +333,7 @@ export default function ProofOfWork() {
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 11.5, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: GOLD, border: `1px solid ${GOLD_LINE}`, background: GOLD_SOFT, padding: "6px 14px", borderRadius: 99, marginBottom: 28 }}>
           ● Proof of Work
         </div>
-        <h1 style={{ fontFamily: "'Fraunces',serif", fontSize: "clamp(40px,6.4vw,84px)", fontWeight: 600, lineHeight: 1.02, letterSpacing: "-0.02em", maxWidth: "14ch", margin: 0 }}>
+        <h1 style={{ fontFamily: "'Fraunces',Georgia,'Times New Roman',serif", fontSize: "clamp(40px,6.4vw,84px)", fontWeight: 600, lineHeight: 1.02, letterSpacing: "-0.02em", maxWidth: "14ch", margin: 0 }}>
           Work that <em style={{ fontStyle: "italic", fontWeight: 500, color: GOLD }}>looks</em> like a full production team.
         </h1>
         <p style={{ marginTop: 26, maxWidth: 540, fontSize: 16.5, lineHeight: 1.7, color: MUTED }}>
@@ -310,7 +348,7 @@ export default function ProofOfWork() {
         <div style={{ display: "flex", gap: "clamp(28px,5vw,56px)", marginTop: 64, flexWrap: "wrap", paddingTop: 32, borderTop: `1px solid ${GOLD_LINE}` }}>
           {[["3", "Formats — web, video, design"], ["4–12k", "Per project, no vague quotes"], ["1", "Dashboard tracking every stage"]].map(([n, l]) => (
             <div key={l}>
-              <b style={{ display: "block", fontFamily: "'Fraunces',serif", fontSize: 30, fontWeight: 600, color: GOLD }}>{n}</b>
+              <b style={{ display: "block", fontFamily: "'Fraunces',Georgia,'Times New Roman',serif", fontSize: 30, fontWeight: 600, color: GOLD }}>{n}</b>
               <span style={{ fontSize: 12, color: MUTED_DIM }}>{l}</span>
             </div>
           ))}
@@ -354,7 +392,7 @@ export default function ProofOfWork() {
             <div style={{ aspectRatio: "9/16", maxHeight: 480, borderRadius: 14, overflow: "hidden", background: "linear-gradient(200deg,#241b10,#0d0a06)", margin: "0 auto", width: "100%" }}>
               {testimonialPlaying && testReady ? (
                 <iframe
-                  src={`https://${CLOUDFLARE_STREAM_DOMAIN}/${TESTIMONIAL.streamId}/iframe?autoplay=true`}
+                  src={`https://${CLOUDFLARE_STREAM_DOMAIN}/${TESTIMONIAL.streamId}/iframe`}
                   style={{ width: "100%", height: "100%", border: "none", display: "block" }}
                   allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
                   allowFullScreen
@@ -372,9 +410,15 @@ export default function ProofOfWork() {
                 </button>
               )}
             </div>
+            {testReady && (
+              <a href={`https://${CLOUDFLARE_STREAM_DOMAIN}/${TESTIMONIAL.streamId}/watch`} target="_blank" rel="noopener noreferrer"
+                style={{ fontSize: 10.5, color: MUTED_DIM, textDecoration: "none", display: "block", textAlign: "center", marginTop: 8 }}>
+                Not playing? Open directly ↗
+              </a>
+            )}
             <div>
-              <div style={{ fontSize: 32, fontFamily: "'Fraunces',serif", color: GOLD, lineHeight: 1, marginBottom: 10 }}>"</div>
-              <p style={{ fontFamily: "'Fraunces',serif", fontWeight: 500, fontSize: "clamp(19px,2.2vw,26px)", lineHeight: 1.5, color: CREAM, fontStyle: "italic", marginBottom: 22 }}>
+              <div style={{ fontSize: 32, fontFamily: "'Fraunces',Georgia,'Times New Roman',serif", color: GOLD, lineHeight: 1, marginBottom: 10 }}>"</div>
+              <p style={{ fontFamily: "'Fraunces',Georgia,'Times New Roman',serif", fontWeight: 500, fontSize: "clamp(19px,2.2vw,26px)", lineHeight: 1.5, color: CREAM, fontStyle: "italic", marginBottom: 22 }}>
                 {TESTIMONIAL.quote}
               </p>
               <div style={{ fontSize: 14, fontWeight: 700, color: CREAM }}>{TESTIMONIAL.name}</div>
@@ -402,7 +446,7 @@ export default function ProofOfWork() {
           display: "flex", alignItems: "center", justifyContent: "space-between", gap: 32, flexWrap: "wrap",
         }}>
           <div>
-            <h2 style={{ fontFamily: "'Fraunces',serif", fontWeight: 600, fontSize: "clamp(26px,3.4vw,40px)", maxWidth: "16ch", lineHeight: 1.1, letterSpacing: "-0.02em", margin: 0 }}>
+            <h2 style={{ fontFamily: "'Fraunces',Georgia,'Times New Roman',serif", fontWeight: 600, fontSize: "clamp(26px,3.4vw,40px)", maxWidth: "16ch", lineHeight: 1.1, letterSpacing: "-0.02em", margin: 0 }}>
               Like what you see? <em style={{ color: GOLD, fontStyle: "italic" }}>Let's build yours.</em>
             </h2>
             <div style={{ color: MUTED, fontSize: 14, marginTop: 10, maxWidth: "40ch" }}>
