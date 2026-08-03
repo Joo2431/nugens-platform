@@ -23,6 +23,7 @@ const Projects          = lazy(() => import("./pages/Projects"));
 const Portfolio         = lazy(() => import("./pages/Portfolio"));
 const Booking           = lazy(() => import("./pages/Booking"));
 const BookingPage       = lazy(() => import("./pages/BookingPage"));
+const ProofOfWork       = lazy(() => import("./pages/ProofOfWork"));
 
 const AMBER = "#d97706";
 
@@ -126,6 +127,7 @@ function AppShell() {
             <Route path="/portfolio" element={<ProtectedRoute><Portfolio       profile={profile} user={user} /></ProtectedRoute>} />
             <Route path="/quote"    element={<ProtectedRoute><Booking          profile={profile} user={user} /></ProtectedRoute>} />
             <Route path="/receipt/:id" element={<ProtectedRoute><BookingPage   profile={profile} user={user} /></ProtectedRoute>} />
+            <Route path="/work"     element={<ProofOfWork />} />
             <Route path="*"         element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
