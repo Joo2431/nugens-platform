@@ -1,0 +1,147 @@
+import React, { createContext, useContext, useEffect, useState, Suspense, lazy } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { supabase } from "./lib/supabase";
+import Header from "./components/Header";
+import Footer from "./components/Footer";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Home from "./pages/Home";
+import GenEMiniPopup from "./components/GenEMiniPopup";
+import LaunchIntro from "./components/LaunchIntro";
+import { useMetaPixel } from "./hooks/useMetaPixel";
+
+/* ── Auth context ── */
+export const AuthContext = createContext({ user: null, profile: null, ready: false, signOut: () => {} });
+export const useAuth = () => useContext(AuthContext);
+
+/* ── lazy pages ── */
+const About       = lazy(() => import("./pages/About"));
+const Blog        = lazy(() => import("./pages/Blog"));
+const Careers     = lazy(() => import("./pages/Careers"));
+const Contact     = lazy(() => import("./pages/Contact"));
+const Support     = lazy(() => import("./pages/Support"));
+const GenE        = lazy(() => import("./pages/GenE"));
+const HyperX      = lazy(() => import("./pages/HyperX"));
+const DigiHub     = lazy(() => import("./pages/DigiHub"));
+const Units       = lazy(() => import("./pages/Units"));
+const AuthPage    = lazy(() => import("./pages/AuthPage"));
+const PricingPage = lazy(() => import("./pages/PricingPage"));
+const Dashboard   = lazy(() => import("./pages/Dashboard"));
+const PrivacyPolicy = lazy(() => import("./pages/Legal").then(m => ({ default: m.PrivacyPolicy })));
+const TermsOfUse    = lazy(() => import("./pages/Legal").then(m => ({ default: m.TermsOfUse })));
+const CookiePolicy  = lazy(() => import("./pages/Legal").then(m => ({ default: m.CookiePolicy })));
+
+function Spinner() {
+  return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"60vh" }}>
+      <div style={{ fontWeight:800, fontSize:24, color:"#e8185d", letterSpacing:"-0.04em",
+        fontFamily:"'Plus Jakarta Sans',sans-serif" }}>Nugens</div>
+    </div>
+  );
+}
+
+function Layout({ children }) {
+  return (<><Header /><main>{children}</main><Footer /></>);
+}
+
+function PixelTracker() {
+  useMetaPixel();
+  return null;
+}
+
+export default function App() {
+  const [user,    setUser]    = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [ready,   setReady]   = useState(false);
+
+  // Fetch profile silently — never blocks rendering
+  const fetchProfile = async (uid) => {
+    const { data } = await supabase.from("profiles").select("*").eq("id", uid).maybeSingle();
+    if (data && !data.full_name) {
+      // Enrich from auth metadata — covers Google OAuth users whose full_name was never saved
+      const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+      const meta = session?.user?.user_metadata;
+      if (meta) {
+        const enrichedName = meta.full_name || meta.name || session.user.email?.split("@")[0] || "";
+        if (enrichedName) {
+          // Patch the DB row too so future loads work
+          supabase.from("profiles").update({ full_name: enrichedName }).eq("id", uid).then(() => {});
+          setProfile({ ...data, full_name: enrichedName });
+          return;
+        }
+      }
+    }
+    setProfile(data ?? null);
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/auth";
+  };
+
+  useEffect(() => {
+    // Initial session check — set user + ready IMMEDIATELY, don't wait for profile
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setReady(true); // <-- unblock render right away
+      if (session?.user) fetchProfile(session.user.id);
+    });
+
+    // Auth state changes (login, logout, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ?? null); // update header instantly
+      if (session?.user) fetchProfile(session.user.id);
+      else setProfile(null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Only block on very first load (ready = false means getSession hasn't returned yet)
+  if (!ready) return (
+    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"#fff" }}>
+      <div style={{ fontWeight:800, fontSize:26, color:"#e8185d", letterSpacing:"-0.04em",
+        fontFamily:"'Plus Jakarta Sans',sans-serif" }}>Nugens</div>
+    </div>
+  );
+
+  return (
+    <BrowserRouter>
+      <PixelTracker />
+      <LaunchIntro />
+      <AuthContext.Provider value={{ user, profile, ready, signOut }}>
+        <Suspense fallback={<Spinner />}>
+          <Routes>
+            {/* public */}
+            <Route path="/"         element={<Layout><Home /></Layout>} />
+            <Route path="/about"    element={<Layout><About /></Layout>} />
+            <Route path="/blog"     element={<Layout><Blog /></Layout>} />
+            <Route path="/blog/:id" element={<Layout><Blog /></Layout>} />
+            <Route path="/careers"  element={<Layout><Careers /></Layout>} />
+            <Route path="/contact"  element={<Layout><Contact /></Layout>} />
+            <Route path="/support"  element={<Layout><Support /></Layout>} />
+            <Route path="/gene"     element={<Layout><GenE /></Layout>} />
+            <Route path="/hyperx"   element={<Layout><HyperX /></Layout>} />
+            <Route path="/digihub"  element={<Layout><DigiHub /></Layout>} />
+            <Route path="/units"    element={<Layout><Units /></Layout>} />
+            <Route path="/pricing"  element={<Layout><PricingPage /></Layout>} />
+            <Route path="/privacy-policy" element={<Layout><PrivacyPolicy /></Layout>} />
+            <Route path="/terms-of-use"   element={<Layout><TermsOfUse /></Layout>} />
+            <Route path="/cookie-policy"  element={<Layout><CookiePolicy /></Layout>} />
+            {/* auth */}
+            <Route path="/auth"     element={<AuthPage />} />
+            <Route path="/login"    element={<Navigate to="/auth" replace />} />
+            <Route path="/signup"   element={<Navigate to="/auth?mode=signup" replace />} />
+            {/* protected */}
+            <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+            {/* redirects for removed pages */}
+            <Route path="/events"    element={<Navigate to="/about" replace />} />
+            <Route path="/customers" element={<Navigate to="/about" replace />} />
+            {/* fallback */}
+            <Route path="*"         element={<Layout><Home /></Layout>} />
+          </Routes>
+        </Suspense>
+        <GenEMiniPopup product="nugens" />
+      </AuthContext.Provider>
+    </BrowserRouter>
+  );
+}

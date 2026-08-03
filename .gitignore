@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Environment files — NEVER commit these
+.env
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vite
+*.local
+
+# Uploads (backend temp files)
+backend/uploads/
+*.pdf
+resume-*.pdf
+
+# IDE
+.vscode/
+.idea/
+
+
+Add-Content .gitignore "`napps/units/src/assets/units samples/reels/*.mp4"
+Add-Content .gitignore "apps/units/src/assets/units samples/testimonials/*.mp4"
