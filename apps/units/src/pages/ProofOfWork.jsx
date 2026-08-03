@@ -1,36 +1,30 @@
 /**
  * Units — Proof of Work (client showcase gallery)
- * A shareable portfolio page: websites, reels, and posters.
- * Route suggestion: /work or /showcase (public — no auth required,
- * since the whole point is sending this link to prospective clients).
+ * Public route — no auth required (see App.jsx: <Route path="/work"
+ * element={<ProofOfWork />} /> lives OUTSIDE <ProtectedRoute>).
  *
- * NOTE: The mockup frames below (browser-chrome, phone-frame, poster
- * composition) are placeholders built to show the *shape* of real work —
- * swap the WORK array's content for your actual project screenshots,
- * video thumbnails, and poster designs before sharing with clients.
+ * Structure: Hero -> Websites -> Content Creation (Reels, horizontal
+ * carousel) -> Client Testimonial (split video/quote) -> Posters &
+ * Brand Design (horizontal carousel) -> CTA band.
+ *
+ * Videos are click-to-play: Cloudflare's iframe embed only loads once a
+ * card is clicked, instead of loading 16 iframes on page load. This is
+ * both faster and more reliable — if your Cloudflare Stream account has
+ * "require signed URLs" enabled, the public /iframe embed will fail
+ * silently; check Stream settings if a clicked video doesn't play.
  */
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
-// Real sample work — swap/add files in src/assets/units samples/ and update
-// these imports. Posters and the testimonial video below are real uploaded
-// samples; reel videos are still pending (see reels/MANIFEST.md).
-import poster1     from "../assets/units samples/posters/1.jpg";
-import posterG1    from "../assets/units samples/posters/g1.jpg";
-import posterG2    from "../assets/units samples/posters/g2.jpg";
-import posterG3    from "../assets/units samples/posters/g3.jpg";
-import posterShoe  from "../assets/units samples/posters/PsFiles_Shoe.jpg";
+import poster1      from "../assets/units samples/posters/1.jpg";
+import posterG1     from "../assets/units samples/posters/g1.jpg";
+import posterG2     from "../assets/units samples/posters/g2.jpg";
+import posterG3     from "../assets/units samples/posters/g3.jpg";
+import posterShoe   from "../assets/units samples/posters/PsFiles_Shoe.jpg";
 import posterCutout from "../assets/units samples/posters/Gemini_Generated_Image_e59524e59524e595-removebg-preview.png";
-// Videos moved to Cloudflare Stream — see the WORK array below, where each
-// video is now referenced by its Cloudflare Stream video ID instead of a
-// local file import. This is what fixed the "files too large for GitHub"
-// error: no video binaries live in this repo anymore.
-//
-// To get a video ID: Cloudflare dashboard → Stream → upload the file →
-// copy the ID shown after processing completes (looks like a long hex
-// string, e.g. "31c9291a1d2e...").
 
 const BG        = "#0a0805";
 const CARD      = "#161009";
+const CARD_HOVER= "#1c150c";
 const GOLD      = "#d4a843";
 const GOLD_SOFT = "#d4a84322";
 const GOLD_LINE = "#d4a84340";
@@ -38,79 +32,117 @@ const CREAM     = "#f2ead9";
 const MUTED     = "#a08f68";
 const MUTED_DIM = "#6b5f45";
 
-const FILTERS = [
-  { key: "all",    label: "All Work" },
-  { key: "web",    label: "Websites" },
-  { key: "reel",   label: "Reels & Video" },
-  { key: "poster", label: "Posters & Brand Design" },
+// Your Cloudflare Stream customer subdomain — find it in the dashboard's
+// Stream section (looks like "customer-abc123.cloudflarestream.com").
+const CLOUDFLARE_STREAM_DOMAIN = "customer-6qz8gcj18239c7sh.cloudflarestream.com";
+
+/* ── DATA — split into the sections they actually belong to ── */
+
+const WEBSITES = [
+  {
+    tag: "Website — D2C Launch", title: "Product Launch Landing Page",
+    desc: "Full-funnel landing page built for a product drop — hero, story section, and checkout handoff in one build.",
+    placeholder: true, // no real screenshot uploaded yet — swap for a real <img> when ready
+  },
 ];
 
-// Replace each entry's mock content with real project assets.
-// type: "web" | "reel" | "testimonial" | "poster"
-const WORK = [
-  {
-    type: "web", tag: "Website — D2C Launch", title: "Product Launch Landing Page",
-    desc: "Full-funnel landing page built for a product drop — hero, story section, and checkout handoff in one build.",
-    placeholder: true, // no real website screenshot uploaded yet — swap for a real <img> when ready
-  },
-  {
-    type: "poster", tag: "Poster — Product", title: "Shoe Product Poster",
-    desc: "Product-focused poster design.",
-    img: posterShoe,
-  },
-  {
-    type: "testimonial", tag: "Reel — Client Testimonial", title: "Client Testimonial Reel",
-    desc: "Real client testimonial — vertical reel, ~50 seconds.",
-    streamId: "fd542e7900fad11618568ca25aeca19a",
-  },
-  {
-    type: "poster", tag: "Poster — Design 1", title: "Poster Design 1",
-    desc: "Sample poster design.",
-    img: posterG1,
-  },
-  {
-    type: "poster", tag: "Poster — Design 2", title: "Poster Design 2",
-    desc: "Sample poster design.",
-    img: posterG2,
-  },
-  {
-    type: "poster", tag: "Poster — Design 3", title: "Poster Design 3",
-    desc: "Sample poster design.",
-    img: posterG3,
-  },
-  {
-    type: "poster", tag: "Poster — Product Cutout", title: "AI-Enhanced Product Cutout",
-    desc: "Background-removed product asset, ready to drop into any campaign layout.",
-    img: posterCutout, contain: true,
-  },
-  {
-    type: "poster", tag: "Poster — Design", title: "Poster Design",
-    desc: "Sample poster design.",
-    img: poster1,
-  },
-  // Reels — all 15 wired to real files. These will render as soon as you
-  // drop the matching .mp4 files into src/assets/units samples/reels/
-  // (same filenames as your J:\ drive folder). Until the files actually
-  // exist there, the build will fail on these imports — see note below.
-  // Each streamId is a placeholder — replace with the real ID Cloudflare
-  // gives you after uploading that file to Stream. Filenames kept in the
-  // comment so you know which upload maps to which card.
-  { type: "testimonial", tag: "Reel", title: "Reel 1", desc: "Sample reel.", streamId: "dda5272cb5c98af54b40994e2a6120fa" /* 1.mp4 */ },
-  { type: "testimonial", tag: "Reel", title: "Reel 2", desc: "Sample reel.", streamId: "4f540b17b3d495916725dae8a4f97491" /* 2.mp4 */ },
-  { type: "testimonial", tag: "Reel", title: "Aura Sangam", desc: "Client/brand reel.", streamId: "56b79fbaf53641f139419d807ee341b1" /* AURA SANGAM1 2.mp4 */ },
-  { type: "testimonial", tag: "Reel", title: "Reel — br2", desc: "Sample reel.", streamId: "900bf100d911ef9d59bfa57e58554ed9" /* br2.mp4 */ },
-  { type: "testimonial", tag: "Reel", title: "Reel — bs3", desc: "Sample reel.", streamId: "56c8caa1effdea7f35d51c9f60f9533f" /* bs3.mp4 */ },
-  { type: "testimonial", tag: "Reel — Promo", title: "Offer Reel (2)", desc: "Promotional/offer reel.", streamId: "8ec0e04d3fbd05eeb57284c0356dbe82" /* offer (2).mp4 */ },
-  { type: "testimonial", tag: "Reel — Promo", title: "Offer Reel", desc: "Promotional/offer reel.", streamId: "d5209e205ef1aad2862e8464fdd0e0e7" /* offer.mp4 */ },
-  { type: "testimonial", tag: "Reel — Testimonial", title: "Prince & Princess Testimonial", desc: "Client testimonial reel.", streamId: "534c81621771d427e2b4b06cc8877f94" /* prince n pricess testimonial 2.mp4 */ },
-  { type: "testimonial", tag: "Reel — Seasonal", title: "Raksha Bandhan", desc: "Seasonal campaign reel.", streamId: "20855977be19f0847ac4ee451ec5834f" /* Raksha bandan.mp4 */ },
-  { type: "testimonial", tag: "Reel — Brand", title: "Reel 1 — Nugens", desc: "Nugens brand reel.", streamId: "58ef6a24c5b49e77c530d450044060e4" /* reel 1 nugens.mp4 */ },
-  { type: "testimonial", tag: "Reel", title: "Reel 3-1", desc: "Sample reel.", streamId: "37b972c60790b5d4ef7e0f3a9ca8b463" /* reel 3-1.mp4 */ },
-  { type: "testimonial", tag: "Reel", title: "Reel 4-1", desc: "Sample reel.", streamId: "bcfc846425fcf88f3eb7141a67a927f5" /* reel 4-1.mp4 */ },
-  { type: "testimonial", tag: "Reel — Location", title: "RS Puram", desc: "Location/client shoot reel.", streamId: "d155048c3c01af5729a81dbf368d8ed8" /* rs puram.mp4 */ },
-  { type: "testimonial", tag: "Reel — Showreel", title: "Show Reel", desc: "General show reel / demo reel.", streamId: "6df278ec5b571cb9d838336f6c0170c8" /* show reel.mp4 */ },
-  { type: "testimonial", tag: "Reel — Brand", title: "Vismaya 2", desc: "Client/brand reel.", streamId: "11ca6e9d6586c6a1144eb5f9730ae1d7" /* vismaya 2.mp4 */ },
+const REELS = [
+  { title: "Reel 1", tag: "Content", streamId: "dda5272cb5c98af54b40994e2a6120fa" /* 1.mp4 */ },
+  { title: "Reel 2", tag: "Content", streamId: "4f540b17b3d495916725dae8a4f97491" /* 2.mp4 */ },
+  { title: "Aura Sangam", tag: "Client / Brand", streamId: "56b79fbaf53641f139419d807ee341b1" /* AURA SANGAM1 2.mp4 */ },
+  { title: "Reel — br2", tag: "Content", streamId: "900bf100d911ef9d59bfa57e58554ed9" /* br2.mp4 */ },
+  { title: "Reel — bs3", tag: "Content", streamId: "56c8caa1effdea7f35d51c9f60f9533f" /* bs3.mp4 */ },
+  { title: "Offer Reel (2)", tag: "Promo", streamId: "8ec0e04d3fbd05eeb57284c0356dbe82" /* offer (2).mp4 */ },
+  { title: "Offer Reel", tag: "Promo", streamId: "d5209e205ef1aad2862e8464fdd0e0e7" /* offer.mp4 */ },
+  { title: "Raksha Bandhan", tag: "Seasonal", streamId: "20855977be19f0847ac4ee451ec5834f" /* Raksha bandan.mp4 */ },
+  { title: "Reel — Nugens", tag: "Brand", streamId: "58ef6a24c5b49e77c530d450044060e4" /* reel 1 nugens.mp4 */ },
+  { title: "Reel 3-1", tag: "Content", streamId: "37b972c60790b5d4ef7e0f3a9ca8b463" /* reel 3-1.mp4 */ },
+  { title: "Reel 4-1", tag: "Content", streamId: "bcfc846425fcf88f3eb7141a67a927f5" /* reel 4-1.mp4 */ },
+  { title: "RS Puram", tag: "Location Shoot", streamId: "d155048c3c01af5729a81dbf368d8ed8" /* rs puram.mp4 */ },
+  { title: "Show Reel", tag: "Demo Reel", streamId: "6df278ec5b571cb9d838336f6c0170c8" /* show reel.mp4 */ },
+  { title: "Vismaya 2", tag: "Client / Brand", streamId: "11ca6e9d6586c6a1144eb5f9730ae1d7" /* vismaya 2.mp4 */ },
 ];
+
+// TODO: replace this with the client's real words — kept generic here since
+// I don't have the actual testimonial text, only the video itself.
+const TESTIMONIAL = {
+  streamId: "fd542e7900fad11618568ca25aeca19a", // 2.mp4 / "prince n pricess testimonial 2.mp4" — confirm which
+  quote: "Working with The Units felt less like hiring an agency and more like adding a production team to ours. They understood the brief fast, and the turnaround was faster than anyone we'd worked with before.",
+  name: "Client Name",
+  role: "Founder — replace with real name/title",
+};
+
+const POSTERS = [
+  { title: "Shoe Product Poster", tag: "Poster — Product", img: posterShoe },
+  { title: "Poster Design 1", tag: "Poster — Design", img: posterG1 },
+  { title: "Poster Design 2", tag: "Poster — Design", img: posterG2 },
+  { title: "Poster Design 3", tag: "Poster — Design", img: posterG3 },
+  { title: "AI-Enhanced Product Cutout", tag: "Poster — Cutout", img: posterCutout, contain: true },
+  { title: "Poster Design", tag: "Poster — Design", img: poster1 },
+];
+
+/* ── Scroll-reveal hook — fades/slides a section up once it enters view ── */
+function useInView(threshold = 0.15) {
+  const ref = useRef(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { setInView(true); obs.disconnect(); }
+    }, { threshold });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [threshold]);
+  return [ref, inView];
+}
+
+function Reveal({ children, delay = 0 }) {
+  const [ref, inView] = useInView();
+  return (
+    <div ref={ref} style={{
+      opacity: inView ? 1 : 0,
+      transform: inView ? "translateY(0)" : "translateY(28px)",
+      transition: `opacity 0.7s ease ${delay}ms, transform 0.7s ease ${delay}ms`,
+    }}>
+      {children}
+    </div>
+  );
+}
+
+/* ── Horizontal scroll-snap carousel with prev/next arrows ── */
+function Carousel({ children }) {
+  const trackRef = useRef(null);
+  const scrollBy = (dir) => {
+    const el = trackRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * (el.clientWidth * 0.8), behavior: "smooth" });
+  };
+  return (
+    <div style={{ position: "relative" }}>
+      <div ref={trackRef} className="pow-carousel-track" style={{
+        display: "flex", gap: 18, overflowX: "auto", scrollSnapType: "x mandatory",
+        paddingBottom: 8, scrollbarWidth: "none",
+      }}>
+        {children}
+      </div>
+      <button aria-label="Scroll left" onClick={() => scrollBy(-1)} className="pow-arrow pow-arrow-left">‹</button>
+      <button aria-label="Scroll right" onClick={() => scrollBy(1)} className="pow-arrow pow-arrow-right">›</button>
+    </div>
+  );
+}
+
+function SectionHeading({ eyebrow, title, sub }) {
+  return (
+    <Reveal>
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: GOLD, marginBottom: 10 }}>{eyebrow}</div>
+        <h2 style={{ fontFamily: "'Fraunces',serif", fontWeight: 600, fontSize: "clamp(24px,3vw,36px)", letterSpacing: "-0.02em", margin: 0, color: CREAM }}>{title}</h2>
+        {sub && <p style={{ color: MUTED, fontSize: 14.5, marginTop: 10, maxWidth: 560, lineHeight: 1.6 }}>{sub}</p>}
+      </div>
+    </Reveal>
+  );
+}
 
 function WebFrame({ light }) {
   return (
@@ -140,72 +172,80 @@ function WebFrame({ light }) {
   );
 }
 
-function PosterFrame({ eyebrow, word, foot, mark, accentA, accentB, img, contain }) {
-  if (img) {
-    return (
-      <div style={{ aspectRatio: "4/5", position: "relative", background: "#0d0a06", overflow: "hidden" }}>
-        <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: contain ? "contain" : "cover", display: "block" }} />
-      </div>
-    );
-  }
-  return (
-    <div style={{
-      aspectRatio: "4/5", position: "relative", display: "flex", flexDirection: "column",
-      justifyContent: "space-between", padding: 22, overflow: "hidden",
-    }}>
-      <div style={{
-        position: "absolute", inset: 0, opacity: 0.5, pointerEvents: "none",
-        background: `radial-gradient(circle at 30% 20%, ${accentA} 0%, transparent 45%), radial-gradient(circle at 80% 85%, ${accentB} 0%, transparent 50%)`,
-      }} />
-      <div style={{ position: "relative", fontSize: 9.5, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: CREAM, opacity: 0.75 }}>{eyebrow}</div>
-      <div style={{ position: "relative", fontFamily: "'Fraunces',serif", fontWeight: 600, lineHeight: 0.96, color: CREAM, fontSize: 32, whiteSpace: "pre-line" }}>{word}</div>
-      <div style={{ position: "relative", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-        <span style={{ fontSize: 9.5, color: CREAM, opacity: 0.7 }}>{foot}</span>
-        <div style={{ width: 26, height: 26, borderRadius: "50%", border: `1.5px solid ${CREAM}`, opacity: 0.8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: CREAM }}>{mark}</div>
-      </div>
-    </div>
-  );
-}
-
-// CLOUDFLARE_ACCOUNT: your Cloudflare account's "customer subdomain" for
-// Stream — find it in the dashboard's Stream section, it looks like
-// "customer-abc123xyz.cloudflarestream.com". Set it once here.
-const CLOUDFLARE_STREAM_DOMAIN = "customer-6qz8gcj18239c7sh.cloudflarestream.com";
-
-function VideoFrame({ streamId }) {
+/* Click-to-play reel card — shows a stylized play card first, only loads
+   the real Cloudflare iframe once clicked. Fixes both the "looks broken"
+   issue and the performance cost of loading 16 iframes at once. */
+function PlayCard({ title, tag, streamId }) {
+  const [playing, setPlaying] = useState(false);
   const ready = streamId && !streamId.startsWith("PASTE_STREAM_ID");
+
   return (
-    <div style={{ aspectRatio: "9/16", position: "relative", background: "#0d0a06" }}>
-      {ready ? (
-        <iframe
-          src={`https://${CLOUDFLARE_STREAM_DOMAIN}/${streamId}/iframe`}
-          style={{ width: "100%", height: "100%", border: "none", display: "block" }}
-          allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-          allowFullScreen
-        />
-      ) : (
-        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: MUTED_DIM, fontSize: 11, textAlign: "center", padding: 16 }}>
-          Paste a real Cloudflare Stream ID for this card
-        </div>
-      )}
+    <div className="pow-piece" style={{
+      flex: "0 0 240px", scrollSnapAlign: "start", border: `1px solid ${GOLD_LINE}`, borderRadius: 16,
+      background: CARD, overflow: "hidden",
+    }}>
+      <div style={{ aspectRatio: "9/16", position: "relative", background: "linear-gradient(200deg,#241b10,#0d0a06)" }}>
+        {playing && ready ? (
+          <iframe
+            src={`https://${CLOUDFLARE_STREAM_DOMAIN}/${streamId}/iframe?autoplay=true`}
+            style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+            allowFullScreen
+          />
+        ) : (
+          <button
+            onClick={() => setPlaying(true)}
+            disabled={!ready}
+            style={{
+              width: "100%", height: "100%", background: "none", border: "none", cursor: ready ? "pointer" : "default",
+              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, padding: 20,
+            }}
+          >
+            <div className="pow-play-btn" style={{
+              width: 52, height: 52, borderRadius: "50%", background: ready ? GOLD : "transparent",
+              border: ready ? "none" : `1.5px dashed ${GOLD_LINE}`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              {ready ? (
+                <div style={{ width: 0, height: 0, borderStyle: "solid", borderWidth: "9px 0 9px 14px", borderColor: "transparent transparent transparent #0a0805", marginLeft: 3 }} />
+              ) : (
+                <span style={{ color: MUTED_DIM, fontSize: 18 }}>+</span>
+              )}
+            </div>
+            <span style={{ fontSize: 11, color: ready ? MUTED : MUTED_DIM, textAlign: "center" }}>
+              {ready ? "Tap to play" : "Video pending"}
+            </span>
+          </button>
+        )}
+      </div>
+      <div style={{ padding: "13px 15px 15px" }}>
+        <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: GOLD, display: "block", marginBottom: 4 }}>{tag}</span>
+        <div style={{ fontSize: 13.5, fontWeight: 700, color: CREAM }}>{title}</div>
+      </div>
     </div>
   );
 }
 
-function PendingFrame({ label }) {
+function PosterCard({ title, tag, img, contain }) {
   return (
-    <div style={{ aspectRatio: "9/13", position: "relative", background: "#0d0a06", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, borderBottom: `1px solid ${GOLD_LINE}` }}>
-      <div style={{ width: 40, height: 40, borderRadius: "50%", border: `1.5px dashed ${GOLD_LINE}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: MUTED_DIM }}>+</div>
-      <div style={{ fontSize: 11, color: MUTED_DIM, textAlign: "center", padding: "0 16px" }}>Reel pending —<br/>"{label}"</div>
+    <div className="pow-piece" style={{
+      flex: "0 0 230px", scrollSnapAlign: "start", border: `1px solid ${GOLD_LINE}`, borderRadius: 16,
+      background: CARD, overflow: "hidden",
+    }}>
+      <div style={{ aspectRatio: "4/5", background: "#0d0a06", overflow: "hidden" }}>
+        <img src={img} alt={title} style={{ width: "100%", height: "100%", objectFit: contain ? "contain" : "cover", display: "block" }} />
+      </div>
+      <div style={{ padding: "13px 15px 15px" }}>
+        <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: GOLD, display: "block", marginBottom: 4 }}>{tag}</span>
+        <div style={{ fontSize: 13.5, fontWeight: 700, color: CREAM }}>{title}</div>
+      </div>
     </div>
   );
 }
-
-
 
 export default function ProofOfWork() {
-  const [filter, setFilter] = useState("all");
-  const visible = filter === "all" ? WORK : WORK.filter(w => (filter === "reel" ? (w.type === "reel" || w.type === "testimonial") : w.type === filter));
+  const [testimonialPlaying, setTestimonialPlaying] = useState(false);
+  const testReady = TESTIMONIAL.streamId && !TESTIMONIAL.streamId.startsWith("PASTE_STREAM_ID");
 
   return (
     <div style={{ background: BG, color: CREAM, fontFamily: "'Plus Jakarta Sans', sans-serif", minHeight: "100vh", position: "relative", overflowX: "hidden" }}>
@@ -213,11 +253,23 @@ export default function ProofOfWork() {
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         .pow-piece{ transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s; }
         .pow-piece:hover{ transform: translateY(-4px); border-color: ${GOLD}; box-shadow: 0 16px 40px rgba(212,168,67,0.08); }
+        .pow-play-btn{ transition: transform 0.2s; }
+        .pow-piece:hover .pow-play-btn{ transform: scale(1.08); }
         .pow-pill:hover{ color:${CREAM}; border-color:${GOLD}; }
         .pow-cta:hover{ background:#e8bd5a; transform:translateY(-1px); }
         .pow-ghost:hover{ border-color:${GOLD}; background:${GOLD_SOFT}; }
-        @media(max-width:980px){ .pow-web{ grid-column: span 12 !important; } .pow-poster,.pow-reel{ grid-column: span 6 !important; } }
-        @media(max-width:620px){ .pow-web,.pow-poster,.pow-reel{ grid-column: span 12 !important; } }
+        .pow-carousel-track::-webkit-scrollbar{ display:none; }
+        .pow-arrow{
+          position:absolute; top:50%; transform:translateY(-50%); width:38px; height:38px; border-radius:50%;
+          background:${BG}; border:1px solid ${GOLD_LINE}; color:${CREAM}; font-size:20px; cursor:pointer;
+          display:flex; align-items:center; justify-content:center; opacity:0.9; transition:all 0.2s; z-index:5;
+        }
+        .pow-arrow:hover{ border-color:${GOLD}; color:${GOLD}; opacity:1; }
+        .pow-arrow-left{ left:-8px; }
+        .pow-arrow-right{ right:-8px; }
+        @media(max-width:700px){ .pow-arrow{ display:none; } }
+        .pow-testimonial-grid{ display:grid; grid-template-columns: 340px 1fr; gap:40px; align-items:center; }
+        @media(max-width:760px){ .pow-testimonial-grid{ grid-template-columns:1fr; } }
       `}</style>
 
       {/* Ambient backdrop */}
@@ -226,8 +278,7 @@ export default function ProofOfWork() {
         background: `radial-gradient(ellipse 900px 500px at 15% -10%, ${GOLD}14, transparent 60%), radial-gradient(ellipse 700px 600px at 110% 20%, ${GOLD}0d, transparent 60%)`,
       }} />
 
-      {/* Top bar — remove if this page renders inside Units' existing app
-          shell/Sidebar layout; keep if it's a standalone public route. */}
+      {/* Top bar */}
       <div style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px clamp(20px,5vw,64px)", background: "rgba(10,8,5,0.86)", backdropFilter: "blur(10px)", borderBottom: `1px solid ${GOLD_LINE}` }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: GOLD }} />
@@ -254,7 +305,7 @@ export default function ProofOfWork() {
         </p>
         <div style={{ display: "flex", gap: 14, marginTop: 38, flexWrap: "wrap" }}>
           <a href="/book" className="pow-cta" style={{ padding: "14px 28px", background: GOLD, color: "#0a0805", textDecoration: "none", borderRadius: 9, fontSize: 14, fontWeight: 700 }}>Book a Project</a>
-          <a href="#gallery" className="pow-ghost" style={{ padding: "14px 26px", border: `1px solid ${GOLD_LINE}`, color: CREAM, textDecoration: "none", borderRadius: 9, fontSize: 14, fontWeight: 600 }}>View the Work ↓</a>
+          <a href="#websites" className="pow-ghost" style={{ padding: "14px 26px", border: `1px solid ${GOLD_LINE}`, color: CREAM, textDecoration: "none", borderRadius: 9, fontSize: 14, fontWeight: 600 }}>View the Work ↓</a>
         </div>
         <div style={{ display: "flex", gap: "clamp(28px,5vw,56px)", marginTop: 64, flexWrap: "wrap", paddingTop: 32, borderTop: `1px solid ${GOLD_LINE}` }}>
           {[["3", "Formats — web, video, design"], ["4–12k", "Per project, no vague quotes"], ["1", "Dashboard tracking every stage"]].map(([n, l]) => (
@@ -266,56 +317,104 @@ export default function ProofOfWork() {
         </div>
       </section>
 
-      {/* Filter bar */}
-      <div id="gallery" style={{ position: "relative", zIndex: 1, maxWidth: 1180, margin: "0 auto", padding: "0 clamp(20px,5vw,64px)", display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 40 }}>
-        {FILTERS.map(f => (
-          <button key={f.key} className="pow-pill" onClick={() => setFilter(f.key)} style={{
-            padding: "9px 20px", borderRadius: 99, fontSize: 13, fontWeight: 600, cursor: "pointer",
-            border: `1px solid ${GOLD_LINE}`, background: filter === f.key ? GOLD : "transparent",
-            color: filter === f.key ? "#0a0805" : MUTED, fontFamily: "inherit", whiteSpace: "nowrap",
-          }}>{f.label}</button>
-        ))}
-      </div>
+      {/* SECTION: Websites */}
+      <section id="websites" style={{ position: "relative", zIndex: 1, maxWidth: 1180, margin: "0 auto", padding: "48px clamp(20px,5vw,64px)" }}>
+        <SectionHeading eyebrow="Websites" title="Full builds, ready to convert" sub="Landing pages and brand sites — from first pixel to checkout handoff." />
+        <Reveal delay={100}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>
+            {WEBSITES.map((w, i) => (
+              <div key={i} className="pow-piece" style={{ border: `1px solid ${GOLD_LINE}`, borderRadius: 16, background: CARD, overflow: "hidden" }}>
+                <WebFrame light={w.light} />
+                <div style={{ padding: "16px 18px 18px" }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: GOLD, marginBottom: 6, display: "block" }}>{w.tag}</span>
+                  <div style={{ fontSize: 15.5, fontWeight: 700, color: CREAM, marginBottom: 4 }}>{w.title}</div>
+                  <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.55 }}>{w.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Reveal>
+      </section>
 
-      {/* Gallery grid */}
-      <div style={{ position: "relative", zIndex: 1, maxWidth: 1180, margin: "0 auto", padding: "0 clamp(20px,5vw,64px) 40px", display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: 20 }}>
-        {visible.map((w, i) => (
-          <div key={i} className={`pow-piece pow-${w.type === "testimonial" ? "reel" : w.type}`} style={{
-            gridColumn: `span ${w.type === "web" ? 6 : 4}`,
-            border: `1px solid ${GOLD_LINE}`, borderRadius: 16, background: CARD, overflow: "hidden", display: "flex", flexDirection: "column",
-          }}>
-            {w.type === "web" && <WebFrame light={w.light} />}
-            {w.type === "poster" && <PosterFrame {...w} />}
-            {w.type === "testimonial" && <VideoFrame streamId={w.streamId} />}
-            {w.type === "reel" && <PendingFrame label={w.title} />}
-            <div style={{ padding: "16px 18px 18px" }}>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: GOLD, marginBottom: 6, display: "block" }}>{w.tag}</span>
-              <div style={{ fontSize: 15.5, fontWeight: 700, color: CREAM, marginBottom: 4, letterSpacing: "-0.01em" }}>{w.title}</div>
-              <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.55 }}>{w.desc}</div>
+      {/* SECTION: Content Creation — Reels (horizontal carousel) */}
+      <section id="reels" style={{ position: "relative", zIndex: 1, maxWidth: 1180, margin: "0 auto", padding: "24px clamp(20px,5vw,64px) 48px" }}>
+        <SectionHeading eyebrow="Content Creation" title="Reels that get watched to the end" sub="Vertical short-form content — client work, brand reels, and seasonal campaigns. Tap any card to play." />
+        <Reveal delay={100}>
+          <Carousel>
+            {REELS.map((r, i) => <PlayCard key={i} {...r} />)}
+          </Carousel>
+        </Reveal>
+      </section>
+
+      {/* SECTION: Client Testimonial — split video/quote */}
+      <section style={{ position: "relative", zIndex: 1, maxWidth: 1180, margin: "0 auto", padding: "24px clamp(20px,5vw,64px) 48px" }}>
+        <SectionHeading eyebrow="Client Testimonial" title="Straight from the people we've built for" />
+        <Reveal delay={100}>
+          <div className="pow-testimonial-grid" style={{ background: CARD, border: `1px solid ${GOLD_LINE}`, borderRadius: 20, padding: 28, overflow: "hidden" }}>
+            <div style={{ aspectRatio: "9/16", maxHeight: 480, borderRadius: 14, overflow: "hidden", background: "linear-gradient(200deg,#241b10,#0d0a06)", margin: "0 auto", width: "100%" }}>
+              {testimonialPlaying && testReady ? (
+                <iframe
+                  src={`https://${CLOUDFLARE_STREAM_DOMAIN}/${TESTIMONIAL.streamId}/iframe?autoplay=true`}
+                  style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+                  allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                  allowFullScreen
+                />
+              ) : (
+                <button
+                  onClick={() => setTestimonialPlaying(true)}
+                  disabled={!testReady}
+                  style={{ width: "100%", height: "100%", background: "none", border: "none", cursor: testReady ? "pointer" : "default", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}
+                >
+                  <div className="pow-play-btn" style={{ width: 60, height: 60, borderRadius: "50%", background: testReady ? GOLD : "transparent", border: testReady ? "none" : `1.5px dashed ${GOLD_LINE}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {testReady ? <div style={{ width: 0, height: 0, borderStyle: "solid", borderWidth: "10px 0 10px 16px", borderColor: "transparent transparent transparent #0a0805", marginLeft: 3 }} /> : <span style={{ color: MUTED_DIM, fontSize: 20 }}>+</span>}
+                  </div>
+                  <span style={{ fontSize: 12, color: testReady ? MUTED : MUTED_DIM }}>{testReady ? "Tap to play" : "Video pending"}</span>
+                </button>
+              )}
+            </div>
+            <div>
+              <div style={{ fontSize: 32, fontFamily: "'Fraunces',serif", color: GOLD, lineHeight: 1, marginBottom: 10 }}>"</div>
+              <p style={{ fontFamily: "'Fraunces',serif", fontWeight: 500, fontSize: "clamp(19px,2.2vw,26px)", lineHeight: 1.5, color: CREAM, fontStyle: "italic", marginBottom: 22 }}>
+                {TESTIMONIAL.quote}
+              </p>
+              <div style={{ fontSize: 14, fontWeight: 700, color: CREAM }}>{TESTIMONIAL.name}</div>
+              <div style={{ fontSize: 12.5, color: MUTED_DIM }}>{TESTIMONIAL.role}</div>
             </div>
           </div>
-        ))}
-      </div>
+        </Reveal>
+      </section>
+
+      {/* SECTION: Posters & Brand Design (horizontal carousel) */}
+      <section style={{ position: "relative", zIndex: 1, maxWidth: 1180, margin: "0 auto", padding: "24px clamp(20px,5vw,64px) 48px" }}>
+        <SectionHeading eyebrow="Posters & Brand Design" title="Static work that stops the scroll" sub="Campaign posters, product creative, and brand assets — real client output." />
+        <Reveal delay={100}>
+          <Carousel>
+            {POSTERS.map((p, i) => <PosterCard key={i} {...p} />)}
+          </Carousel>
+        </Reveal>
+      </section>
 
       {/* Bottom CTA band */}
-      <div style={{
-        position: "relative", zIndex: 1, margin: "60px clamp(20px,5vw,64px) 0", padding: "clamp(48px,7vw,72px) clamp(28px,6vw,64px)",
-        background: "linear-gradient(135deg,#1c1508,#100c06)", border: `1px solid ${GOLD_LINE}`, borderRadius: 24,
-        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 32, flexWrap: "wrap",
-      }}>
-        <div>
-          <h2 style={{ fontFamily: "'Fraunces',serif", fontWeight: 600, fontSize: "clamp(26px,3.4vw,40px)", maxWidth: "16ch", lineHeight: 1.1, letterSpacing: "-0.02em", margin: 0 }}>
-            Like what you see? <em style={{ color: GOLD, fontStyle: "italic" }}>Let's build yours.</em>
-          </h2>
-          <div style={{ color: MUTED, fontSize: 14, marginTop: 10, maxWidth: "40ch" }}>
-            Tell us what you're launching — we'll match it to a package and get you a straight quote, no back-and-forth.
+      <Reveal>
+        <div style={{
+          position: "relative", zIndex: 1, margin: "24px clamp(20px,5vw,64px) 0", padding: "clamp(48px,7vw,72px) clamp(28px,6vw,64px)",
+          background: "linear-gradient(135deg,#1c1508,#100c06)", border: `1px solid ${GOLD_LINE}`, borderRadius: 24,
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 32, flexWrap: "wrap",
+        }}>
+          <div>
+            <h2 style={{ fontFamily: "'Fraunces',serif", fontWeight: 600, fontSize: "clamp(26px,3.4vw,40px)", maxWidth: "16ch", lineHeight: 1.1, letterSpacing: "-0.02em", margin: 0 }}>
+              Like what you see? <em style={{ color: GOLD, fontStyle: "italic" }}>Let's build yours.</em>
+            </h2>
+            <div style={{ color: MUTED, fontSize: 14, marginTop: 10, maxWidth: "40ch" }}>
+              Tell us what you're launching — we'll match it to a package and get you a straight quote, no back-and-forth.
+            </div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "flex-start" }}>
+            <a href="/book" className="pow-cta" style={{ padding: "14px 28px", background: GOLD, color: "#0a0805", textDecoration: "none", borderRadius: 9, fontSize: 14, fontWeight: 700 }}>Book a Project →</a>
+            <a href="/pricing" className="pow-ghost" style={{ padding: "14px 26px", border: `1px solid ${GOLD_LINE}`, color: CREAM, textDecoration: "none", borderRadius: 9, fontSize: 14, fontWeight: 600 }}>View Pricing</a>
           </div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "flex-start" }}>
-          <a href="/book" className="pow-cta" style={{ padding: "14px 28px", background: GOLD, color: "#0a0805", textDecoration: "none", borderRadius: 9, fontSize: 14, fontWeight: 700 }}>Book a Project →</a>
-          <a href="/pricing" className="pow-ghost" style={{ padding: "14px 26px", border: `1px solid ${GOLD_LINE}`, color: CREAM, textDecoration: "none", borderRadius: 9, fontSize: 14, fontWeight: 600 }}>View Pricing</a>
-        </div>
-      </div>
+      </Reveal>
 
       <footer style={{ position: "relative", zIndex: 1, textAlign: "center", padding: "40px 20px 48px", color: MUTED_DIM, fontSize: 12 }}>
         Made by <b style={{ color: GOLD }}>The Units</b> — Nugens Production Studio
