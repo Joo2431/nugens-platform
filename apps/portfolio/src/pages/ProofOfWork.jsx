@@ -86,6 +86,7 @@ const REELS = [
   { title: "RS Puram", tag: "Location Shoot", streamId: "d155048c3c01af5729a81dbf368d8ed8" /* rs puram.mp4 */ },
   { title: "Show Reel", tag: "Demo Reel", streamId: "6df278ec5b571cb9d838336f6c0170c8" /* show reel.mp4 */ },
   { title: "Vismaya 2", tag: "Client / Brand", streamId: "11ca6e9d6586c6a1144eb5f9730ae1d7" /* vismaya 2.mp4 */ },
+  { title: "Prince & Princess", tag: "Client / Brand", streamId: "534c81621771d427e2b4b06cc8877f94" /* prince n pricess testimonial 2.mp4 — restored, this entry was accidentally dropped in an earlier version */ },
 ];
 
 // TODO: replace this with the client's real words — kept generic here since
@@ -333,7 +334,7 @@ export default function ProofOfWork() {
             <small style={{ display: "block", fontSize: 9, color: MUTED_DIM, letterSpacing: "0.14em", textTransform: "uppercase", marginTop: 1 }}>By Nugens</small>
           </div>
         </div>
-        <a href="/book" className="pow-cta" style={{ padding: "10px 22px", background: GOLD, color: "#0a0805", textDecoration: "none", borderRadius: 8, fontSize: 13, fontWeight: 700 }}>Book a Project →</a>
+        <a href="https://units.nugens.in.net/book" className="pow-cta" style={{ padding: "10px 22px", background: GOLD, color: "#0a0805", textDecoration: "none", borderRadius: 8, fontSize: 13, fontWeight: 700 }}>Book a Project →</a>
       </div>
 
       {/* Hero */}
@@ -350,7 +351,7 @@ export default function ProofOfWork() {
           your project gets, start to finish.
         </p>
         <div style={{ display: "flex", gap: 14, marginTop: 38, flexWrap: "wrap" }}>
-          <a href="/book" className="pow-cta" style={{ padding: "14px 28px", background: GOLD, color: "#0a0805", textDecoration: "none", borderRadius: 9, fontSize: 14, fontWeight: 700 }}>Book a Project</a>
+          <a href="https://units.nugens.in.net/book" className="pow-cta" style={{ padding: "14px 28px", background: GOLD, color: "#0a0805", textDecoration: "none", borderRadius: 9, fontSize: 14, fontWeight: 700 }}>Book a Project</a>
           <a href="#websites" className="pow-ghost" style={{ padding: "14px 26px", border: `1px solid ${GOLD_LINE}`, color: CREAM, textDecoration: "none", borderRadius: 9, fontSize: 14, fontWeight: 600 }}>View the Work ↓</a>
         </div>
         <div style={{ display: "flex", gap: "clamp(28px,5vw,56px)", marginTop: 64, flexWrap: "wrap", paddingTop: 32, borderTop: `1px solid ${GOLD_LINE}` }}>
@@ -467,8 +468,8 @@ export default function ProofOfWork() {
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "flex-start" }}>
-            <a href="/book" className="pow-cta" style={{ padding: "14px 28px", background: GOLD, color: "#0a0805", textDecoration: "none", borderRadius: 9, fontSize: 14, fontWeight: 700 }}>Book a Project →</a>
-            <a href="/pricing" className="pow-ghost" style={{ padding: "14px 26px", border: `1px solid ${GOLD_LINE}`, color: CREAM, textDecoration: "none", borderRadius: 9, fontSize: 14, fontWeight: 600 }}>View Pricing</a>
+            <a href="https://units.nugens.in.net/book" className="pow-cta" style={{ padding: "14px 28px", background: GOLD, color: "#0a0805", textDecoration: "none", borderRadius: 9, fontSize: 14, fontWeight: 700 }}>Book a Project →</a>
+            <a href="https://units.nugens.in.net/pricing" className="pow-ghost" style={{ padding: "14px 26px", border: `1px solid ${GOLD_LINE}`, color: CREAM, textDecoration: "none", borderRadius: 9, fontSize: 14, fontWeight: 600 }}>View Pricing</a>
           </div>
         </div>
       </Reveal>

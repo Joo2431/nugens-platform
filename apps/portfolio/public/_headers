@@ -1,0 +1,4 @@
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self'; frame-src 'self' https://*.cloudflarestream.com; worker-src blob:
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff

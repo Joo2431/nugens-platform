@@ -231,7 +231,7 @@ export default function Units() {
             {/* FIXED: "Book Your Date" → "Book a Shoot" (not just for weddings) */}
             <a href="https://units.nugens.in.net/book" className="u-btn-gold">Book a Shoot →</a>
             {/* NEW: public showcase link — no login required, safe to send to any prospective client */}
-            <a href="https://units.nugens.in.net/work" className="u-btn-ghost">View Our Work</a>
+            <a href="https://portfolio.nugens.in.net" className="u-btn-ghost">View Our Work</a>
             <Link to="/contact" className="u-btn-ghost">Talk to us first</Link>
           </div>
 
@@ -573,7 +573,7 @@ export default function Units() {
             <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
               {/* FIXED: "Book Your Date" → "Book a Shoot" */}
               <a href="https://units.nugens.in.net/book" className="u-btn-gold">Book a Shoot →</a>
-              <a href="https://units.nugens.in.net/work" className="u-btn-ghost">View Our Work</a>
+              <a href="https://portfolio.nugens.in.net" className="u-btn-ghost">View Our Work</a>
               <Link to="/contact" className="u-btn-ghost">Ask us anything</Link>
             </div>
           </Reveal>
