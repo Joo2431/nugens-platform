@@ -203,13 +203,21 @@ function WebFrame({ light }) {
 function PlayCard({ title, tag, streamId }) {
   const [playing, setPlaying] = useState(false);
   const ready = streamId && !streamId.startsWith("PASTE_STREAM_ID");
+  // Cloudflare Stream auto-generates a thumbnail for every uploaded video —
+  // no extra step needed, this URL just works. Using it as the card's
+  // background so there's a real preview frame before clicking, not just
+  // a bare play button on a flat gradient.
+  const thumbUrl = ready ? `https://${CLOUDFLARE_STREAM_DOMAIN}/${streamId}/thumbnails/thumbnail.jpg?time=1s&height=480` : null;
 
   return (
     <div className="pow-piece" style={{
       flex: "0 0 240px", scrollSnapAlign: "start", border: `1px solid ${GOLD_LINE}`, borderRadius: 16,
       background: CARD, overflow: "hidden",
     }}>
-      <div style={{ aspectRatio: "9/16", position: "relative", background: "linear-gradient(200deg,#241b10,#0d0a06)" }}>
+      <div style={{
+        aspectRatio: "9/16", position: "relative",
+        background: thumbUrl ? `linear-gradient(180deg, rgba(10,8,5,0) 40%, rgba(10,8,5,0.85) 100%), url(${thumbUrl}) center/cover no-repeat, linear-gradient(200deg,#241b10,#0d0a06)` : "linear-gradient(200deg,#241b10,#0d0a06)",
+      }}>
         {playing && ready ? (
           // FIX — video playback: removed the "?autoplay=true" param. Some
           // browsers/Cloudflare Stream configurations still block autoplay
@@ -389,7 +397,12 @@ export default function ProofOfWork() {
         <SectionHeading eyebrow="Client Testimonial" title="Straight from the people we've built for" />
         <Reveal delay={100}>
           <div className="pow-testimonial-grid" style={{ background: CARD, border: `1px solid ${GOLD_LINE}`, borderRadius: 20, padding: 28, overflow: "hidden" }}>
-            <div style={{ aspectRatio: "9/16", maxHeight: 480, borderRadius: 14, overflow: "hidden", background: "linear-gradient(200deg,#241b10,#0d0a06)", margin: "0 auto", width: "100%" }}>
+            <div style={{
+              aspectRatio: "9/16", maxHeight: 480, borderRadius: 14, overflow: "hidden", margin: "0 auto", width: "100%",
+              background: testReady
+                ? `linear-gradient(180deg, rgba(10,8,5,0) 40%, rgba(10,8,5,0.85) 100%), url(https://${CLOUDFLARE_STREAM_DOMAIN}/${TESTIMONIAL.streamId}/thumbnails/thumbnail.jpg?time=1s&height=480) center/cover no-repeat, linear-gradient(200deg,#241b10,#0d0a06)`
+                : "linear-gradient(200deg,#241b10,#0d0a06)",
+            }}>
               {testimonialPlaying && testReady ? (
                 <iframe
                   src={`https://${CLOUDFLARE_STREAM_DOMAIN}/${TESTIMONIAL.streamId}/iframe`}
