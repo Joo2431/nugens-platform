@@ -27,8 +27,11 @@ describe("ProofOfWork page", () => {
 
   it("shows the hero heading", () => {
     render(<ProofOfWork />);
-    expect(screen.getByText(/looks/i)).toBeInTheDocument();
-    expect(screen.getByText(/like a full production team/i)).toBeInTheDocument();
+    expect(screen.getByText(/work that looks like a/i)).toBeInTheDocument();
+    // "full production team" renders inside its own <span> (the gradient
+    // text treatment), so it's a separate text node from the sentence
+    // around it — matched separately rather than as one continuous phrase.
+    expect(screen.getByText("full production team")).toBeInTheDocument();
   });
 
   it("renders all four content sections", () => {
@@ -42,10 +45,12 @@ describe("ProofOfWork page", () => {
   it("renders all 15 real reels", () => {
     render(<ProofOfWork />);
     const expectedReelTitles = [
-      "Reel 1", "Reel 2", "Aura Sangam", "Reel — br2", "Reel — bs3",
-      "Offer Reel (2)", "Offer Reel", "Raksha Bandhan", "Reel — Nugens",
-      "Reel 3-1", "Reel 4-1", "RS Puram", "Show Reel", "Vismaya 2",
-      "Prince & Princess",
+      "Motion Reel — Edit 01", "Motion Reel — Edit 02", "Brand Film — Aura Sangam",
+      "Campaign Reel — Vol. 1", "Campaign Reel — Vol. 2", "Promotional Reel — Edit A",
+      "Promotional Reel — Edit B", "Seasonal Campaign — Raksha Bandhan",
+      "Brand Film — Nugens", "Motion Reel — Edit 03", "Motion Reel — Edit 04",
+      "Location Shoot — RS Puram", "Studio Show Reel", "Brand Film — Vismaya",
+      "Client Testimonial — Prince & Princess",
     ];
     expectedReelTitles.forEach((title) => {
       expect(screen.getByText(title)).toBeInTheDocument();
@@ -95,7 +100,7 @@ describe("ProofOfWork page", () => {
 
   it("clicking a ready reel card loads its Cloudflare Stream iframe", () => {
     render(<ProofOfWork />);
-    const reelCard = screen.getByText("Show Reel").closest(".pow-piece");
+    const reelCard = screen.getByText("Studio Show Reel").closest(".pow-piece");
     const playButton = within(reelCard).getByRole("button");
 
     fireEvent.click(playButton);
