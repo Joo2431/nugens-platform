@@ -24,6 +24,12 @@ import posterG3     from "../assets/units samples/posters/g3.jpg";
 import posterShoe   from "../assets/units samples/posters/PsFiles_Shoe.jpg";
 import posterCutout from "../assets/units samples/posters/Gemini_Generated_Image_e59524e59524e595-removebg-preview.png";
 
+// Real screenshots of the live sites — replaces the hand-built CSS
+// mockups from the previous version with the actual thing.
+import shotWedding from "../assets/site-screenshots/wedding-unit.jpg";
+import shotSaree   from "../assets/site-screenshots/sd-styles.jpg";
+import shotBilling from "../assets/site-screenshots/billing-suite.jpg";
+
 const PINK      = "#e8185d";
 const PINK_SOFT = "#e8185d10";
 const PINK_LINE = "#e8185d26";
@@ -45,19 +51,19 @@ const CLOUDFLARE_STREAM_DOMAIN = "customer-6qz8gcj18239c7sh.cloudflarestream.com
 // instead of one generic frame reused three times.
 const WEBSITES = [
   {
-    kind: "wedding",
+    kind: "wedding", thumb: shotWedding,
     tag: "Photography — Full Site", title: "The Wedding Unit",
     desc: "Wedding & event photography site — gallery, three-tier packages (₹25k–₹1.2L), testimonials, and a WhatsApp-connected booking form.",
     url: "https://theweddingunit.in.net/",
   },
   {
-    kind: "saree",
+    kind: "saree", thumb: shotSaree,
     tag: "E-Commerce — Full Site", title: "SD Styles",
     desc: "Full storefront for a saree brand — product catalog, cart, wishlist, collections, and checkout. Built on Next.js.",
     url: "https://yesdeestyles.com/",
   },
   {
-    kind: "billing",
+    kind: "billing", thumb: shotBilling,
     tag: "SaaS Demo — Internal Tool", title: "Nugens Billing Suite",
     desc: "Retail billing & invoicing tool — barcode-ready phone catalog with IMEI tracking, EMI calculator, and printable/WhatsApp-shareable bills.",
     url: "https://billing-demo.nugens.in.net/",
@@ -200,79 +206,23 @@ const SITE_META = {
   billing: { icon: IconReceipt, chip: "#0f172a", accent: "#38bdf8" },
 };
 
-/* Real, populated mockups reflecting each site's actual structure — not a
-   generic gray-bar placeholder. Wrapped in a 3D-tilt browser frame that
-   straightens on hover (a common, effective pattern for making static
-   mockups feel dimensional rather than flat). */
-function SiteMockup({ kind }) {
-  const meta = SITE_META[kind];
-  if (kind === "wedding") {
-    return (
-      <div style={{ height: "100%", background: "#151210", padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-        <div style={{ fontSize: 9, color: "#d4a843", fontWeight: 800, letterSpacing: "0.08em" }}>THE WEDDING UNIT</div>
-        <div style={{ fontSize: 15, fontWeight: 800, color: "#fff", lineHeight: 1.2, maxWidth: "80%" }}>Storytelling through candid frames</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 4, marginTop: 2 }}>
-          {["#8a6d3b","#3a2e22","#c99a52","#5c4530","#2b221a","#a87d3f","#6e5330","#d4a843"].map((c,i) => (
-            <div key={i} style={{ aspectRatio: "1", borderRadius: 3, background: c }} />
-          ))}
-        </div>
-        <div style={{ display: "flex", gap: 6, marginTop: "auto" }}>
-          {["Silver","Gold","Platinum"].map(p => (
-            <div key={p} style={{ flex: 1, background: "#211b16", border: "1px solid #3a301e", borderRadius: 6, padding: "6px 4px", textAlign: "center" }}>
-              <div style={{ fontSize: 7.5, color: "#d4a843", fontWeight: 700 }}>{p}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-  if (kind === "saree") {
-    return (
-      <div style={{ height: "100%", background: "#fff", padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: INK }}>SD Styles</div>
-          <div style={{ display: "flex", gap: 5 }}>{[0,1,2].map(i => <span key={i} style={{ width: 14, height: 5, borderRadius: 2, background: "#e5e7eb" }} />)}</div>
-        </div>
-        <div style={{ background: `linear-gradient(120deg, ${PINK}, #ff8fb0)`, borderRadius: 8, padding: "10px 12px", color: "#fff" }}>
-          <div style={{ fontSize: 8, fontWeight: 700, opacity: 0.9 }}>THE GRAND FESTIVE EDIT</div>
-          <div style={{ fontSize: 13, fontWeight: 800, marginTop: 2 }}>Flat 30–50% Off</div>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, marginTop: 2 }}>
-          {["#e8c4c9","#c9a0a8","#d4838f","#e8c4c9","#c9a0a8","#d4838f"].map((c,i) => (
-            <div key={i} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <div style={{ aspectRatio: "0.8", borderRadius: 4, background: c }} />
-              <div style={{ fontSize: 6.5, fontWeight: 700, color: PINK }}>₹1,899</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-  // billing
+/* Real screenshot, not a hand-drawn mockup — the whole point of this
+   section is showing actual delivered work. */
+function SiteMockup({ thumb, title }) {
   return (
-    <div style={{ height: "100%", background: "#f8fafc", padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ fontSize: 10, fontWeight: 800, color: "#0f172a" }}>Good day 👋</div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6 }}>
-        {["Total Revenue","Today's Sales","Total Bills"].map(l => (
-          <div key={l} style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 6, padding: "7px 8px" }}>
-            <div style={{ fontSize: 6.5, color: "#64748b", fontWeight: 600 }}>{l}</div>
-            <div style={{ fontSize: 11, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>—</div>
-          </div>
-        ))}
-      </div>
-      <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 6, padding: 8, flex: 1, display: "flex", flexDirection: "column", gap: 5 }}>
-        <div style={{ fontSize: 7, fontWeight: 700, color: "#0f172a" }}>Recent Invoices</div>
-        {[0,1,2].map(i => <div key={i} style={{ height: 7, borderRadius: 3, background: "#f1f5f9" }} />)}
-      </div>
-      <div style={{ alignSelf: "flex-end", fontSize: 7, fontWeight: 700, color: "#38bdf8", background: "#38bdf815", padding: "3px 8px", borderRadius: 5 }}>EMI Calculator</div>
-    </div>
+    <img src={thumb} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top", display: "block" }} />
   );
 }
 
-function WebsiteCard({ kind, tag, title, desc, url }) {
+function WebsiteCard({ kind, tag, title, desc, url, thumb, index = 0 }) {
   const meta = SITE_META[kind];
   const Icon = meta.icon;
   const [tilted, setTilted] = useState(true);
+  // Staggered "card fan" resting rotation — a nod to the layered-card
+  // technique from the PeachWeb reference, applied to real content instead
+  // of generic filler. Straightens fully on hover along with the existing
+  // 3D perspective tilt.
+  const fanDeg = [-2.5, 1.5, -1.5][index % 3];
   return (
     <div
       className="pow-piece"
@@ -283,7 +233,7 @@ function WebsiteCard({ kind, tag, title, desc, url }) {
       <div style={{ padding: "20px 20px 0" }}>
         <div style={{
           aspectRatio: "16/10", borderRadius: 12, overflow: "hidden", boxShadow: "0 20px 40px -12px rgba(0,0,0,0.25)",
-          transform: tilted ? "rotateY(-7deg) rotateX(3deg) scale(0.97)" : "rotateY(0) rotateX(0) scale(1)",
+          transform: tilted ? `rotateY(-7deg) rotateX(3deg) rotate(${fanDeg}deg) scale(0.97)` : "rotateY(0) rotateX(0) rotate(0) scale(1)",
           transition: "transform 0.5s cubic-bezier(.2,.8,.2,1)", transformStyle: "preserve-3d",
           border: `1px solid ${BORDER}`,
         }}>
@@ -294,7 +244,7 @@ function WebsiteCard({ kind, tag, title, desc, url }) {
             </div>
           </div>
           <div style={{ height: "calc(100% - 26px)" }}>
-            <SiteMockup kind={kind} />
+            <SiteMockup thumb={thumb} title={title} />
           </div>
         </div>
       </div>
@@ -416,11 +366,15 @@ export default function ProofOfWork() {
         .pow-testimonial-grid{ display:grid; grid-template-columns: 340px 1fr; gap:44px; align-items:center; }
         @media(max-width:760px){ .pow-testimonial-grid{ grid-template-columns:1fr; } }
         @keyframes pow-grid-fade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes pow-orb-drift {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(-16px, 22px) scale(1.05); }
+        }
+        .pow-orb { animation: pow-orb-drift 14s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) { .pow-orb { animation: none; } }
       `}</style>
 
-      {/* Techno-grid backdrop instead of the old warm radial gradient — a
-          faint dot/grid pattern reads as "tech/product" rather than
-          "boutique production house" */}
+      {/* Techno-grid base layer */}
       <div style={{
         position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none",
         backgroundImage: `radial-gradient(${BORDER} 1px, transparent 1px)`,
@@ -428,6 +382,16 @@ export default function ProofOfWork() {
         maskImage: "linear-gradient(180deg, rgba(0,0,0,0.5), transparent 700px)",
         animation: "pow-grid-fade 1s ease",
       }} />
+
+      {/* Floating gradient orbs — the "3D" energy from the PeachWeb
+          reference, done with blurred gradient blobs instead of actual 3D
+          renders (no 3D asset pipeline here) — same visual effect of
+          depth and color behind the hero copy, drifting slowly. */}
+      <div aria-hidden style={{ position: "absolute", top: 0, left: 0, right: 0, height: 780, zIndex: 0, overflow: "hidden", pointerEvents: "none" }}>
+        <div className="pow-orb" style={{ position: "absolute", top: -140, right: "8%", width: 420, height: 420, borderRadius: "50%", background: `radial-gradient(circle at 35% 35%, ${PINK}, #ff8fb0 60%, transparent 75%)`, opacity: 0.35, filter: "blur(10px)", animationDelay: "0s" }} />
+        <div className="pow-orb" style={{ position: "absolute", top: 180, left: "2%", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle at 40% 40%, #7c5cff, #a78bfa 60%, transparent 75%)", opacity: 0.28, filter: "blur(10px)", animationDelay: "-4s" }} />
+        <div className="pow-orb" style={{ position: "absolute", top: 60, left: "42%", width: 220, height: 220, borderRadius: "50%", background: "radial-gradient(circle at 40% 40%, #38bdf8, #7dd3fc 60%, transparent 75%)", opacity: 0.22, filter: "blur(10px)", animationDelay: "-8s" }} />
+      </div>
 
       {/* Top bar — real Nugens NG logo, not a text wordmark */}
       <div style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px clamp(20px,5vw,64px)", background: "rgba(255,255,255,0.85)", backdropFilter: "blur(10px)", borderBottom: `1px solid ${BORDER}` }}>
@@ -477,7 +441,7 @@ export default function ProofOfWork() {
         <SectionHeading eyebrow="Websites" title="Full builds, ready to convert" sub="Real, live projects — hover any card to straighten it out, or click through to the actual site." />
         <Reveal delay={100}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 24 }}>
-            {WEBSITES.map((w, i) => <WebsiteCard key={i} {...w} />)}
+            {WEBSITES.map((w, i) => <WebsiteCard key={i} {...w} index={i} />)}
           </div>
         </Reveal>
       </section>
