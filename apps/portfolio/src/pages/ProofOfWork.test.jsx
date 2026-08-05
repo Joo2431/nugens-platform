@@ -85,9 +85,31 @@ describe("ProofOfWork page", () => {
     });
   });
 
-  it("shows the website card with correct copy (still a placeholder — no real screenshot uploaded yet)", () => {
+  it("shows all 3 real website projects with working live links", () => {
     render(<ProofOfWork />);
-    expect(screen.getByText("Product Launch Landing Page")).toBeInTheDocument();
+    const sites = [
+      { title: "The Wedding Unit", url: "https://theweddingunit.in.net/" },
+      { title: "SD Styles", url: "https://yesdeestyles.com/" },
+      { title: "Nugens Billing Suite", url: "https://billing-demo.nugens.in.net/" },
+    ];
+    sites.forEach(({ title, url }) => {
+      // Scoped by data-testid because "SD Styles" (and potentially other
+      // titles) also appear as a small brand label *inside* the mockup
+      // preview itself, matching the real site's own header text — that's
+      // intentional (makes the mockup feel real), but it means a plain
+      // getByText(title) is ambiguous. This is the actual real card title.
+      const allTitles = screen.getAllByTestId("website-title");
+      const match = allTitles.find(el => el.textContent === title);
+      expect(match).toBeTruthy();
+      const card = match.closest(".pow-piece");
+      const liveLink = within(card).getByText(/visit live site/i).closest("a");
+      // This is the actual regression this test guards against: a
+      // placeholder card silently replaced by a real one with the wrong
+      // (or missing) live URL would still "look right" visually but send
+      // a real client to a dead or wrong link.
+      expect(liveLink.getAttribute("href")).toBe(url);
+      expect(liveLink.getAttribute("target")).toBe("_blank");
+    });
   });
 
   it("the testimonial section shows a play control, not an auto-loaded video", () => {

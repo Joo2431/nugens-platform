@@ -39,11 +39,28 @@ const CLOUDFLARE_STREAM_DOMAIN = "customer-6qz8gcj18239c7sh.cloudflarestream.com
 
 /* ── DATA ── */
 
+// Real, live projects — content below pulled from actually fetching each
+// URL, not invented. Each has its own mockup treatment reflecting its
+// actual structure (see WeddingMockup / SareeMockup / BillingMockup below)
+// instead of one generic frame reused three times.
 const WEBSITES = [
   {
-    tag: "Website — D2C Launch", title: "Product Launch Landing Page",
-    desc: "Full-funnel landing page built for a product drop — hero, story section, and checkout handoff in one build.",
-    placeholder: true,
+    kind: "wedding",
+    tag: "Photography — Full Site", title: "The Wedding Unit",
+    desc: "Wedding & event photography site — gallery, three-tier packages (₹25k–₹1.2L), testimonials, and a WhatsApp-connected booking form.",
+    url: "https://theweddingunit.in.net/",
+  },
+  {
+    kind: "saree",
+    tag: "E-Commerce — Full Site", title: "SD Styles",
+    desc: "Full storefront for a saree brand — product catalog, cart, wishlist, collections, and checkout. Built on Next.js.",
+    url: "https://yesdeestyles.com/",
+  },
+  {
+    kind: "billing",
+    tag: "SaaS Demo — Internal Tool", title: "Nugens Billing Suite",
+    desc: "Retail billing & invoicing tool — barcode-ready phone catalog with IMEI tracking, EMI calculator, and printable/WhatsApp-shareable bills.",
+    url: "https://billing-demo.nugens.in.net/",
   },
 ];
 
@@ -151,29 +168,148 @@ function SectionHeading({ eyebrow, title, sub }) {
   );
 }
 
-function WebFrame() {
+/* ── Small inline icons — no icon library dependency, just real SVG ── */
+function IconCamera({ color = "#fff" }) {
   return (
-    <div style={{ aspectRatio: "16/10", background: SURFACE, borderBottom: `1px solid ${BORDER}` }}>
-      <div style={{ height: 32, display: "flex", alignItems: "center", gap: 6, padding: "0 12px", background: "#fff", borderBottom: `1px solid ${BORDER}` }}>
-        {[0, 1, 2].map(i => <span key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: "#e5e7eb" }} />)}
-        <div style={{ flex: 1, height: 15, marginLeft: 8, borderRadius: 5, background: "#f1f2f4" }} />
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+      <path d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z" stroke={color} strokeWidth="1.8" strokeLinejoin="round" />
+      <circle cx="12" cy="14" r="3.4" stroke={color} strokeWidth="1.8" />
+    </svg>
+  );
+}
+function IconBag({ color = "#fff" }) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+      <path d="M6 9h12l1 12H5L6 9Z" stroke={color} strokeWidth="1.8" strokeLinejoin="round" />
+      <path d="M9 9V7a3 3 0 0 1 6 0v2" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+function IconReceipt({ color = "#fff" }) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+      <path d="M6 3h12v18l-2.5-1.5L13 21l-1-1.5-1 1.5-2.5-1.5L6 21V3Z" stroke={color} strokeWidth="1.8" strokeLinejoin="round" />
+      <path d="M9 8h6M9 12h6M9 16h3" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+const SITE_META = {
+  wedding: { icon: IconCamera, chip: "#1a1614", accent: "#d4a843" },
+  saree:   { icon: IconBag,    chip: PINK,      accent: PINK },
+  billing: { icon: IconReceipt, chip: "#0f172a", accent: "#38bdf8" },
+};
+
+/* Real, populated mockups reflecting each site's actual structure — not a
+   generic gray-bar placeholder. Wrapped in a 3D-tilt browser frame that
+   straightens on hover (a common, effective pattern for making static
+   mockups feel dimensional rather than flat). */
+function SiteMockup({ kind }) {
+  const meta = SITE_META[kind];
+  if (kind === "wedding") {
+    return (
+      <div style={{ height: "100%", background: "#151210", padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ fontSize: 9, color: "#d4a843", fontWeight: 800, letterSpacing: "0.08em" }}>THE WEDDING UNIT</div>
+        <div style={{ fontSize: 15, fontWeight: 800, color: "#fff", lineHeight: 1.2, maxWidth: "80%" }}>Storytelling through candid frames</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 4, marginTop: 2 }}>
+          {["#8a6d3b","#3a2e22","#c99a52","#5c4530","#2b221a","#a87d3f","#6e5330","#d4a843"].map((c,i) => (
+            <div key={i} style={{ aspectRatio: "1", borderRadius: 3, background: c }} />
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 6, marginTop: "auto" }}>
+          {["Silver","Gold","Platinum"].map(p => (
+            <div key={p} style={{ flex: 1, background: "#211b16", border: "1px solid #3a301e", borderRadius: 6, padding: "6px 4px", textAlign: "center" }}>
+              <div style={{ fontSize: 7.5, color: "#d4a843", fontWeight: 700 }}>{p}</div>
+            </div>
+          ))}
+        </div>
       </div>
-      <div style={{ padding: 18, height: "calc(100% - 32px)", display: "flex", flexDirection: "column", gap: 12 }}>
+    );
+  }
+  if (kind === "saree") {
+    return (
+      <div style={{ height: "100%", background: "#fff", padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ width: 58, height: 10, borderRadius: 3, background: PINK, opacity: 0.85 }} />
-          <div style={{ display: "flex", gap: 8 }}>
-            {[0, 1, 2].map(i => <span key={i} style={{ width: 28, height: 7, borderRadius: 3, background: "#e5e7eb" }} />)}
+          <div style={{ fontSize: 10, fontWeight: 800, color: INK }}>SD Styles</div>
+          <div style={{ display: "flex", gap: 5 }}>{[0,1,2].map(i => <span key={i} style={{ width: 14, height: 5, borderRadius: 2, background: "#e5e7eb" }} />)}</div>
+        </div>
+        <div style={{ background: `linear-gradient(120deg, ${PINK}, #ff8fb0)`, borderRadius: 8, padding: "10px 12px", color: "#fff" }}>
+          <div style={{ fontSize: 8, fontWeight: 700, opacity: 0.9 }}>THE GRAND FESTIVE EDIT</div>
+          <div style={{ fontSize: 13, fontWeight: 800, marginTop: 2 }}>Flat 30–50% Off</div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, marginTop: 2 }}>
+          {["#e8c4c9","#c9a0a8","#d4838f","#e8c4c9","#c9a0a8","#d4838f"].map((c,i) => (
+            <div key={i} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <div style={{ aspectRatio: "0.8", borderRadius: 4, background: c }} />
+              <div style={{ fontSize: 6.5, fontWeight: 700, color: PINK }}>₹1,899</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  // billing
+  return (
+    <div style={{ height: "100%", background: "#f8fafc", padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ fontSize: 10, fontWeight: 800, color: "#0f172a" }}>Good day 👋</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6 }}>
+        {["Total Revenue","Today's Sales","Total Bills"].map(l => (
+          <div key={l} style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 6, padding: "7px 8px" }}>
+            <div style={{ fontSize: 6.5, color: "#64748b", fontWeight: 600 }}>{l}</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>—</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 6, padding: 8, flex: 1, display: "flex", flexDirection: "column", gap: 5 }}>
+        <div style={{ fontSize: 7, fontWeight: 700, color: "#0f172a" }}>Recent Invoices</div>
+        {[0,1,2].map(i => <div key={i} style={{ height: 7, borderRadius: 3, background: "#f1f5f9" }} />)}
+      </div>
+      <div style={{ alignSelf: "flex-end", fontSize: 7, fontWeight: 700, color: "#38bdf8", background: "#38bdf815", padding: "3px 8px", borderRadius: 5 }}>EMI Calculator</div>
+    </div>
+  );
+}
+
+function WebsiteCard({ kind, tag, title, desc, url }) {
+  const meta = SITE_META[kind];
+  const Icon = meta.icon;
+  const [tilted, setTilted] = useState(true);
+  return (
+    <div
+      className="pow-piece"
+      onMouseEnter={() => setTilted(false)}
+      onMouseLeave={() => setTilted(true)}
+      style={{ border: `1px solid ${BORDER}`, borderRadius: 16, background: CARD, overflow: "hidden", perspective: "1200px" }}
+    >
+      <div style={{ padding: "20px 20px 0" }}>
+        <div style={{
+          aspectRatio: "16/10", borderRadius: 12, overflow: "hidden", boxShadow: "0 20px 40px -12px rgba(0,0,0,0.25)",
+          transform: tilted ? "rotateY(-7deg) rotateX(3deg) scale(0.97)" : "rotateY(0) rotateX(0) scale(1)",
+          transition: "transform 0.5s cubic-bezier(.2,.8,.2,1)", transformStyle: "preserve-3d",
+          border: `1px solid ${BORDER}`,
+        }}>
+          <div style={{ height: 26, display: "flex", alignItems: "center", gap: 6, padding: "0 10px", background: meta.chip }}>
+            {[0,1,2].map(i => <span key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: "rgba(255,255,255,0.35)" }} />)}
+            <div style={{ flex: 1, height: 12, marginLeft: 6, borderRadius: 4, background: "rgba(255,255,255,0.14)", display: "flex", alignItems: "center", paddingLeft: 6 }}>
+              <span style={{ fontSize: 7.5, color: "rgba(255,255,255,0.7)", fontFamily: "monospace" }}>{url.replace("https://", "")}</span>
+            </div>
+          </div>
+          <div style={{ height: "calc(100% - 26px)" }}>
+            <SiteMockup kind={kind} />
           </div>
         </div>
-        <div style={{ flex: 1, borderRadius: 10, background: `linear-gradient(135deg, ${PINK_SOFT}, #f8f9fb)`, border: `1px solid ${PINK_LINE}`, display: "flex", flexDirection: "column", justifyContent: "center", gap: 9, padding: 20 }}>
-          <div style={{ width: "60%", height: 13, borderRadius: 4, background: INK }} />
-          <div style={{ width: "80%", height: 8, borderRadius: 3, background: "#d1d5db" }} />
-          <div style={{ width: "45%", height: 8, borderRadius: 3, background: "#d1d5db" }} />
-          <div style={{ width: 78, height: 22, borderRadius: 6, background: PINK, marginTop: 8 }} />
+      </div>
+      <div style={{ padding: "16px 20px 20px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+          <span style={{ width: 22, height: 22, borderRadius: 6, background: meta.accent, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Icon />
+          </span>
+          <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.09em", textTransform: "uppercase", color: PINK }}>{tag}</span>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          {[0, 1, 2].map(i => <div key={i} style={{ flex: 1, height: 28, borderRadius: 8, background: "#f1f2f4" }} />)}
-        </div>
+        <div data-testid="website-title" style={{ fontSize: 16, fontWeight: 800, color: INK, marginBottom: 5 }}>{title}</div>
+        <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.55, marginBottom: 14 }}>{desc}</div>
+        <a href={url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12.5, fontWeight: 700, color: PINK, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5 }}>
+          Visit Live Site ↗
+        </a>
       </div>
     </div>
   );
@@ -338,19 +474,10 @@ export default function ProofOfWork() {
 
       {/* SECTION: Websites */}
       <section id="websites" style={{ position: "relative", zIndex: 1, maxWidth: 1180, margin: "0 auto", padding: "44px clamp(20px,5vw,64px)" }}>
-        <SectionHeading eyebrow="Websites" title="Full builds, ready to convert" sub="Landing pages and brand sites — from first pixel to checkout handoff." />
+        <SectionHeading eyebrow="Websites" title="Full builds, ready to convert" sub="Real, live projects — hover any card to straighten it out, or click through to the actual site." />
         <Reveal delay={100}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>
-            {WEBSITES.map((w, i) => (
-              <div key={i} className="pow-piece" style={{ border: `1px solid ${BORDER}`, borderRadius: 14, background: CARD, overflow: "hidden" }}>
-                <WebFrame />
-                <div style={{ padding: "16px 18px 18px" }}>
-                  <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.09em", textTransform: "uppercase", color: PINK, marginBottom: 6, display: "block" }}>{w.tag}</span>
-                  <div style={{ fontSize: 15.5, fontWeight: 700, color: INK, marginBottom: 4 }}>{w.title}</div>
-                  <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.55 }}>{w.desc}</div>
-                </div>
-              </div>
-            ))}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 24 }}>
+            {WEBSITES.map((w, i) => <WebsiteCard key={i} {...w} />)}
           </div>
         </Reveal>
       </section>
