@@ -154,7 +154,7 @@ export default function AuthPage() {
     try { sessionStorage.setItem("ng_redirect", getRedirectDest()); } catch {}
     const { error: e2 } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: "https://nugens.in.net/auth" },
+      options: { redirectTo: "https://nugens.in/auth" },
     });
     if (e2) { setError(e2.message); setGoogleLoading(false); }
   };
@@ -163,7 +163,7 @@ export default function AuthPage() {
     e.preventDefault();
     setForgotLoading(true); setError("");
     const { error: e2 } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-      redirectTo: "https://nugens.in.net/auth",
+      redirectTo: "https://nugens.in/auth",
     });
     setForgotLoading(false);
     if (e2) setError(e2.message);

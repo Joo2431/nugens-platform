@@ -24,11 +24,11 @@ export function hasAppAccess(plan, app) {
 
 /** All platform links for the sidebar switcher */
 export const PLATFORM_LINKS = [
-  { label: "Nugens Dashboard", icon: "⊞", color: "#e8185d", url: "https://nugens.in.net/dashboard" },
-  { label: "Gen-E AI",         icon: "◎", color: "#7c3aed", url: "https://gene.nugens.in.net"      },
-  { label: "HyperX",           icon: "⬡", color: "#e8185d", url: "https://hyperx.nugens.in.net"    },
-  { label: "DigiHub",          icon: "◈", color: "#0284c7", url: "https://digihub.nugens.in.net"   },
-  { label: "Units",            icon: "◇", color: "#d97706", url: "https://units.nugens.in.net"     },
+  { label: "Nugens Dashboard", icon: "⊞", color: "#e8185d", url: "https://nugens.in/dashboard" },
+  { label: "Gen-E AI",         icon: "◎", color: "#7c3aed", url: "https://gene.nugens.in"      },
+  { label: "HyperX",           icon: "⬡", color: "#e8185d", url: "https://hyperx.nugens.in"    },
+  { label: "DigiHub",          icon: "◈", color: "#0284c7", url: "https://digihub.nugens.in"   },
+  { label: "Units",            icon: "◇", color: "#d97706", url: "https://units.nugens.in"     },
 ];
 
 /** Friendly label for the upgrade/access-denied page */

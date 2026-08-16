@@ -111,7 +111,7 @@ export function useProfile() {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    window.location.href = "https://nugens.in.net/auth";
+    window.location.href = "https://nugens.in/auth";
   };
 
   return { user, profile, ready, signOut };

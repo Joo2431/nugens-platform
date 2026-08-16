@@ -5,10 +5,10 @@ const PINK = "#e8185d";
 const B    = "#1e1e1e";
 
 const PRODUCTS = [
-  { label: "Gen-E AI",  sub: "Career intelligence",   href: "https://gene.nugens.in.net",    dot: "#7c3aed" },
-  { label: "HyperX",   sub: "Learning platform",      href: "https://hyperx.nugens.in.net",  dot: PINK },
-  { label: "DigiHub",  sub: "Digital marketing",      href: "https://digihub.nugens.in.net", dot: "#0284c7" },
-  { label: "Units",    sub: "Event production",        href: "https://units.nugens.in.net",   dot: "#d97706" },
+  { label: "Gen-E AI",  sub: "Career intelligence",   href: "https://gene.nugens.in",    dot: "#7c3aed" },
+  { label: "HyperX",   sub: "Learning platform",      href: "https://hyperx.nugens.in",  dot: PINK },
+  { label: "DigiHub",  sub: "Digital marketing",      href: "https://digihub.nugens.in", dot: "#0284c7" },
+  { label: "Units",    sub: "Event production",        href: "https://units.nugens.in",   dot: "#d97706" },
 ];
 
 const COMPANY = [
@@ -127,14 +127,14 @@ export default function Footer() {
           {/* ── CONTACT ── */}
           <div>
             <div className="ft-col-title">Get in touch</div>
-            <a href="mailto:noreply@nugens.in.net" className="ft-link" style={{ display:"flex", alignItems:"center", gap:7, color:"#888" }}>
-              <span style={{ fontSize:14 }}>✉</span> noreply@nugens.in.net
+            <a href="mailto:noreply@nugens.in" className="ft-link" style={{ display:"flex", alignItems:"center", gap:7, color:"#888" }}>
+              <span style={{ fontSize:14 }}>✉</span> noreply@nugens.in
             </a>
-            <a href="mailto:support@nugens.in.net" className="ft-link" style={{ display:"flex", alignItems:"center", gap:7, marginTop:4 }}>
-              <span style={{ fontSize:14 }}>💬</span> support@nugens.in.net
+            <a href="mailto:support@nugens.in" className="ft-link" style={{ display:"flex", alignItems:"center", gap:7, marginTop:4 }}>
+              <span style={{ fontSize:14 }}>💬</span> support@nugens.in
             </a>
-            <a href="mailto:careers@nugens.in.net" className="ft-link" style={{ display:"flex", alignItems:"center", gap:7, marginTop:4 }}>
-              <span style={{ fontSize:14 }}>🎯</span> careers@nugens.in.net
+            <a href="mailto:careers@nugens.in" className="ft-link" style={{ display:"flex", alignItems:"center", gap:7, marginTop:4 }}>
+              <span style={{ fontSize:14 }}>🎯</span> careers@nugens.in
             </a>
 
             <div style={{ marginTop:22, display:"inline-flex", alignItems:"center", gap:7,

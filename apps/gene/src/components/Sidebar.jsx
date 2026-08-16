@@ -152,7 +152,7 @@ export default function Sidebar({ userType, dbUserType, profile, user, onSignOut
         {/* Logo row */}
         <div style={{ display:"flex", alignItems:"center", justifyContent:showCollapsed?"center":"space-between", marginBottom:16, paddingLeft:showCollapsed?0:4, flexShrink:0 }}>
           {!showCollapsed && (
-            <a href="https://nugens.in.net" style={{ display:"flex", alignItems:"center", gap:8, textDecoration:"none" }}>
+            <a href="https://nugens.in" style={{ display:"flex", alignItems:"center", gap:8, textDecoration:"none" }}>
               <img src={NG_LOGO} style={{ width:26, height:26, borderRadius:7, objectFit:"cover" }} alt="Nugens" />
               <span style={{ fontWeight:800, fontSize:14, color:"#111", letterSpacing:"-0.03em" }}>Gen-<span style={{ color:PINK }}>E</span></span>
             </a>

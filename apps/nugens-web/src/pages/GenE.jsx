@@ -192,7 +192,7 @@ export default function GenE() {
             opacity: on ? 1 : 0, transform: on ? "none" : "translateY(8px)",
             transition: "all 0.46s ease 0.34s", marginBottom: 48
           }}>
-            <a href="https://gene.nugens.in.net" target="_blank" rel="noreferrer" className="ge-btn-purple">Launch Gen-E AI →</a>
+            <a href="https://gene.nugens.in" target="_blank" rel="noreferrer" className="ge-btn-purple">Launch Gen-E AI →</a>
             <Link to="/hyperx" className="ge-btn-ghost">Pair with HyperX</Link>
           </div>
 
@@ -292,7 +292,7 @@ export default function GenE() {
               <p style={{ fontSize: 14, color: "#9ca3af", lineHeight: 1.7, maxWidth: 300, marginBottom: 28 }}>
                 One conversation with Gen-E can reshape your entire direction. Start anytime — no preparation needed.
               </p>
-              <a href="https://gene.nugens.in.net" target="_blank" rel="noreferrer" className="ge-btn-purple">Launch Gen-E →</a>
+              <a href="https://gene.nugens.in" target="_blank" rel="noreferrer" className="ge-btn-purple">Launch Gen-E →</a>
             </Reveal>
 
             <Reveal delay={100}>
@@ -364,7 +364,7 @@ export default function GenE() {
               Start with Gen-E — it's free, it's specific, and it'll show you a path you probably haven't seen before.
             </p>
             <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
-              <a href="https://gene.nugens.in.net" target="_blank" rel="noreferrer" className="ge-btn-purple">Launch Gen-E AI →</a>
+              <a href="https://gene.nugens.in" target="_blank" rel="noreferrer" className="ge-btn-purple">Launch Gen-E AI →</a>
               <Link to="/about" className="ge-btn-ghost">Learn about Nugens</Link>
             </div>
           </Reveal>

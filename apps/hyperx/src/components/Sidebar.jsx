@@ -57,7 +57,7 @@ export default function Sidebar({ profile, user, open, onClose }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    window.location.href = "https://nugens.in.net/auth";
+    window.location.href = "https://nugens.in/auth";
   };
 
   const NAV = [
@@ -91,7 +91,7 @@ export default function Sidebar({ profile, user, open, onClose }) {
         {/* Logo */}
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20, paddingLeft:4 }}>
           {!effectiveCollapsed && (
-            <a href="https://nugens.in.net" style={{ display:"flex", alignItems:"center", gap:9, textDecoration:"none" }}>
+            <a href="https://nugens.in" style={{ display:"flex", alignItems:"center", gap:9, textDecoration:"none" }}>
               <img src={NG_LOGO} style={{ width:28, height:28, borderRadius:7, objectFit:"cover" }} alt="NG" />
               <div>
                 <div style={{ fontWeight:800, fontSize:15, color:TEXT, letterSpacing:"-0.035em", lineHeight:1.1 }}>Hyper<span style={{ color:PINK }}>X</span></div>

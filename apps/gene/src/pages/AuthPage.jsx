@@ -2,14 +2,14 @@ import { useEffect } from "react";
 
 /**
  * AuthPage — Sub-app redirect
- * All authentication is centralised at nugens.in.net/auth.
+ * All authentication is centralised at nugens.in/auth.
  * This page redirects there immediately, passing current origin as ?redirect=
  * so the user is returned here after login.
  */
 export default function AuthPage() {
   useEffect(() => {
     const returnUrl = encodeURIComponent(window.location.origin);
-    window.location.replace(`https://nugens.in.net/auth?redirect=${returnUrl}`);
+    window.location.replace(`https://nugens.in/auth?redirect=${returnUrl}`);
   }, []);
 
   return (

@@ -229,9 +229,9 @@ export default function Units() {
             transition: "all 0.46s ease 0.34s", marginBottom: 48
           }}>
             {/* FIXED: "Book Your Date" → "Book a Shoot" (not just for weddings) */}
-            <a href="https://units.nugens.in.net/book" className="u-btn-gold">Book a Shoot →</a>
+            <a href="https://units.nugens.in/book" className="u-btn-gold">Book a Shoot →</a>
             {/* NEW: public showcase link — no login required, safe to send to any prospective client */}
-            <a href="https://portfolio.nugens.in.net" className="u-btn-ghost">View Our Work</a>
+            <a href="https://portfolio.nugens.in" className="u-btn-ghost">View Our Work</a>
             <Link to="/contact" className="u-btn-ghost">Talk to us first</Link>
           </div>
 
@@ -531,7 +531,7 @@ export default function Units() {
                       </div>
                     ))}
                   </div>
-                  <a href="https://units.nugens.in.net/book" style={{
+                  <a href="https://units.nugens.in/book" style={{
                     display: "block", textAlign: "center", padding: "10px 20px", borderRadius: 8,
                     background: p.highlight ? GOLD : "transparent",
                     border: p.highlight ? "none" : `1px solid ${B}`,
@@ -572,8 +572,8 @@ export default function Units() {
             </p>
             <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
               {/* FIXED: "Book Your Date" → "Book a Shoot" */}
-              <a href="https://units.nugens.in.net/book" className="u-btn-gold">Book a Shoot →</a>
-              <a href="https://portfolio.nugens.in.net" className="u-btn-ghost">View Our Work</a>
+              <a href="https://units.nugens.in/book" className="u-btn-gold">Book a Shoot →</a>
+              <a href="https://portfolio.nugens.in" className="u-btn-ghost">View Our Work</a>
               <Link to="/contact" className="u-btn-ghost">Ask us anything</Link>
             </div>
           </Reveal>

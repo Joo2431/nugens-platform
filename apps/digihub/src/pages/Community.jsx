@@ -22,7 +22,7 @@ function ShareMenu({ post, onClose }) {
     return () => document.removeEventListener("mousedown", onClick);
   }, [onClose]);
 
-  const shareUrl = `https://digihub.nugens.in.net/community/post/${post.id}`;
+  const shareUrl = `https://digihub.nugens.in/community/post/${post.id}`;
   const shareText = post.content.slice(0, 120);
 
   const copyLink = async () => {

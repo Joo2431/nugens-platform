@@ -11,7 +11,7 @@ export default function CookiePolicy() {
 
       <div style={{ fontSize:14.5, lineHeight:1.8, color:"#374151" }}>
         <p style={{ marginBottom:20 }}>
-          This Cookie Policy explains how Nugens uses cookies across nugens.in.net and its
+          This Cookie Policy explains how Nugens uses cookies across nugens.in and its
           connected subdomains (gene, hyperx, digihub, units).
         </p>
 

@@ -184,7 +184,7 @@ export default function PricingPage() {
               </div>
 
               <button
-                onClick={()=>p.razorpay?handleUpgrade(p):p.price==="Custom"?window.location.href="mailto:contact@nugens.in.net":null}
+                onClick={()=>p.razorpay?handleUpgrade(p):p.price==="Custom"?window.location.href="mailto:contact@nugens.in":null}
                 disabled={isCurrent||loading===p.id}
                 style={{width:"100%",padding:"11px 0",borderRadius:10,border:"none",
                   background:isCurrent?"#1a1a1a":p.badge?p.color:"#fff",

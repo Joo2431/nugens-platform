@@ -15,10 +15,10 @@ const PAID_PLANS = new Set([
 ]);
 
 const APPS = [
-  { key:"gene",    label:"Gen-E",     icon:"◎", color:"#7c3aed", url:"https://gene.nugens.in.net",    active:true  },
-  { key:"hyperx",  label:"HyperX",    icon:"⬡", color:PINK,      url:"https://hyperx.nugens.in.net",  active:false },
-  { key:"digihub", label:"DigiHub",   icon:"◈", color:"#0284c7", url:"https://digihub.nugens.in.net", active:false },
-  { key:"units",   label:"The Units", icon:"◇", color:"#d97706", url:"https://units.nugens.in.net",   active:false },
+  { key:"gene",    label:"Gen-E",     icon:"◎", color:"#7c3aed", url:"https://gene.nugens.in",    active:true  },
+  { key:"hyperx",  label:"HyperX",    icon:"⬡", color:PINK,      url:"https://hyperx.nugens.in",  active:false },
+  { key:"digihub", label:"DigiHub",   icon:"◈", color:"#0284c7", url:"https://digihub.nugens.in", active:false },
+  { key:"units",   label:"The Units", icon:"◇", color:"#d97706", url:"https://units.nugens.in",   active:false },
 ];
 
 export default function AppSwitcherBar({ profile }) {
@@ -140,7 +140,7 @@ export default function AppSwitcherBar({ profile }) {
       }}>
 
         {/* Left: Logo */}
-        <a href="https://nugens.in.net" style={{ display:"flex", alignItems:"center", gap:7, textDecoration:"none", flexShrink:0 }}>
+        <a href="https://nugens.in" style={{ display:"flex", alignItems:"center", gap:7, textDecoration:"none", flexShrink:0 }}>
           <img src={NG_LOGO} style={{ width:22, height:22, borderRadius:5, objectFit:"cover" }} alt="NG" />
           <span style={{ fontWeight:800, fontSize:13, color:"#111", letterSpacing:"-0.03em" }}>Nugens</span>
         </a>
@@ -176,7 +176,7 @@ export default function AppSwitcherBar({ profile }) {
 
         {/* Right: Dashboard + Upgrade + Hamburger */}
         <div style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
-          <a href="https://nugens.in.net/dashboard" className="asb-link asb-dashboard-lnk">
+          <a href="https://nugens.in/dashboard" className="asb-link asb-dashboard-lnk">
             Dashboard
           </a>
           {!isPaid && (
@@ -238,7 +238,7 @@ export default function AppSwitcherBar({ profile }) {
               </a>
             ))}
             <div className="asb-mobile-divider" />
-            <a href="https://nugens.in.net/dashboard" className="asb-mobile-dashboard">
+            <a href="https://nugens.in/dashboard" className="asb-mobile-dashboard">
               ⊞ Dashboard
             </a>
           </div>

@@ -12,10 +12,10 @@ const CARD   = "#ffffff";
 const BORDER = "#e8eaed";
 
 const ALL_PRODUCTS = {
-  gene:   { icon:"◎", name:"Gen-E AI",   tag:"Career Intelligence",   color:"#7c3aed", href:"https://gene.nugens.in.net",    desc:"AI career coach, resume builder, skill gap analyser, job matching" },
-  hyperx: { icon:"⬡", name:"HyperX",    tag:"Learning Platform",     color:PINK,      href:"https://hyperx.nugens.in.net",  desc:"Professional courses, skill building, and industry certifications" },
-  digihub:{ icon:"◈", name:"DigiHub",   tag:"Marketing & Community", color:"#0284c7", href:"https://digihub.nugens.in.net", desc:"Brand tools, AI content planner, community and job board" },
-  units:  { icon:"◇", name:"The Units", tag:"Creative Studio",       color:"#d97706", href:"https://units.nugens.in.net",   desc:"Brand strategy, content production, and entrepreneur guidance" },
+  gene:   { icon:"◎", name:"Gen-E AI",   tag:"Career Intelligence",   color:"#7c3aed", href:"https://gene.nugens.in",    desc:"AI career coach, resume builder, skill gap analyser, job matching" },
+  hyperx: { icon:"⬡", name:"HyperX",    tag:"Learning Platform",     color:PINK,      href:"https://hyperx.nugens.in",  desc:"Professional courses, skill building, and industry certifications" },
+  digihub:{ icon:"◈", name:"DigiHub",   tag:"Marketing & Community", color:"#0284c7", href:"https://digihub.nugens.in", desc:"Brand tools, AI content planner, community and job board" },
+  units:  { icon:"◇", name:"The Units", tag:"Creative Studio",       color:"#d97706", href:"https://units.nugens.in",   desc:"Brand strategy, content production, and entrepreneur guidance" },
 };
 
 const GOAL_PRODUCTS = {

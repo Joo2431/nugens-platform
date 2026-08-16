@@ -117,7 +117,7 @@ function AppShell() {
   const signOut = async () => {
     setModeOverride(null);
     await supabase.auth.signOut();
-    window.location.href = "https://nugens.in.net/auth";
+    window.location.href = "https://nugens.in/auth";
   };
 
   const dbUserType = profile?.user_type || "individual";

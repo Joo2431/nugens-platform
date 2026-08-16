@@ -90,7 +90,7 @@ describe("ProofOfWork page", () => {
     const sites = [
       { title: "The Wedding Unit", url: "https://theweddingunit.in.net/" },
       { title: "SD Styles", url: "https://yesdeestyles.com/" },
-      { title: "Nugens Billing Suite", url: "https://billing-demo.nugens.in.net/" },
+      { title: "Nugens Billing Suite", url: "https://billing-demo.nugens.in/" },
     ];
     sites.forEach(({ title, url }) => {
       // Scoped by data-testid because "SD Styles" (and potentially other
@@ -142,11 +142,11 @@ describe("ProofOfWork page", () => {
       // links used to be relative ("/book"), which worked by coincidence
       // while this page lived inside the Units app, and would have been a
       // dead link once made standalone.
-      expect(href).toBe("https://units.nugens.in.net/book");
+      expect(href).toBe("https://units.nugens.in/book");
     });
 
     const pricingLink = screen.getByText(/view pricing/i).closest("a");
-    expect(pricingLink.getAttribute("href")).toBe("https://units.nugens.in.net/pricing");
+    expect(pricingLink.getAttribute("href")).toBe("https://units.nugens.in/pricing");
   });
 
   it("does not crash if a video's streamId is still a placeholder (the 'error state' this page can be in)", () => {

@@ -253,7 +253,7 @@ export default function Careers() {
                       </div>
                     </div>
 
-                    <a href={`mailto:careers@nugens.in.net?subject=Application: ${job.title}`}
+                    <a href={`mailto:careers@nugens.in?subject=Application: ${job.title}`}
                       className="apply-btn">
                       Apply for this role →
                     </a>
@@ -274,7 +274,7 @@ export default function Careers() {
                 We're always open to strong people. Send a general application.
               </div>
             </div>
-            <a href="mailto:careers@nugens.in.net?subject=General Application"
+            <a href="mailto:careers@nugens.in?subject=General Application"
               style={{ padding:"10px 20px", borderRadius:8, background:PINK, color:"#fff",
                 fontSize:13, fontWeight:600, textDecoration:"none", whiteSpace:"nowrap",
                 boxShadow:`0 2px 10px ${PINK}40` }}>

@@ -9,7 +9,7 @@ const APP_LABEL = "DigiHub";
 /**
  * ProtectedRoute — SSO-aware, plan-gated
  *
- * 1. If not logged in → redirect to nugens.in.net/auth with ?redirect= param
+ * 1. If not logged in → redirect to nugens.in/auth with ?redirect= param
  * 2. If logged in but plan doesn't include DigiHub → show Access Denied
  * 3. If logged in and has access → render children
  *
@@ -66,7 +66,7 @@ export default function ProtectedRoute({ children }) {
 
   if (status === "no-auth") {
     const returnUrl = encodeURIComponent(window.location.href);
-    window.location.href = `https://nugens.in.net/auth?redirect=${returnUrl}`;
+    window.location.href = `https://nugens.in/auth?redirect=${returnUrl}`;
     return null;
   }
 
@@ -85,12 +85,12 @@ export default function ProtectedRoute({ children }) {
           Subscribe to a Nugens suite plan or a {APP_LABEL}-specific plan to get access.
         </div>
         <div style={{ display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
-          <a href="https://nugens.in.net/pricing"
+          <a href="https://nugens.in/pricing"
             style={{ padding:"10px 22px", background:ACCENT, color:"#fff", borderRadius:9,
               textDecoration:"none", fontWeight:700, fontSize:13 }}>
             View Plans →
           </a>
-          <a href="https://nugens.in.net/dashboard"
+          <a href="https://nugens.in/dashboard"
             style={{ padding:"10px 22px", background:"#f3f4f6", color:"#374151", borderRadius:9,
               textDecoration:"none", fontWeight:700, fontSize:13 }}>
             Go to Dashboard

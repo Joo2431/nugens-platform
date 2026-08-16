@@ -177,7 +177,7 @@ export default function DigiHub() {
           }}>
             {view === "agency"
               ? <><Link to="/contact" className="dh-btn-pink">Book a strategy call →</Link><Link to="/portfolio" className="dh-btn-ghost">View our work</Link></>
-              : <><Link to="/contact" className="dh-btn-pink">Join the community →</Link><a href="https://gene.nugens.in.net" target="_blank" rel="noreferrer" className="dh-btn-ghost">Start with Gen-E first</a></>
+              : <><Link to="/contact" className="dh-btn-pink">Join the community →</Link><a href="https://gene.nugens.in" target="_blank" rel="noreferrer" className="dh-btn-ghost">Start with Gen-E first</a></>
             }
           </div>
 
@@ -311,7 +311,7 @@ export default function DigiHub() {
                   <p style={{ fontSize: 14, color: "#9ca3af", lineHeight: 1.7, maxWidth: 340, marginBottom: 28 }}>
                     We don't promise placement. We build the conditions where placement naturally happens — through skills, community, and real connections.
                   </p>
-                  <a href="https://digihub.nugens.in.net/community" target="_blank" rel="noreferrer" className="dh-btn-pink">Join the community →</a>
+                  <a href="https://digihub.nugens.in/community" target="_blank" rel="noreferrer" className="dh-btn-pink">Join the community →</a>
                 </Reveal>
                 <Reveal delay={100}>
                   {[
@@ -389,7 +389,7 @@ export default function DigiHub() {
             <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
               {view === "agency"
                 ? <Link to="/contact?reason=digihub-brand" className="dh-btn-pink">Book a strategy call →</Link>
-                : <a href="https://digihub.nugens.in.net/community" target="_blank" rel="noreferrer" className="dh-btn-pink">Join DigiHub →</a>}
+                : <a href="https://digihub.nugens.in/community" target="_blank" rel="noreferrer" className="dh-btn-pink">Join DigiHub →</a>}
               <button className="dh-btn-ghost" onClick={() => setView(view === "agency" ? "community" : "agency")}>
                 {view === "agency" ? "View for job seekers" : "View for brands"}
               </button>

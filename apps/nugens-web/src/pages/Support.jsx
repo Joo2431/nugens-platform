@@ -30,13 +30,13 @@ const FAQS = [
     cat: "Account & Login",
     items: [
       { q:"How do I sign in to Nugens?",
-        a:"Go to nugens.in.net/auth to sign in with Google or email. One account gives you access to all Nugens products — Gen-E AI, HyperX, DigiHub and Units." },
+        a:"Go to nugens.in/auth to sign in with Google or email. One account gives you access to all Nugens products — Gen-E AI, HyperX, DigiHub and Units." },
       { q:"I forgot my password. How do I reset it?",
         a:"On the sign-in page, click 'Forgot password?' and enter your email. You'll receive a reset link within 2 minutes. Check your spam folder if it doesn't arrive." },
       { q:"Can I use one account across all products?",
-        a:"Yes — that's exactly how Nugens works. One login at nugens.in.net gives you access to every product. Your plan and subscription are shared across all apps." },
+        a:"Yes — that's exactly how Nugens works. One login at nugens.in gives you access to every product. Your plan and subscription are shared across all apps." },
       { q:"How do I change my email or profile details?",
-        a:"Go to your Dashboard at nugens.in.net/dashboard and click your profile. You can update your name and preferences there." },
+        a:"Go to your Dashboard at nugens.in/dashboard and click your profile. You can update your name and preferences there." },
     ]
   },
   {
@@ -49,9 +49,9 @@ const FAQS = [
       { q:"How do I cancel my subscription?",
         a:"Go to Dashboard → Manage Plan → Cancel subscription. You'll keep access until the end of your billing period. No partial refunds for mid-cycle cancellations." },
       { q:"I was charged but my plan didn't upgrade. What do I do?",
-        a:"This is rare but can happen. Email support@nugens.in.net with your payment ID from Razorpay and we'll resolve it within 24 hours." },
+        a:"This is rare but can happen. Email support@nugens.in with your payment ID from Razorpay and we'll resolve it within 24 hours." },
       { q:"Do you offer refunds?",
-        a:"Yes — if you contact us within 7 days of a charge and haven't used the premium features, we'll issue a full refund. Contact support@nugens.in.net." },
+        a:"Yes — if you contact us within 7 days of a charge and haven't used the premium features, we'll issue a full refund. Contact support@nugens.in." },
     ]
   },
   {
@@ -69,7 +69,7 @@ const FAQS = [
     cat: "HyperX",
     items: [
       { q:"How do I access courses?",
-        a:"Visit hyperx.nugens.in.net, sign in, and go to Courses. Free users get access to 3 free courses. Pro users unlock the full library." },
+        a:"Visit hyperx.nugens.in, sign in, and go to Courses. Free users get access to 3 free courses. Pro users unlock the full library." },
       { q:"Why is the video not playing?",
         a:"Try refreshing the page. If it persists, check your internet connection. Video issues are usually resolved within minutes — if not, contact support." },
       { q:"How do I earn a certificate?",
@@ -80,11 +80,11 @@ const FAQS = [
     cat: "DigiHub & Units",
     items: [
       { q:"What services does DigiHub offer?",
-        a:"DigiHub offers brand tools, content planning, AI-generated marketing content, and a talent marketplace for businesses. Access it at digihub.nugens.in.net." },
+        a:"DigiHub offers brand tools, content planning, AI-generated marketing content, and a talent marketplace for businesses. Access it at digihub.nugens.in." },
       { q:"How do I book a shoot or event with Units?",
-        a:"Visit units.nugens.in.net, browse our packages, and use the booking form. Our team will confirm within 24 hours." },
+        a:"Visit units.nugens.in, browse our packages, and use the booking form. Our team will confirm within 24 hours." },
       { q:"Can I get a custom quote for large events?",
-        a:"Yes — fill out the contact form on the Units page or email noreply@nugens.in.net with details about your event for a custom quote." },
+        a:"Yes — fill out the contact form on the Units page or email noreply@nugens.in with details about your event for a custom quote." },
     ]
   },
 ];
@@ -184,7 +184,7 @@ export default function Support() {
       setSent(true);
     } catch (err) {
       // Fallback: mailto if DB not set up yet
-      window.location.href = `mailto:support@nugens.in.net?subject=Support: ${topic}&body=Name: ${name}%0AEmail: ${email}%0A%0A${msg}`;
+      window.location.href = `mailto:support@nugens.in?subject=Support: ${topic}&body=Name: ${name}%0AEmail: ${email}%0A%0A${msg}`;
       setSent(true);
     } finally {
       setSending(false);
@@ -408,7 +408,7 @@ export default function Support() {
 
                 <p style={{ fontSize:12, color:"#bbb", textAlign:"center" }}>
                   Or email us directly at{" "}
-                  <a href="mailto:support@nugens.in.net" style={{ color:PINK, textDecoration:"none" }}>support@nugens.in.net</a>
+                  <a href="mailto:support@nugens.in" style={{ color:PINK, textDecoration:"none" }}>support@nugens.in</a>
                 </p>
               </form>
             </Reveal>

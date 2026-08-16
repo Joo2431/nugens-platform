@@ -163,7 +163,7 @@ export default function PricingPage({ profile }) {
           <div style={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:16, padding:32, maxWidth:700, margin:"0 auto", textAlign:"center" }}>
             <div style={{ fontSize:18, fontWeight:800, color:TEXT, marginBottom:8 }}>Need a custom package?</div>
             <div style={{ fontSize:13, color:MUTED, marginBottom:20 }}>For ongoing partnerships, retainer arrangements, or bundled services — talk to us.</div>
-            <a href="mailto:noreply@nugens.in.net" style={{ display:"inline-block", padding:"12px 28px", background:PINK, color:"#fff", borderRadius:10, textDecoration:"none", fontSize:14, fontWeight:700 }}>Contact Our Team →</a>
+            <a href="mailto:noreply@nugens.in" style={{ display:"inline-block", padding:"12px 28px", background:PINK, color:"#fff", borderRadius:10, textDecoration:"none", fontSize:14, fontWeight:700 }}>Contact Our Team →</a>
           </div>
         </div>
       )}
@@ -217,7 +217,7 @@ export default function PricingPage({ profile }) {
 
           <div style={{ textAlign:"center", marginTop:36, fontSize:13, color:MUTED }}>
             All individual features are free. Premium consultation is only charged if you find it valuable.
-            <br/>Questions? <a href="mailto:noreply@nugens.in.net" style={{ color:PINK }}>noreply@nugens.in.net</a>
+            <br/>Questions? <a href="mailto:noreply@nugens.in" style={{ color:PINK }}>noreply@nugens.in</a>
           </div>
         </div>
       )}

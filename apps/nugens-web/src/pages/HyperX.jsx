@@ -223,7 +223,7 @@ export default function HyperX() {
             transition: "all 0.46s ease 0.34s", marginBottom: 48
           }}>
             <Link to="/contact" className="hx-btn-pink">Enroll in HyperX →</Link>
-            <a href="https://gene.nugens.in.net" target="_blank" rel="noreferrer" className="hx-btn-ghost">Pair with Gen-E AI</a>
+            <a href="https://gene.nugens.in" target="_blank" rel="noreferrer" className="hx-btn-ghost">Pair with Gen-E AI</a>
           </div>
 
           {/* stats strip */}
@@ -449,7 +449,7 @@ export default function HyperX() {
             </p>
             <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
               <Link to="/contact" className="hx-btn-pink">Enroll in HyperX →</Link>
-              <a href="https://gene.nugens.in.net" target="_blank" rel="noreferrer" className="hx-btn-ghost">Start with Gen-E first</a>
+              <a href="https://gene.nugens.in" target="_blank" rel="noreferrer" className="hx-btn-ghost">Start with Gen-E first</a>
             </div>
           </Reveal>
         </div>

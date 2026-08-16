@@ -388,7 +388,7 @@ export default function Contact() {
                     fontFamily: "'DM Sans', sans-serif",
                   }}>
                     Something went wrong. Please email us at{" "}
-                    <a href="mailto:contact@nugens.in.net" style={{ color: "#be123c", fontWeight: 600 }}>contact@nugens.in.net</a>
+                    <a href="mailto:contact@nugens.in" style={{ color: "#be123c", fontWeight: 600 }}>contact@nugens.in</a>
                   </div>
                 )}
 
@@ -424,8 +424,8 @@ export default function Contact() {
               <div className="ct-card">
                 <div className="ct-card-title">Direct contact</div>
                 {[
-                  { icon: "✉", label: "General", value: "contact@nugens.in.net", href: "mailto:contact@nugens.in.net" },
-                  { icon: "✉", label: "Careers", value: "careers@nugens.in.net",  href: "mailto:careers@nugens.in.net" },
+                  { icon: "✉", label: "General", value: "contact@nugens.in", href: "mailto:contact@nugens.in" },
+                  { icon: "✉", label: "Careers", value: "careers@nugens.in",  href: "mailto:careers@nugens.in" },
                 ].map(c => (
                   <a key={c.label} href={c.href} style={{
                     display: "flex", alignItems: "flex-start", gap: 12,

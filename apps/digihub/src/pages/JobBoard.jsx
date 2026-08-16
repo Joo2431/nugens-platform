@@ -279,7 +279,7 @@ export default function JobBoard({ profile }) {
             <div style={{ textAlign:"right", fontSize:11, color:FAINT, marginBottom:16 }}>{coverLetter.length}/2000</div>
 
             <div style={{ background:"#0284c708", border:`1px solid ${BLUE}20`, borderRadius:8, padding:"10px 14px", marginBottom:16 }}>
-              <div style={{ fontSize:12, color:"#374151" }}>Your profile will be shared with the employer. Make sure your profile is up to date at <a href="https://gene.nugens.in.net" style={{color:BLUE}}>Gen-E</a>.</div>
+              <div style={{ fontSize:12, color:"#374151" }}>Your profile will be shared with the employer. Make sure your profile is up to date at <a href="https://gene.nugens.in" style={{color:BLUE}}>Gen-E</a>.</div>
             </div>
 
             {applyErr && <div style={{ fontSize:12, color:"#dc2626", marginBottom:14 }}>{applyErr}</div>}

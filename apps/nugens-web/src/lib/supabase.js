@@ -13,11 +13,11 @@ const cookieStorage = {
   },
   setItem(key, value) {
     if (typeof document === "undefined") return;
-    document.cookie = `${key}=${encodeURIComponent(value)}; domain=.nugens.in.net; path=/; max-age=31536000; SameSite=Lax; Secure`;
+    document.cookie = `${key}=${encodeURIComponent(value)}; domain=.nugens.in; path=/; max-age=31536000; SameSite=Lax; Secure`;
   },
   removeItem(key) {
     if (typeof document === "undefined") return;
-    document.cookie = `${key}=; domain=.nugens.in.net; path=/; max-age=0`;
+    document.cookie = `${key}=; domain=.nugens.in; path=/; max-age=0`;
   },
 };
 

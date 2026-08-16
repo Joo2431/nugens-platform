@@ -9,13 +9,13 @@ const B    = "#f0f0f0";
 
 const PRODUCTS = [
   { to:"/gene",    label:"Gen-E AI",          sub:"AI career intelligence",        dot:"#7c3aed", icon:"◎",
-    launch:"https://gene.nugens.in.net",    desc:"Resume analysis, job matching & your personalised career roadmap.", bg:"#ede9fe" },
+    launch:"https://gene.nugens.in",    desc:"Resume analysis, job matching & your personalised career roadmap.", bg:"#ede9fe" },
   { to:"/hyperx",  label:"HyperX",             sub:"Professional learning platform", dot:PINK,      icon:"⬡",
-    launch:"https://hyperx.nugens.in.net",  desc:"Workplace skills, salary negotiation & interview mastery.",         bg:"#fef2f5" },
+    launch:"https://hyperx.nugens.in",  desc:"Workplace skills, salary negotiation & interview mastery.",         bg:"#fef2f5" },
   { to:"/digihub", label:"DigiHub",            sub:"Marketing agency & community",   dot:"#0284c7", icon:"◈",
-    launch:"https://digihub.nugens.in.net", desc:"Brand growth, content, SEO & career placement network.",            bg:"#eff6ff" },
+    launch:"https://digihub.nugens.in", desc:"Brand growth, content, SEO & career placement network.",            bg:"#eff6ff" },
   { to:"/units",   label:"Units",   sub:"Wedding & event production",     dot:"#d97706", icon:"◇",
-    launch:"https://units.nugens.in.net",   desc:"Cinematography, photography, editing & brand content studio.",      bg:"#fff7ed" },
+    launch:"https://units.nugens.in",   desc:"Cinematography, photography, editing & brand content studio.",      bg:"#fff7ed" },
 ];
 
 const COMPANY = [
@@ -247,7 +247,7 @@ export default function Header() {
 
             <NavLink to="/pricing" className={({isActive})=>`hdr-link${isActive?" active":""}`}>Pricing</NavLink>
             <NavLink to="/support" className={({isActive})=>`hdr-link${isActive?" active":""}`}>Support</NavLink>
-            <a href="https://gene.nugens.in.net" target="_blank" rel="noreferrer"
+            <a href="https://gene.nugens.in" target="_blank" rel="noreferrer"
               className="hdr-link"
               style={{ display:"flex",alignItems:"center",gap:5 }}>
               <span style={{ width:6,height:6,borderRadius:"50%",background:"#7c3aed",display:"inline-block" }}/>
@@ -435,7 +435,7 @@ export default function Header() {
             {/* footer — sign in only when logged out */}
             {!user && (
               <div style={{ padding:"16px 20px",borderTop:`1px solid ${B}`,display:"flex",flexDirection:"column",gap:9,flexShrink:0 }}>
-                <a href="https://gene.nugens.in.net" target="_blank" rel="noreferrer"
+                <a href="https://gene.nugens.in" target="_blank" rel="noreferrer"
                   style={{ display:"block",textAlign:"center",padding:"13px",borderRadius:9,background:"#7c3aed",
                     color:"#fff",fontSize:14,fontWeight:700,textDecoration:"none",
                     boxShadow:"0 2px 12px rgba(124,58,237,0.25)",fontFamily:"'Plus Jakarta Sans',sans-serif" }}>

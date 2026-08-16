@@ -61,7 +61,7 @@ export default function Sidebar({ profile, user, onSignOut, open, onClose }) {
   const resolvedName = profile?.full_name?.trim() || user?.user_metadata?.full_name?.trim() || user?.user_metadata?.name?.trim() || user?.email?.split("@")[0]?.trim() || "User";
   const firstName  = resolvedName.split(" ")[0];
 
-  const signOut = onSignOut || (async () => { await supabase.auth.signOut(); window.location.href="https://nugens.in.net/auth"; });
+  const signOut = onSignOut || (async () => { await supabase.auth.signOut(); window.location.href="https://nugens.in/auth"; });
   const eff = isMobile ? false : collapsed;
 
   const body = (
@@ -83,7 +83,7 @@ export default function Sidebar({ profile, user, onSignOut, open, onClose }) {
 
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24, paddingLeft:4 }}>
           {!eff && (
-            <a href="https://nugens.in.net" style={{ display:"flex", alignItems:"center", gap:9, textDecoration:"none" }}>
+            <a href="https://nugens.in" style={{ display:"flex", alignItems:"center", gap:9, textDecoration:"none" }}>
               <img src={NG_LOGO} style={{ width:28, height:28, borderRadius:7, objectFit:"cover" }} alt="NG" />
               <div>
                 <div style={{ fontWeight:800, fontSize:14, color:"#111", letterSpacing:"-0.03em", lineHeight:1.1 }}>The<span style={{ color:AMBER }}>Units</span></div>

@@ -46,10 +46,10 @@ const uid       = () => `b-${Date.now()}-${Math.random().toString(36).slice(2,6)
 const freshChat = (tool) => ({ id:uid(), title:"New Chat", tool:tool||"jd", messages:[], history:[] });
 
 const APPS = [
-  { label:"Gen-E",    url:"https://gene.nugens.in.net",    color:PURP,      active:true  },
-  { label:"HyperX",  url:"https://hyperx.nugens.in.net",  color:PINK,      active:false },
-  { label:"DigiHub", url:"https://digihub.nugens.in.net", color:"#0284c7", active:false },
-  { label:"The Units",url:"https://units.nugens.in.net",  color:"#d97706", active:false },
+  { label:"Gen-E",    url:"https://gene.nugens.in",    color:PURP,      active:true  },
+  { label:"HyperX",  url:"https://hyperx.nugens.in",  color:PINK,      active:false },
+  { label:"DigiHub", url:"https://digihub.nugens.in", color:"#0284c7", active:false },
+  { label:"The Units",url:"https://units.nugens.in",  color:"#d97706", active:false },
 ];
 
 export default function BusinessChat() {
@@ -267,7 +267,7 @@ export default function BusinessChat() {
         <div style={{ display:"flex", alignItems:"center", gap:12 }}>
           <button onClick={() => setSideOpen(o => !o)}
             style={{ background:"none", border:`1px solid ${BORD}`, color:MUTED, cursor:"pointer", fontSize:14, lineHeight:1, padding:"5px 8px", borderRadius:7 }}>☰</button>
-          <a href="https://nugens.in.net" style={{ fontWeight:800, fontSize:15, color:TEXT, letterSpacing:"-0.03em", textDecoration:"none" }}>
+          <a href="https://nugens.in" style={{ fontWeight:800, fontSize:15, color:TEXT, letterSpacing:"-0.03em", textDecoration:"none" }}>
             Nu<span style={{ color:PINK }}>Gens</span>
           </a>
           <div style={{ display:"flex", alignItems:"center", gap:4, padding:"3px 10px", background:`${PINK}10`, border:`1px solid ${PINK}25`, borderRadius:20 }}>
@@ -352,7 +352,7 @@ export default function BusinessChat() {
                   <div style={{ fontSize:10, color:MUTED }}>Business</div>
                 </div>
               </div>
-              <button onClick={async () => { await supabase.auth.signOut(); window.location.href = "https://nugens.in.net/auth"; }}
+              <button onClick={async () => { await supabase.auth.signOut(); window.location.href = "https://nugens.in/auth"; }}
                 style={{ background:"none", border:`1px solid ${BORD}`, color:MUTED, cursor:"pointer", fontSize:11, padding:"4px 8px", borderRadius:6, fontFamily:"inherit" }}>
                 Out
               </button>

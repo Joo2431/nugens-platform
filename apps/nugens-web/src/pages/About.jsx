@@ -382,7 +382,7 @@ export default function About() {
               Talk to Gen-E AI, explore HyperX, connect through DigiHub — or reach out to us directly.
             </p>
             <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
-              <a href="https://gene.nugens.in.net" target="_blank" rel="noreferrer" className="ab-btn-pink">Start with Gen-E →</a>
+              <a href="https://gene.nugens.in" target="_blank" rel="noreferrer" className="ab-btn-pink">Start with Gen-E →</a>
               <Link to="/contact" className="ab-btn-ghost">Talk to us</Link>
             </div>
           </Reveal>

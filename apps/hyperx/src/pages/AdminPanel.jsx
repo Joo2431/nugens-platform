@@ -400,7 +400,7 @@ export default function AdminPanel({ profile: profileProp }) {
         </div>
         <div style={{ display:"flex", gap:10, justifyContent:"center" }}>
           <button style={S.btnGray} onClick={() => window.location.reload()}>↺ Retry</button>
-          <button style={S.btn} onClick={async () => { await supabase.auth.signOut(); window.location.href = "https://nugens.in.net/auth"; }}>
+          <button style={S.btn} onClick={async () => { await supabase.auth.signOut(); window.location.href = "https://nugens.in/auth"; }}>
             Sign Out & Back In →
           </button>
         </div>

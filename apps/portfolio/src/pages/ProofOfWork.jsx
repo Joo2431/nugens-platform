@@ -66,7 +66,7 @@ const WEBSITES = [
     kind: "billing", thumb: shotBilling,
     tag: "SaaS Demo — Internal Tool", title: "Nugens Billing Suite",
     desc: "Retail billing & invoicing tool — barcode-ready phone catalog with IMEI tracking, EMI calculator, and printable/WhatsApp-shareable bills.",
-    url: "https://billing-demo.nugens.in.net/",
+    url: "https://billing-demo.nugens.in/",
   },
 ];
 
@@ -395,14 +395,14 @@ export default function ProofOfWork() {
 
       {/* Top bar — real Nugens NG logo, not a text wordmark */}
       <div style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px clamp(20px,5vw,64px)", background: "rgba(255,255,255,0.85)", backdropFilter: "blur(10px)", borderBottom: `1px solid ${BORDER}` }}>
-        <a href="https://nugens.in.net" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+        <a href="https://nugens.in" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
           <img src={NG_LOGO} alt="Nugens" style={{ width: 30, height: 30, borderRadius: 7, objectFit: "cover" }} />
           <div>
             <div style={{ fontSize: 14.5, fontWeight: 800, color: INK, letterSpacing: "-0.02em", lineHeight: 1 }}>Nugens</div>
             <div style={{ fontSize: 9.5, color: MUTED_DIM, letterSpacing: "0.1em", textTransform: "uppercase", marginTop: 2 }}>Units — Production</div>
           </div>
         </a>
-        <a href="https://units.nugens.in.net/book" className="pow-cta" style={{ padding: "10px 22px", background: PINK, color: "#fff", textDecoration: "none", borderRadius: 8, fontSize: 13, fontWeight: 700 }}>Book a Project →</a>
+        <a href="https://units.nugens.in/book" className="pow-cta" style={{ padding: "10px 22px", background: PINK, color: "#fff", textDecoration: "none", borderRadius: 8, fontSize: 13, fontWeight: 700 }}>Book a Project →</a>
       </div>
 
       {/* Hero — bold sans headline, gradient badge, stat grid */}
@@ -423,7 +423,7 @@ export default function ProofOfWork() {
           your project gets, start to finish.
         </p>
         <div style={{ display: "flex", gap: 14, marginTop: 34, flexWrap: "wrap" }}>
-          <a href="https://units.nugens.in.net/book" className="pow-cta" style={{ padding: "14px 28px", background: PINK, color: "#fff", textDecoration: "none", borderRadius: 9, fontSize: 14, fontWeight: 700 }}>Book a Project</a>
+          <a href="https://units.nugens.in/book" className="pow-cta" style={{ padding: "14px 28px", background: PINK, color: "#fff", textDecoration: "none", borderRadius: 9, fontSize: 14, fontWeight: 700 }}>Book a Project</a>
           <a href="#websites" className="pow-ghost" style={{ padding: "14px 26px", border: `1px solid ${BORDER}`, color: INK, textDecoration: "none", borderRadius: 9, fontSize: 14, fontWeight: 600 }}>View the Work ↓</a>
         </div>
         <div style={{ display: "flex", gap: "clamp(28px,5vw,56px)", marginTop: 56, flexWrap: "wrap", paddingTop: 30, borderTop: `1px solid ${BORDER}` }}>
@@ -526,8 +526,8 @@ export default function ProofOfWork() {
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "flex-start" }}>
-            <a href="https://units.nugens.in.net/book" style={{ padding: "14px 28px", background: "#fff", color: PINK, textDecoration: "none", borderRadius: 9, fontSize: 14, fontWeight: 800 }}>Book a Project →</a>
-            <a href="https://units.nugens.in.net/pricing" style={{ padding: "14px 26px", border: "1px solid rgba(255,255,255,0.5)", color: "#fff", textDecoration: "none", borderRadius: 9, fontSize: 14, fontWeight: 600 }}>View Pricing</a>
+            <a href="https://units.nugens.in/book" style={{ padding: "14px 28px", background: "#fff", color: PINK, textDecoration: "none", borderRadius: 9, fontSize: 14, fontWeight: 800 }}>Book a Project →</a>
+            <a href="https://units.nugens.in/pricing" style={{ padding: "14px 26px", border: "1px solid rgba(255,255,255,0.5)", color: "#fff", textDecoration: "none", borderRadius: 9, fontSize: 14, fontWeight: 600 }}>View Pricing</a>
           </div>
         </div>
       </Reveal>

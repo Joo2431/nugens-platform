@@ -35,13 +35,13 @@ const __dirname  = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, ".env") });
 const app = express();
 const allowedOrigins = [
-  "https://gene.nugens.in.net",
-  "https://www.gene.nugens.in.net",
-  "https://nugens.in.net",
-  "https://www.nugens.in.net",
-  "https://hyperx.nugens.in.net",
-  "https://digihub.nugens.in.net",
-  "https://units.nugens.in.net",
+  "https://gene.nugens.in",
+  "https://www.gene.nugens.in",
+  "https://nugens.in",
+  "https://www.nugens.in",
+  "https://hyperx.nugens.in",
+  "https://digihub.nugens.in",
+  "https://units.nugens.in",
   "http://localhost:5173",
   "http://localhost:3000",
   "http://127.0.0.1:5173",
@@ -50,7 +50,7 @@ const allowedOrigins = [
 const corsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin) || origin.endsWith(".nugens.in.net")) {
+    if (allowedOrigins.includes(origin) || origin.endsWith(".nugens.in")) {
       return callback(null, true);
     }
    callback(new Error("Not allowed by CORS"));
@@ -586,7 +586,7 @@ function generateResumePDF(content, userName = "User") {
   doc.pipe(fs.createWriteStream(filePath));
 
   // Header with user's real name
-  // Watermark line ("AI-Generated Resume • nugens.in.net") removed per bug
+  // Watermark line ("AI-Generated Resume • nugens.in") removed per bug
   // report 4-07-2026 — ATS parsers and recruiters should see a clean header.
   doc.fontSize(18).font("Helvetica-Bold").fillColor("#111")
      .text(userName.toUpperCase(), { align: "center" });
@@ -1251,7 +1251,7 @@ app.post("/api/units/bookings/verify", requireAuth, async (req, res) => {
         method: "POST",
         headers: { "Authorization": `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          from: "Units Bookings <noreply@nugens.in.net>",
+          from: "Units Bookings <noreply@nugens.in>",
           to: [process.env.ADMIN_EMAIL || "jeromjoseph31@gmail.com"],
           subject: `New Units booking: ${service.title} — ${packageName}`,
           html: `
@@ -1362,7 +1362,7 @@ app.post("/api/units/bookings/:id/reschedule-request", requireAuth, async (req, 
         method: "POST",
         headers: { "Authorization": `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          from: "Units Bookings <noreply@nugens.in.net>",
+          from: "Units Bookings <noreply@nugens.in>",
           to: [process.env.ADMIN_EMAIL || "jeromjoseph31@gmail.com"],
           subject: `Reschedule request: ${booking.service_title} — ${booking.package_name}`,
           html: `
@@ -1412,7 +1412,7 @@ app.post("/api/units/event-requests", requireAuth, async (req, res) => {
         method: "POST",
         headers: { "Authorization": `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          from: "Units Bookings <noreply@nugens.in.net>",
+          from: "Units Bookings <noreply@nugens.in>",
           to: [process.env.ADMIN_EMAIL || "jeromjoseph31@gmail.com"],
           subject: `New quote request: ${eventType}`,
           html: `
@@ -2529,7 +2529,7 @@ async function sendNudgeEmail(toEmail, firstName, tip) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "GEN-E Career AI <noreply@nugens.in.net>",
+        from: "GEN-E Career AI <noreply@nugens.in>",
         to:   [toEmail],
         subject: tip.subject,
         html: `
@@ -2543,12 +2543,12 @@ async function sendNudgeEmail(toEmail, firstName, tip) {
               <p style="font-size:14px;color:#333;line-height:1.7;margin:0;">${tip.body}</p>
             </div>
             <p style="font-size:13px;color:#888;margin-top:20px;">Keep building — your career is a long game.</p>
-            <a href="https://gene.nugens.in.net" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#e8185d;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;">
+            <a href="https://gene.nugens.in" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#e8185d;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;">
               Open GEN-E →
             </a>
             <hr style="margin:28px 0;border:none;border-top:1px solid #f0f0f0;">
             <p style="font-size:11px;color:#ccc;">You're receiving this because you signed up for GEN-E.
-              <a href="https://gene.nugens.in.net" style="color:#ccc;">Unsubscribe</a></p>
+              <a href="https://gene.nugens.in" style="color:#ccc;">Unsubscribe</a></p>
           </div>
         `,
       }),
@@ -3520,13 +3520,13 @@ app.post("/api/contact", async (req, res) => {
         method: "POST",
         headers: { "Authorization": `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          from: "Nugens Contact <noreply@nugens.in.net>",
+          from: "Nugens Contact <noreply@nugens.in>",
           to: [process.env.ADMIN_EMAIL || "jeromjoseph31@gmail.com"],
           reply_to: email,
           subject: `New contact form submission${reason ? ` — ${reason}` : ""}`,
           html: `
             <div style="font-family:sans-serif;max-width:520px;">
-              <h2 style="color:#e8185d;">New message from nugens.in.net/contact</h2>
+              <h2 style="color:#e8185d;">New message from nugens.in/contact</h2>
               <p><b>From:</b> ${name} · ${email} ${phone ? "· " + phone : ""}</p>
               ${reason ? `<p><b>Reason:</b> ${reason}</p>` : ""}
               <div style="background:#fff5f8;border-left:3px solid #e8185d;padding:14px 18px;border-radius:0 8px 8px 0;margin:14px 0;">

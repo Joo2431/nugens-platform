@@ -114,7 +114,7 @@ export function PrivacyPolicy() {
       <h2>9. Contact us</h2>
       <p>
         Questions about this Privacy Policy can be sent to{" "}
-        <a href="mailto:support@nugens.in.net">support@nugens.in.net</a>.
+        <a href="mailto:support@nugens.in">support@nugens.in</a>.
       </p>
     </LegalLayout>
   );
@@ -190,7 +190,7 @@ export function TermsOfUse() {
       <h2>9. Contact us</h2>
       <p>
         Questions about these Terms can be sent to{" "}
-        <a href="mailto:support@nugens.in.net">support@nugens.in.net</a>.
+        <a href="mailto:support@nugens.in">support@nugens.in</a>.
       </p>
     </LegalLayout>
   );
@@ -239,7 +239,7 @@ export function CookiePolicy() {
       <h2>6. Contact us</h2>
       <p>
         Questions about this Cookie Policy can be sent to{" "}
-        <a href="mailto:support@nugens.in.net">support@nugens.in.net</a>.
+        <a href="mailto:support@nugens.in">support@nugens.in</a>.
       </p>
     </LegalLayout>
   );

@@ -104,7 +104,7 @@ export default function AIGuidance({ profile }) {
 
   const requestHandoff = () => {
     setHandoff(true);
-    const final = [...messages, {role:"system",text:"✓ Our content team has been notified. They'll reach out within 2 business hours at noreply@nugens.in.net"}];
+    const final = [...messages, {role:"system",text:"✓ Our content team has been notified. They'll reach out within 2 business hours at noreply@nugens.in"}];
     setMessages(final); saveSession(final);
   };
 

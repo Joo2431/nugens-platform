@@ -358,7 +358,7 @@ export default function Home() {
             opacity: on ? 1 : 0, transform: on ? "none" : "translateY(8px)",
             transition: "all 0.46s ease 0.34s"
           }}>
-            <a href="https://gene.nugens.in.net" target="_blank" rel="noreferrer" className="btn-pink">Start with Gen-E AI →</a>
+            <a href="https://gene.nugens.in" target="_blank" rel="noreferrer" className="btn-pink">Start with Gen-E AI →</a>
             <Link to="/about"  className="btn-ghost">How it works</Link>
           </div>
 
@@ -677,7 +677,7 @@ export default function Home() {
             </p>
             <div style={{ display: "flex", justifyContent: "center", gap: 28, flexWrap: "wrap" }}>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-                <a href="https://gene.nugens.in.net" target="_blank" rel="noreferrer" className="btn-pink">Try Gen-E AI →</a>
+                <a href="https://gene.nugens.in" target="_blank" rel="noreferrer" className="btn-pink">Try Gen-E AI →</a>
                 <span style={{ fontSize: 11.5, color: "#9ca3af" }}>For job seekers — free to start</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>

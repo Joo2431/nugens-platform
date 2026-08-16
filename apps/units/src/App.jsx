@@ -24,7 +24,7 @@ const Portfolio         = lazy(() => import("./pages/Portfolio"));
 const Booking           = lazy(() => import("./pages/Booking"));
 const BookingPage       = lazy(() => import("./pages/BookingPage"));
 // ProofOfWork page moved to its own standalone app: apps/portfolio
-// (no longer imported here — see portfolio.nugens.in.net instead)
+// (no longer imported here — see portfolio.nugens.in instead)
 
 const AMBER = "#d97706";
 
@@ -79,7 +79,7 @@ function AppShell() {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    window.location.href = "https://nugens.in.net/auth";
+    window.location.href = "https://nugens.in/auth";
   };
 
   return (
