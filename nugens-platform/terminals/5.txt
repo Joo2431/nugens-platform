@@ -1,0 +1,12 @@
+---
+pid: 15536
+cwd: "J:\nugens-platform"
+command: "Set-Location J:\\nugens-platform\\backend; npm run dev"
+started_at: 2026-07-06T20:16:04.326Z
+running_for_ms: 214938   
+---
+
+> nugens-backend@1.0.0 dev
+> node --watch server.js
+
+✅ Gen-E running on port 10000
