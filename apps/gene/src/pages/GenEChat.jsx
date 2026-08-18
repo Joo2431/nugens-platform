@@ -490,13 +490,40 @@ export default function GenEChat() {
     const closingMatch = body.search(closingPatterns);
     if (closingMatch !== -1) body = body.slice(0, closingMatch);
 
+    // Drop placeholder/instructional lines the model sometimes leaves behind
+    // instead of real content (e.g. "(Consider adding any relevant certifications)")
+    body = body
+      .split("\n")
+      .filter(line => !/^\s*\*?\(?(consider adding|add your|insert your|\[.*\]|add relevant|placeholder)/i.test(line.trim()))
+      .join("\n");
+
     return body.trim();
   };
+
+  // Converts inline markdown emphasis (**bold** and *italic*) to HTML,
+  // instead of leaving literal asterisks in the exported document.
+  const renderInline = (text) => text
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em style=\"font-style:normal;color:#555\">$1</em>");
 
   const downloadResumePDF = (txt) => {
     try {
       const cleanTxt = extractResumeOnly(txt);
       const date = new Date().toLocaleDateString("en-IN", { day:"numeric", month:"long", year:"numeric" });
+
+      // Contact header — pulled from profile, not from AI chat text, so it's
+      // always accurate and never dependent on the model remembering to include it.
+      const contactParts = [
+        profile?.email,
+        profile?.phone,
+        profile?.location,
+      ].filter(Boolean).join("  •  ");
+      const headerHtml = `
+        <div style="text-align:center;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #e5e7eb;">
+          <div style="font-size:20pt;font-weight:800;color:#111;letter-spacing:-0.02em">${profile?.full_name || "Your Name"}</div>
+          ${contactParts ? `<div style="font-size:9.5pt;color:#666;margin-top:6px">${contactParts}</div>` : ""}
+        </div>`;
+
       const html = cleanTxt
         .split("\n")
         .map(line => {
@@ -509,13 +536,13 @@ export default function GenEChat() {
             </div>`;
           }
           if (l.startsWith("### ")) {
-            return `<div style="font-size:11pt;font-weight:700;color:#111;margin:10px 0 2px">${l.replace(/^### /, "")}</div>`;
+            return `<div style="font-size:11pt;font-weight:700;color:#111;margin:10px 0 2px">${renderInline(l.replace(/^### /, ""))}</div>`;
           }
           if (l.startsWith("- ") || l.startsWith("• ")) {
-            const txt2 = l.replace(/^[-•] /, "").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+            const txt2 = renderInline(l.replace(/^[-•] /, ""));
             return `<div style="padding:2px 0 2px 16px;color:#374151;font-size:10pt">&#8226; ${txt2}</div>`;
           }
-          const clean = l.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+          const clean = renderInline(l);
           return `<div style="font-size:10pt;color:#374151;margin:2px 0">${clean}</div>`;
         })
         .join("");
@@ -545,7 +572,7 @@ export default function GenEChat() {
 <body>
   <!--gen-e-watermark:${profile?.full_name || "user"}:${date}-->
   <div class="page">
-    <div class="content">${html}</div>
+    <div class="content">${headerHtml}${html}</div>
   </div>
   <script>
     window.onload = function() {

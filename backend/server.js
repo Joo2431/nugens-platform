@@ -413,9 +413,17 @@ ATS-OPTIMIZATION RULES — apply these to every resume you generate:
 - Reverse-chronological order for experience and education (most recent first).
 - Consistent date format throughout: MM/YYYY – MM/YYYY (or "Present").
 - Plain bullet points only (- or •) — no tables, no columns, no special symbols.
+- Use **double-asterisk bold** only for emphasis if needed. NEVER use single
+  asterisks (*text*) — they render as literal asterisk characters in the
+  exported document, not as formatting.
 - Quantify achievements wherever possible (%, ₹, time saved, scale).
 - Keep contact info (name, email, phone, location) in the main body content,
   never implied to belong in a page header/footer.
+- NEVER include placeholder or instructional text in the resume itself, such
+  as "(Consider adding any relevant certifications)" or "[Insert X here]".
+  If a section has no real content to include (e.g. no certifications), OMIT
+  that section entirely rather than leaving a placeholder — a resume the user
+  downloads must be genuinely complete and ready to send, with zero editing.
 - Always remind them the PDF download button will appear automatically after generation.
 - NEVER say you cannot create or deliver a resume PDF.`,
 
@@ -613,10 +621,17 @@ function extractResumeOnly(raw) {
   const closingMatch = body.search(closingPatterns);
   if (closingMatch !== -1) body = body.slice(0, closingMatch);
 
+  // Drop placeholder/instructional lines the model sometimes leaves behind
+  // instead of real content (e.g. "(Consider adding any relevant certifications)")
+  body = body
+    .split("\n")
+    .filter(line => !/^\s*\*?\(?(consider adding|add your|insert your|\[.*\]|add relevant|placeholder)/i.test(line.trim()))
+    .join("\n");
+
   return body.trim();
 }
 
-function generateResumePDF(content, userName = "User") {
+function generateResumePDF(content, userName = "User", contact = "") {
   const cleanContent = extractResumeOnly(content);
   const fileName = `resume-${Date.now()}.pdf`;
   const filePath = path.join(__dirname, fileName);
@@ -639,11 +654,16 @@ function generateResumePDF(content, userName = "User") {
   // Header with user's real name — no visible branding, clean for ATS + recruiters
   doc.fontSize(18).font("Helvetica-Bold").fillColor("#111")
      .text(userName.toUpperCase(), { align: "center" });
+  if (contact) {
+    doc.moveDown(0.15);
+    doc.fontSize(9).font("Helvetica").fillColor("#666")
+       .text(contact, { align: "center" });
+  }
   doc.moveDown(0.8);
 
   const lines = cleanContent.split("\n");
   lines.forEach(line => {
-    const clean = line.replace(/##\s?/g, "").replace(/\*\*/g, "").trim();
+    const clean = line.replace(/##\s?/g, "").replace(/\*\*/g, "").replace(/\*/g, "").trim();
     if (!clean) { doc.moveDown(0.3); return; }
 
     if (line.startsWith("## ")) {
@@ -931,7 +951,8 @@ if (
 ) {
   try {
     const userName = req.profile?.full_name || req.user?.user_metadata?.full_name || "User";
-    pdfPath = "/download/" + generateResumePDF(fullText, userName);
+    const contactParts = [req.profile?.email || req.user?.email, req.profile?.phone, req.profile?.location].filter(Boolean);
+    pdfPath = "/download/" + generateResumePDF(fullText, userName, contactParts.join("  •  "));
   } catch (e) {
     console.warn("PDF generation failed:", e.message);
   }
