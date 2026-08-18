@@ -394,6 +394,28 @@ The user is in RESUME / ATS RESUME mode.
 - This is GEN-E's core feature. You MUST help build or optimize their resume.
 - If no details provided: ask for current role, years of experience, target role, and key skills.
 - Once you have enough info, generate a COMPLETE ATS-friendly resume using the ## header structure.
+
+OUTPUT FORMAT — CRITICAL, FOLLOW EXACTLY:
+- When you output the final resume, output ONLY the resume itself, starting
+  directly with the first ## section header. This output is exported
+  and downloaded as-is by the user — it must be ready to send to an
+  employer with zero editing.
+- Do NOT include any introductory sentence ("Here's your resume:",
+  "Thanks for sharing your details..."), and do NOT include any closing
+  remark ("Let me know if...", "I hope this helps...") in the same message
+  as the resume content. If you want to say something conversational,
+  say it in a separate follow-up message, never inside the resume block.
+
+ATS-OPTIMIZATION RULES — apply these to every resume you generate:
+- Use standard section names only: PROFESSIONAL SUMMARY, CORE SKILLS,
+  PROFESSIONAL EXPERIENCE, EDUCATION, CERTIFICATIONS, PROJECTS. Never
+  invent creative alternatives — ATS parsers match against these exact terms.
+- Reverse-chronological order for experience and education (most recent first).
+- Consistent date format throughout: MM/YYYY – MM/YYYY (or "Present").
+- Plain bullet points only (- or •) — no tables, no columns, no special symbols.
+- Quantify achievements wherever possible (%, ₹, time saved, scale).
+- Keep contact info (name, email, phone, location) in the main body content,
+  never implied to belong in a page header/footer.
 - Always remind them the PDF download button will appear automatically after generation.
 - NEVER say you cannot create or deliver a resume PDF.`,
 
@@ -579,7 +601,23 @@ function renderBoldAwareLine(doc, text, opts = {}) {
   });
 }
 
+// Strips chat narration ("Thanks for sharing...", "Here's your resume:",
+// "Let me know if...") from raw AI output so the exported PDF contains
+// ONLY the resume — nothing the user has to manually delete before sending
+// it to an employer. Mirrors the same logic used in the frontend HTML export.
+function extractResumeOnly(raw) {
+  const firstHeaderIdx = raw.search(/##\s+/);
+  let body = firstHeaderIdx === -1 ? raw : raw.slice(firstHeaderIdx);
+
+  const closingPatterns = /\n\s*(let me know|feel free|would you like|i hope|does this|this resume|hope this helps|want me to|should i|happy to)/i;
+  const closingMatch = body.search(closingPatterns);
+  if (closingMatch !== -1) body = body.slice(0, closingMatch);
+
+  return body.trim();
+}
+
 function generateResumePDF(content, userName = "User") {
+  const cleanContent = extractResumeOnly(content);
   const fileName = `resume-${Date.now()}.pdf`;
   const filePath = path.join(__dirname, fileName);
   const doc = new PDFDocument({
@@ -603,7 +641,7 @@ function generateResumePDF(content, userName = "User") {
      .text(userName.toUpperCase(), { align: "center" });
   doc.moveDown(0.8);
 
-  const lines = content.split("\n");
+  const lines = cleanContent.split("\n");
   lines.forEach(line => {
     const clean = line.replace(/##\s?/g, "").replace(/\*\*/g, "").trim();
     if (!clean) { doc.moveDown(0.3); return; }

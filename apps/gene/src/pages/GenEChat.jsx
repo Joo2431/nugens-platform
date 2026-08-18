@@ -479,10 +479,25 @@ export default function GenEChat() {
     return session?.access_token||null;
   };
 
+  // Strips chat narration ("Thanks for sharing...", "Here's your resume:",
+  // "Let me know if...") so the exported document contains ONLY resume
+  // content — nothing the user has to manually delete before sending it out.
+  const extractResumeOnly = (raw) => {
+    const firstHeaderIdx = raw.search(/##\s+/);
+    let body = firstHeaderIdx === -1 ? raw : raw.slice(firstHeaderIdx);
+
+    const closingPatterns = /\n\s*(let me know|feel free|would you like|i hope|does this|this resume|hope this helps|want me to|should i|happy to)/i;
+    const closingMatch = body.search(closingPatterns);
+    if (closingMatch !== -1) body = body.slice(0, closingMatch);
+
+    return body.trim();
+  };
+
   const downloadResumePDF = (txt) => {
     try {
+      const cleanTxt = extractResumeOnly(txt);
       const date = new Date().toLocaleDateString("en-IN", { day:"numeric", month:"long", year:"numeric" });
-      const html = txt
+      const html = cleanTxt
         .split("\n")
         .map(line => {
           const l = line.trim();
