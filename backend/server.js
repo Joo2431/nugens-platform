@@ -582,12 +582,23 @@ function renderBoldAwareLine(doc, text, opts = {}) {
 function generateResumePDF(content, userName = "User") {
   const fileName = `resume-${Date.now()}.pdf`;
   const filePath = path.join(__dirname, fileName);
-  const doc = new PDFDocument({ margin: 50, size: "A4" });
+  const doc = new PDFDocument({
+    margin: 50,
+    size: "A4",
+    // Hidden watermark: embedded PDF Info metadata only, invisible on the
+    // page and not read by ATS parsers or visual inspection — replaces the
+    // old visible banner per bug report 4-07-2026.
+    info: {
+      Title: `${userName} — Resume`,
+      Author: userName,
+      Creator: "Gen-E AI",
+      Producer: "Gen-E AI — Nugens (gene.nugens.in)",
+      Keywords: "Generated via Gen-E AI",
+    },
+  });
   doc.pipe(fs.createWriteStream(filePath));
 
-  // Header with user's real name
-  // Watermark line ("AI-Generated Resume • nugens.in") removed per bug
-  // report 4-07-2026 — ATS parsers and recruiters should see a clean header.
+  // Header with user's real name — no visible branding, clean for ATS + recruiters
   doc.fontSize(18).font("Helvetica-Bold").fillColor("#111")
      .text(userName.toUpperCase(), { align: "center" });
   doc.moveDown(0.8);
