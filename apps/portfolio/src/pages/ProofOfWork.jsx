@@ -96,8 +96,8 @@ const REELS = [
 const TESTIMONIAL = {
   streamId: "fd542e7900fad11618568ca25aeca19a",
   quote: "Working with The Units felt less like hiring an agency and more like adding a production team to ours. They understood the brief fast, and the turnaround was faster than anyone we'd worked with before.",
-  name: "Client Name",
-  role: "Founder — replace with real name/title",
+  name: "Vismaya",
+  role: "Founder",
 };
 
 const POSTERS = [
