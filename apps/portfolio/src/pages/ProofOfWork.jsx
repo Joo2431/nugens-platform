@@ -526,7 +526,7 @@ export default function ProofOfWork() {
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "flex-start" }}>
-            <a href="https://units.nugens.in/book" style={{ padding: "14px 28px", background: "#fff", color: PINK, textDecoration: "none", borderRadius: 9, fontSize: 14, fontWeight: 800 }}>Book a Project →</a>
+            <a href="https://wa.me/919342386606" target="_blank" rel="noopener noreferrer" style={{ padding: "14px 28px", background: "#fff", color: PINK, textDecoration: "none", borderRadius: 9, fontSize: 14, fontWeight: 800 }}>Book a Project →</a>
             <a href="https://units.nugens.in/pricing" style={{ padding: "14px 26px", border: "1px solid rgba(255,255,255,0.5)", color: "#fff", textDecoration: "none", borderRadius: 9, fontSize: 14, fontWeight: 600 }}>View Pricing</a>
           </div>
         </div>
